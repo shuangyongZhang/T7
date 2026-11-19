@@ -1,0 +1,22 @@
+<linker>
+<assembly fullname="YooAsset" preserve="all"/>
+<assembly fullname="NPOI" preserve="all"/>
+<assembly fullname="NPOI.OOXML" preserve="all"/>
+<assembly fullname="NPOI.OpenXmlFormats" preserve="all"/>
+<assembly fullname="NPOI.OpenXml4Net" preserve="all"/>
+<assembly fullname="NPOI.Util" preserve="all"/>
+<assembly fullname="iTextSharp" preserve="all"/>
+<assembly fullname="ICSharpCode.SharpZipLib" preserve="all"/>
+<assembly fullname="System" preserve="all"/>
+<assembly fullname="System.Core" preserve="all"/>
+<assembly fullname="System.Drawing" preserve="all"/>
+<assembly fullname="Microsoft.IO.RecyclableMemoryStream" preserve="all"/>
+<!-- 修复Android IL2CPP下NPOI插入图片 Lazy<T> 初始化失败的问题 -->
+<assembly fullname="NPOI.OOXML">
+    <type fullname="NPOI.XWPF.UserModel.XWPFRun" preserve="all"/>
+    <type fullname="NPOI.XWPF.UserModel.XWPFDocument" preserve="all"/>
+    <type fullname="NPOI.XWPF.UserModel.XWPFPicture" preserve="all"/>
+    <type fullname="NPOI.XWPF.UserModel.XWPFPictureData" preserve="all"/>
+    <type fullname="NPOI.XWPF.UserModel.XWPFParagraph" preserve="all"/>
+</assembly>
+</linker>

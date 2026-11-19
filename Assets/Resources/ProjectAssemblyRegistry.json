@@ -1,0 +1,20 @@
+{
+    "entries": [
+        {
+            "name": "TheraBytes.BetterUi.Runtime",
+            "version": "1.0.001"
+        },
+        {
+            "name": "ZFBrowser-Editor",
+            "version": "1.0.001"
+        },
+        {
+            "name": "ZFBrowser",
+            "version": "1.0.001"
+        },
+        {
+            "name": "TheraBytes.BetterUi.Editor",
+            "version": "1.0.001"
+        }
+    ]
+}

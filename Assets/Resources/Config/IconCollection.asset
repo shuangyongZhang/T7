@@ -1,0 +1,31 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c505ae864064b4e46a209c6b6a82906b, type: 3}
+  m_Name: IconCollection
+  m_EditorClassIdentifier: 
+  Icons:
+  - Name: man
+    Sprite: {fileID: 21300000, guid: 2032548f2781c477196864594d0d79de, type: 3}
+  - Name: women
+    Sprite: {fileID: 21300000, guid: 69a3d2a212a5d4a318fba5bcd6543ffb, type: 3}
+  - Name: manK
+    Sprite: {fileID: 21300000, guid: 09335b1d1c7c3a24480c1939986d28b2, type: 3}
+  - Name: womenK
+    Sprite: {fileID: 21300000, guid: 46ef2f9e6ab77814cb6f11a81bb5239e, type: 3}
+  - Name: manBigK
+    Sprite: {fileID: 21300000, guid: 82a095d1013ee7246aca784eaf383821, type: 3}
+  - Name: womenBigK
+    Sprite: {fileID: 21300000, guid: a1d74d97966a1654fa6ab411e5a26b4d, type: 3}
+  - Name: maleDoctor
+    Sprite: {fileID: 21300000, guid: 4054ca72eafd8c14dac52d01fdee3228, type: 3}
+  - Name: femaleDoctor
+    Sprite: {fileID: 21300000, guid: c1a1257f3bc027a44a34fd1df02debf4, type: 3}

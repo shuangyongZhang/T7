@@ -1,0 +1,86 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!78 &1
+TagManager:
+  serializedVersion: 2
+  tags:
+  - puzzleItem
+  - item
+  - Ball
+  - Cat
+  - Pipe
+  - Effects
+  - SceneRoot
+  - Play
+  - StarFish
+  - CommonFish
+  - TimeBubble
+  - Jelly
+  - MayFiles
+  - ShellFish
+  - Enemy
+  - EnemyBoss
+  - Coin
+  - Mereor
+  - cover
+  - Self
+  - Wall
+  - Ground
+  - TopWall
+  - Obstacle
+  - Player
+  - Gold
+  - BulbFish
+  - CanDestroy
+  - Combo
+  - Fish
+  - PirateShip
+  - Shell
+  - UpLevel
+  - South
+  - North
+  - West
+  - East
+  - Road-GrassGroups
+  - Road-Hole-Groups
+  - Road-PondGroups
+  - Road-SandGroups
+  - SceneCamera
+  - keyboard
+  layers:
+  - Default
+  - TransparentFX
+  - Ignore Raycast
+  - 
+  - Water
+  - UI
+  - 
+  - 
+  - 
+  - Touch
+  - Wall
+  - Maze
+  - BirdFlying
+  - Bomb
+  - Enemy
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  m_SortingLayers:
+  - name: Default
+    uniqueID: 0
+    locked: 0
