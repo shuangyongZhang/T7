@@ -214,8 +214,6 @@ namespace LB
                 DBManagerModule.Instance.Initialize();
 
                 LoadUserData();
-
-                SetVolume();
             }
             catch (Exception e)
             {
@@ -271,6 +269,9 @@ namespace LB
         public override void OnReady()
         {
             base.OnReady();
+
+            // 此时所有内置模块已OnInit，音频模块helper已就绪，再应用音量
+            SetVolume();
 
             //自动启动
             IsRunning = false;

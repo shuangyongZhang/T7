@@ -679,8 +679,10 @@ namespace LB
 
         private void OnSelectHospitalLogo()
         {
+            Log.Info("OnSelectHospitalLogo: 打开选择 Logo 文件对话框");
             NativeFilePicker.Permission permission = NativeFilePicker.PickFile(path =>
             {
+                Log.Info("OnSelectHospitalLogo: 回调 path=" + (string.IsNullOrEmpty(path) ? "<null>" : path));
                 if (string.IsNullOrEmpty(path)) return;
                 var size = CommonHelper.GetImageSize(path);
                 if (size.x > 256 || size.y > 256)
@@ -731,8 +733,8 @@ namespace LB
             HideModalOnMain(doctorAddPanel);
             HideModalOnMain(doctorEditPanel);
             versionTimer?.Pause();
-            SaveConfigModule.Instance.SetUserData("musicVolume", musicSlider.value);
-            SaveConfigModule.Instance.SetUserData("soundVolume", soundSlider.value);
+            SaveConfigModule.Instance.SetUserData("musicVolume", Mathf.RoundToInt(musicSlider.value));
+            SaveConfigModule.Instance.SetUserData("soundVolume", Mathf.RoundToInt(soundSlider.value));
             SaveConfigModule.Instance.SaveUserData();
         }
 
