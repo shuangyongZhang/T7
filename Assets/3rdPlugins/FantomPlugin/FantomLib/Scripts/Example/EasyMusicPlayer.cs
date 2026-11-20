@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.Events;
+using UnityEngine.Networking;
 using UnityEngine.UI;
 using Random = UnityEngine.Random;
 
@@ -25,7 +26,7 @@ namespace FantomLib.Example
     /// </summary>
     public class EasyMusicPlayer : MonoBehaviour, ILocalizable
     {
-#region Inspector settings Section
+        #region Inspector settings Section
 
         //Inspector Settings
         [Serializable]
@@ -37,7 +38,7 @@ namespace FantomLib.Example
         }
 
         [SerializeField] private Mode mode = Mode.Loop;     //Playback mode
-        
+
         [SerializeField] private bool exceptPresets = false;        //When Next or Shuffle mode, exclude preset songs.      //連続再生、シャッフルモードのとき、プリセット曲を含める。
         [SerializeField] private bool autoPlaylistOnError = true;   //Automatically remove from playlist when song errors.  //曲のエラー時にリストから自動的に削除する。
         [SerializeField] private bool autoSettingOnError = true;    //Automatically correct setting errors.                 //設定のエラーを自動的に修正する。
@@ -74,7 +75,7 @@ namespace FantomLib.Example
             public PlayItem() { }
 
             public PlayItem(string path, string title, string artist)
-                : this (null, path, title, artist) { }
+                : this(null, path, title, artist) { }
 
             public PlayItem(AudioClip clip, string path, string title, string artist)
             {
@@ -111,18 +112,20 @@ namespace FantomLib.Example
         [Serializable] public class ErrorHandler : UnityEvent<string> { }    //error message
         public ErrorHandler OnError;
 
-#endregion Inspector settings Section
+        #endregion Inspector settings Section
 
-#region PlayerPrefs Section
+        #region PlayerPrefs Section
 
         const string SETTING_PREF = "_setting";
         const string PLAYLIST_PREF = "_playlist";
 
-        public string SaveSettingKey {
+        public string SaveSettingKey
+        {
             get { return string.IsNullOrEmpty(saveKey) ? gameObject.name + SETTING_PREF : saveKey + SETTING_PREF; }
         }
 
-        public string SavePlaylistKey {
+        public string SavePlaylistKey
+        {
             get { return string.IsNullOrEmpty(saveKey) ? gameObject.name + PLAYLIST_PREF : saveKey + PLAYLIST_PREF; }
         }
 
@@ -207,11 +210,12 @@ namespace FantomLib.Example
             }
         }
 
-#endregion PlayerPrefs Section
+        #endregion PlayerPrefs Section
 
-#region Properties and Local values Section
+        #region Properties and Local values Section
 
-        private string DefaultMimeType {
+        private string DefaultMimeType
+        {
             get { return AndroidMimeType.Audio.All; }
         }
 
@@ -220,14 +224,17 @@ namespace FantomLib.Example
         //
         //複数の MIME type 指定。
         //※プロバイダ（ストレージ）によって有効な MIME type は異なり、適用されない場合もあるので注意。
-        public string[] MimeTypes {
-            get {
+        public string[] MimeTypes
+        {
+            get
+            {
                 if (mimeTypes == null || mimeTypes.Length == 0)
                     mimeTypes = new string[] { DefaultMimeType };
 
                 return mimeTypes;
             }
-            set {
+            set
+            {
                 if (value != null && value.Length > 0)
                     mimeTypes = value;
                 else
@@ -242,11 +249,14 @@ namespace FantomLib.Example
         //単一で MIME type 設定。ただし、内部では配列で管理される。
         //※取得は [0] が返される。複数の MIME type がセットされてる場合、[0] が主要なものであることが望ましい。
         //※プロバイダ（ストレージ）によって有効な MIME type は異なり、適用されない場合もあるので注意。
-        public string MimeType {
-            get {
+        public string MimeType
+        {
+            get
+            {
                 return MimeTypes[0];
             }
-            set {
+            set
+            {
                 string mimeType = value;
                 if (string.IsNullOrEmpty(mimeType))
                     mimeType = DefaultMimeType;
@@ -254,7 +264,7 @@ namespace FantomLib.Example
                 if (mimeTypes != null && mimeTypes.Length == 1)
                     mimeTypes[0] = mimeType;
                 else
-                    mimeTypes = new string[]{ mimeType };
+                    mimeTypes = new string[] { mimeType };
             }
         }
 
@@ -264,28 +274,33 @@ namespace FantomLib.Example
 
         //Current index in playlist (When illegal = -1)
         //現在のプレイリスト内でのインデクス（不正のとき = -1）
-        public int CurrentIndex {
+        public int CurrentIndex
+        {
             get { return index; }
-            set {
+            set
+            {
                 Play(value);
             }
         }
 
         //Is it playing?
         //再生中かどうか？
-        public bool IsPlaying {
+        public bool IsPlaying
+        {
             get { return (audioSource != null && audioSource.isPlaying); }
         }
 
         //Whether the index is in a valid range for the playlist.
         //インデクスがプレイリストの有効な範囲にあるか？
-        private bool IsValidIndex(int idx) {
+        private bool IsValidIndex(int idx)
+        {
             return (playlist != null && 0 <= idx && idx < playlist.Count);
         }
 
         //Whether the index is in a valid range for the presets.
         //インデクスがプリセットの有効な範囲にあるか？
-        private bool IsPresetIndex(int idx) {
+        private bool IsPresetIndex(int idx)
+        {
             return (presets != null && 0 <= idx && idx < presets.Count);
         }
 
@@ -352,9 +367,11 @@ namespace FantomLib.Example
 
         //'Next' or 'Shuffle' mode also includes preset songs [* Update only when there is change and save setting]
         //連続再生, シャッフルモードのときプリセット曲も含む [※変化があったときのみ更新と設定保存]
-        public bool IsExceptPresets {
+        public bool IsExceptPresets
+        {
             get { return exceptPresets; }
-            set {
+            set
+            {
                 if (exceptPresets != value)
                 {
                     exceptPresets = value;
@@ -383,9 +400,11 @@ namespace FantomLib.Example
 
         //Playback mode setting (Property) [* Update only when there is a change]
         //再生モードの設定（プロパティ）[※変化があったときのみ更新]
-        public Mode PlaybackMode {
+        public Mode PlaybackMode
+        {
             get { return mode; }
-            set {
+            set
+            {
                 if (mode != value)
                     SetMode(value);
             }
@@ -523,9 +542,9 @@ namespace FantomLib.Example
             }
         }
 
-#endregion Properties and Local values Section
+        #endregion Properties and Local values Section
 
-#region Unity life cycle section
+        #region Unity life cycle section
 
         private void OnApplicationPause(bool pause)
         {
@@ -607,9 +626,9 @@ namespace FantomLib.Example
             }
         }
 
-#endregion Unity life cycle section
+        #endregion Unity life cycle section
 
-#region Music Player Section
+        #region Music Player Section
 
         bool isFinishChecking = false;    //Checking end of song
 
@@ -639,7 +658,7 @@ namespace FantomLib.Example
         //Index of shuffled songs (Index only for playback target range).
         //シャッフルされた曲のインデクス（再生対象のみのインデクス）
         List<int> shuffleTable;
-        
+
         //Position in the current shuffle table (Shuffle again when you go to the end).
         //現在のシャッフルテーブルでの位置（最後まで行くと再度シャッフルされる）
         int shufflePtr = 0;
@@ -871,9 +890,9 @@ namespace FantomLib.Example
             return false;
         }
 
-#endregion Music Player Section
+        #endregion Music Player Section
 
-#region Load AudioClip Section
+        #region Load AudioClip Section
 
         enum LoadedState
         {
@@ -893,7 +912,8 @@ namespace FantomLib.Example
             loadedClip = null;
             loadedState = LoadedState.None;
 
-            if (!File.Exists(path)) {
+            if (!File.Exists(path))
+            {
                 string mes = localize.Text(localize.errorNotExist)
                     + "\n" + path;
                 if (autoPlaylistOnError)
@@ -935,12 +955,12 @@ namespace FantomLib.Example
         //ファイルを AudioClip としてダウンロードする
         IEnumerator LoadToAudioClip(string path)
         {
-            using(WWW www = new WWW("file://" + path))
+            using (UnityWebRequest www = new UnityWebRequest("file://" + path))
             {
                 while (!www.isDone)
                     yield return null;
 
-                loadedClip = www.GetAudioClip(false, true);
+                loadedClip = DownloadHandlerAudioClip.GetContent(www);
             }
         }
 
@@ -1042,9 +1062,9 @@ namespace FantomLib.Example
                 SavePlaylist();
         }
 
-#endregion Load AudioClip Section
+        #endregion Load AudioClip Section
 
-#region Android Dialog Section
+        #region Android Dialog Section
 
         const string KEY_SONG = "song";
         const string KEY_MODE = "mode";
@@ -1151,7 +1171,7 @@ namespace FantomLib.Example
                         autoPlaylistOnError = param.GetBool(KEY_AUTO_PLAYLIST, autoPlaylistOnError);
                         autoSettingOnError = param.GetBool(KEY_AUTO_SETTING, autoSettingOnError);
                         SetPlaybackMode(param.GetString(KEY_MODE, mode.ToString()));
-                        
+
                         if (saveSetting)
                             SaveSetting();
                     }
@@ -1373,9 +1393,9 @@ namespace FantomLib.Example
             }
         }
 
-#endregion Android Dialog Section
+        #endregion Android Dialog Section
 
-#region UI etc. Section
+        #region UI etc. Section
 
         //Display message on Toast
         private void ShowToast(string message, bool longDuration = false)
@@ -1410,18 +1430,19 @@ namespace FantomLib.Example
             }
         }
 
-#endregion UI etc. Section
+        #endregion UI etc. Section
 
-#region Other static method etc. Section
+        #region Other static method etc. Section
 
         //Shuffle list elements (Fisher-Yates shuffle)
         //リスト要素のシャッフル
         static void Shuffle<T>(List<T> list)
         {
-		    for (int i = list.Count - 1; i > 0; i--) {
+            for (int i = list.Count - 1; i > 0; i--)
+            {
                 int j = Random.Range(0, i + 1); //[0]～[i]
                 Swap(list, i, j);
-		    }
+            }
         }
 
         //Element swap
@@ -1430,9 +1451,9 @@ namespace FantomLib.Example
         {
             if (i != j)
             {
-		        T tmp = list[i];
-		        list[i] = list[j];
-		        list[j] = tmp;
+                T tmp = list[i];
+                list[i] = list[j];
+                list[j] = tmp;
             }
         }
 
@@ -1443,9 +1464,9 @@ namespace FantomLib.Example
             return (int)Mathf.Repeat(value - min, max - min) + min;
         }
 
-#endregion Other static method etc. Section
+        #endregion Other static method etc. Section
 
-#region Localize Section
+        #region Localize Section
 
         [Serializable]
         public class LocalizeData
@@ -1757,6 +1778,6 @@ namespace FantomLib.Example
             localize.language = language;
         }
 
-#endregion Localize Section
+        #endregion Localize Section
     }
 }

@@ -70,6 +70,9 @@ namespace LB
 
         private Timer checkTimer;
         private Timer heartbeatTimer;
+        // 事件订阅标记，避免代偿开关反复切换导致重复订阅
+        private bool blueNameEventSubscribed;
+        private bool compensationEventSubscribed;
 
         private bool checkVersion;
 
@@ -117,8 +120,57 @@ namespace LB
 
         public void ConnectBluetoothDevice()
         {
+            // 监听代偿开关改变事件（无论当前开关状态都要订阅，以便运行期切换）
+            if (!compensationEventSubscribed)
+            {
+                Main.m_Event.Subscribe<EventChangeCompensation>(OnCompensationChange);
+                compensationEventSubscribed = true;
+            }
+
+            // 代偿开关关闭时不连接蓝牙
+            if (!ConfigDataManager.Instance.IsCompensation)
+            {
+                Log.Info("代偿开关已关闭，不连接蓝牙");
+                return;
+            }
+
+            TryStartBluetoothConnection();
+        }
+
+        /// <summary>
+        /// 代偿开关改变：打开时开始连接蓝牙，关闭时断开并停止重连
+        /// </summary>
+        private void OnCompensationChange(EventHandlerBase e)
+        {
+            if (e is EventChangeCompensation evt)
+            {
+                if (evt.IsCompensation)
+                {
+                    Log.Info("代偿开关已打开，开始连接蓝牙");
+                    TryStartBluetoothConnection();
+                }
+                else
+                {
+                    Log.Info("代偿开关已关闭，断开蓝牙并停止重连");
+                    StopBluetoothConnection();
+                }
+            }
+        }
+
+        /// <summary>
+        /// 尝试启动蓝牙连接（仅代偿开关打开时生效）
+        /// </summary>
+        private void TryStartBluetoothConnection()
+        {
+            if (!ConfigDataManager.Instance.IsCompensation)
+                return;
+
             // 监听蓝牙名称改变事件
-            Main.m_Event.Subscribe<EventChangeBlueName>(OnBluetoothNameChange);
+            if (!blueNameEventSubscribed)
+            {
+                Main.m_Event.Subscribe<EventChangeBlueName>(OnBluetoothNameChange);
+                blueNameEventSubscribed = true;
+            }
 
             if (isConnecting || (bluetoothHelper != null && bluetoothHelper.isConnected()))
             {
@@ -136,8 +188,32 @@ namespace LB
             checkTimer = Timer.Register(1.0f, CheckBluetoothConnect, null, true, true);
             heartbeatTimer = Timer.Register(0.5f, Outside_Write_Data, null, true, true);
         }
+
+        /// <summary>
+        /// 停止蓝牙连接：断开设备、取消定时器、重置连接状态
+        /// </summary>
+        private void StopBluetoothConnection()
+        {
+            if (checkTimer != null)
+            {
+                checkTimer.Cancel();
+                checkTimer = null;
+            }
+            if (heartbeatTimer != null)
+            {
+                heartbeatTimer.Cancel();
+                heartbeatTimer = null;
+            }
+            CleanupBluetooth();
+            lastBluetoothName = null;
+            ResetConnect();
+            ResetReconnet();
+        }
         private void OnBluetoothNameChange(EventHandlerBase e)
         {
+            // 代偿开关关闭时忽略蓝牙名变更，不触发连接
+            if (!ConfigDataManager.Instance.IsCompensation)
+                return;
             bluetoothName = SaveConfigModule.Instance.GetUserData<string>("portName", "JSLB01");
             if (string.IsNullOrEmpty(bluetoothName))
             {
@@ -249,6 +325,9 @@ namespace LB
         }
         private void ReconnetBluetooth()
         {
+            // 代偿开关关闭时不重连
+            if (!ConfigDataManager.Instance.IsCompensation)
+                return;
             if (bluetoothHelper == null)
             {
                 ConnectBluetooth();
@@ -307,6 +386,9 @@ namespace LB
         }
         private void CheckBluetoothConnect()
         {
+            // 代偿开关关闭时不检查、不重连蓝牙
+            if (!ConfigDataManager.Instance.IsCompensation)
+                return;
 
 #if UNITY_ANDROID && !UNITY_EDITOR
             try
@@ -703,7 +785,16 @@ namespace LB
             }
             ResetConnect();
             ResetReconnet();
-            Main.m_Event.Unsubscribe<EventChangeBlueName>(OnBluetoothNameChange);
+            if (blueNameEventSubscribed)
+            {
+                Main.m_Event.Unsubscribe<EventChangeBlueName>(OnBluetoothNameChange);
+                blueNameEventSubscribed = false;
+            }
+            if (compensationEventSubscribed)
+            {
+                Main.m_Event.Unsubscribe<EventChangeCompensation>(OnCompensationChange);
+                compensationEventSubscribed = false;
+            }
         }
 
         public override void OnPause()

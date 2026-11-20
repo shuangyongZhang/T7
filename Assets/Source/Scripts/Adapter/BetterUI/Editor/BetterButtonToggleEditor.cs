@@ -13,7 +13,6 @@ namespace TheraBytes.BetterUi.Editor
             new BetterElementHelper<Button, BetterButtonToggle>();
         BetterElementHelper<Button, BetterButtonToggle> OnOffTransitions =
             new BetterElementHelper<Button, BetterButtonToggle>("betterToggleTransitions");
-        int toggleTransCount = 0;
 
         public override void OnInspectorGUI()
         {

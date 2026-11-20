@@ -9,9 +9,9 @@ namespace PrabdeepDhaliwal.OnScreenKeyboard
 {
     public class ManagedButton : HTBehaviour
     {
-    //启用自动化
-    protected override bool IsAutomate => true;
-    
+        //启用自动化
+        protected override bool IsAutomate => true;
+
         #region Fields
         private Button button;
 
@@ -22,7 +22,7 @@ namespace PrabdeepDhaliwal.OnScreenKeyboard
         #endregion
 
         #region Init
-        private void Awake()
+        protected override void Awake()
         {
             button = GetComponent<Button>();
         }

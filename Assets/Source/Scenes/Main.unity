@@ -1542,7 +1542,7 @@ PrefabInstance:
     - target: {fileID: 114017263505648020, guid: d09e5ea50d2aa0841ab072ac17fbd207,
         type: 3}
       propertyPath: IsEditorMode
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 114017263505648020, guid: d09e5ea50d2aa0841ab072ac17fbd207,
         type: 3}
@@ -2188,7 +2188,7 @@ PrefabInstance:
     - target: {fileID: 4292849675555829366, guid: d09e5ea50d2aa0841ab072ac17fbd207,
         type: 3}
       propertyPath: IsEnableDebugger
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 4359216207657827468, guid: d09e5ea50d2aa0841ab072ac17fbd207,
         type: 3}

@@ -16,6 +16,7 @@
     "com.unity.ai.navigation": "1.1.5",
     "com.unity.analytics": "3.8.1",
     "com.unity.cinemachine": "2.10.3",
+    "com.unity.ide.qoder": "file:D:/GPT浏览器下载/com.unity.ide.qoder-master",
     "com.unity.ide.rider": "3.0.36",
     "com.unity.ide.visualstudio": "2.0.23",
     "com.unity.ide.vscode": "1.2.5",

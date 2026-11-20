@@ -8,10 +8,12 @@ using UnityEngine;
 using UnityEngine.Events;
 using UnityEngine.UI;
 using FantomLib;
+using UnityEngine.Networking;
 
 //Get External Storage folder information and Storage Access Framework and localize demo
 //ストレージのフォルダ情報取得とストレージアクセス機能の利用とローカライズのデモ
-public class ExternalStorageTest2 : MonoBehaviour {
+public class ExternalStorageTest2 : MonoBehaviour
+{
 
     //UIs
     public Text displayText;
@@ -73,7 +75,8 @@ public class ExternalStorageTest2 : MonoBehaviour {
     //==========================================================
 
     // Use this for initialization
-    private void Start() {
+    private void Start()
+    {
         MakeDropdown();
         SetEnableAudioButtons(false);
     }
@@ -83,7 +86,7 @@ public class ExternalStorageTest2 : MonoBehaviour {
 
     //}
 
-    
+
     //==========================================================
 
     //MIME type list (Adjust the order with dropdown)
@@ -773,12 +776,13 @@ public class ExternalStorageTest2 : MonoBehaviour {
 
         StopAudio();
 
-        using(WWW www = new WWW("file://" + path))
+        using (UnityWebRequest www = new UnityWebRequest("file://" + path))
         {
             while (!www.isDone)
                 yield return null;
 
-            AudioClip audioClip = www.GetAudioClip(false, true);
+            AudioClip audioClip = DownloadHandlerAudioClip.GetContent(www);
+            //AudioClip audioClip = UnityWebRequestMultimedia.GetAudioClip(www.path, AudioType.AAC);
             if (audioClip.loadState != AudioDataLoadState.Loaded)
             {
                 XDebug.Log("Failed to load AudioClip.");

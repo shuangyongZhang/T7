@@ -4,48 +4,6 @@
 TagManager:
   serializedVersion: 2
   tags:
-  - puzzleItem
-  - item
-  - Ball
-  - Cat
-  - Pipe
-  - Effects
-  - SceneRoot
-  - Play
-  - StarFish
-  - CommonFish
-  - TimeBubble
-  - Jelly
-  - MayFiles
-  - ShellFish
-  - Enemy
-  - EnemyBoss
-  - Coin
-  - Mereor
-  - cover
-  - Self
-  - Wall
-  - Ground
-  - TopWall
-  - Obstacle
-  - Player
-  - Gold
-  - BulbFish
-  - CanDestroy
-  - Combo
-  - Fish
-  - PirateShip
-  - Shell
-  - UpLevel
-  - South
-  - North
-  - West
-  - East
-  - Road-GrassGroups
-  - Road-Hole-Groups
-  - Road-PondGroups
-  - Road-SandGroups
-  - SceneCamera
   - keyboard
   layers:
   - Default
@@ -57,12 +15,12 @@ TagManager:
   - 
   - 
   - 
-  - Touch
+  - 
   - Wall
-  - Maze
-  - BirdFlying
-  - Bomb
-  - Enemy
+  - 
+  - 
+  - 
+  - 
   - 
   - 
   - 

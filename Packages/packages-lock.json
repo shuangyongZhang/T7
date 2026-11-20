@@ -153,6 +153,14 @@
       "dependencies": {},
       "url": "https://packages.unity.cn"
     },
+    "com.unity.ide.qoder": {
+      "version": "file:D:/GPT浏览器下载/com.unity.ide.qoder-master",
+      "depth": 0,
+      "source": "local",
+      "dependencies": {
+        "com.unity.test-framework": "1.1.9"
+      }
+    },
     "com.unity.ide.rider": {
       "version": "3.0.36",
       "depth": 0,

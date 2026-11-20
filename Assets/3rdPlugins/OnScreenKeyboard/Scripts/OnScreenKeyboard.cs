@@ -60,7 +60,6 @@ namespace PrabdeepDhaliwal.OnScreenKeyboard
         // 双输入字段支持
         private TMP_InputField tmpInputField;
         private InputField legacyInputField;
-        private GameObject lastSelectedButton;
 
         private InputMode currentInputMode = InputMode.English;
         private PinyinProcessor pinyinProcessor;
@@ -95,7 +94,6 @@ namespace PrabdeepDhaliwal.OnScreenKeyboard
         {
             tmpInputField = null;
             legacyInputField = null;
-            lastSelectedButton = null;
             pinyinProcessor?.Clear();
             UpdatePinyinDisplay();
             UpdateCandidateDisplay();
