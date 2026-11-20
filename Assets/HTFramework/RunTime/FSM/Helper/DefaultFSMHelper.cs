@@ -6,10 +6,10 @@ namespace HT.Framework
     /// <summary>
     /// 默认的FSM管理器助手
     /// </summary>
-    public sealed class DefaultFSMHelper : IFSMHelper
+    internal sealed class DefaultFSMHelper : IFSMHelper
     {
         /// <summary>
-        /// FSM管理器
+        /// 所属的内置模块
         /// </summary>
         public IModuleManager Module { get; set; }
         /// <summary>
@@ -89,7 +89,7 @@ namespace HT.Framework
             }
             else
             {
-                Log.Warning("注册状态机失败：已存在状态机 " + fsm.Name + " ！");
+                Log.Warning($"注册状态机失败：已存在状态机 {fsm.Name} ！");
             }
         }
         /// <summary>
@@ -112,7 +112,7 @@ namespace HT.Framework
             }
             else
             {
-                Log.Warning("移除已注册的状态机失败：不存在状态机 " + fsm.Name + " ！");
+                Log.Warning($"移除已注册的状态机失败：不存在状态机 {fsm.Name} ！");
             }
         }
 

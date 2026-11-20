@@ -1,12 +1,13 @@
 using System.Collections.Generic;
 using UnityEngine;
+using YooAsset;
 
 namespace HT.Framework
 {
     internal sealed class LoadHandle : IReference
     {
         internal string Location { get; private set; }
-        internal int Handle { get; private set; }
+        internal AssetHandle AssetHandle { get; private set; }
         internal int RefCount { get; private set; }
         internal Object Object { get; private set; }
         /// <summary>
@@ -21,10 +22,10 @@ namespace HT.Framework
             Location = location;
         }
 
-        internal void ResetHandle(Object obj, int handle)
+        internal void ResetHandle(Object obj, AssetHandle assetHandle)
         {
             Object = obj;
-            Handle = handle;
+            AssetHandle = assetHandle;
         }
 
         internal void AddRefCount()
@@ -32,9 +33,15 @@ namespace HT.Framework
             RefCount++;
         }
 
-        internal void RemoveRefCount()
+        internal bool RemoveRefCount()
         {
+            if (RefCount <= 0)
+            {
+                return false;
+            }
+
             RefCount--;
+            return true;
         }
 
         internal void AddInstanceID(int instanceID)
@@ -55,7 +62,7 @@ namespace HT.Framework
         public void Reset()
         {
             Location = string.Empty;
-            Handle = 0;
+            AssetHandle = null;
             RefCount = 0;
             Object = null;
             WaitAsync = false;

@@ -13,8 +13,6 @@ namespace HT.Framework
     {
         private List<BoxBoundsHandle> _handles = new List<BoxBoundsHandle>();
 
-        protected override string Intro => "Controller Manager, it encapsulation free view controller, first person controller, third person controller, etc!";
-
         protected override void OnInspectorDefaultGUI()
         {
             base.OnInspectorDefaultGUI();
@@ -34,6 +32,8 @@ namespace HT.Framework
             {
                 PropertyField(nameof(ControllerManager.FreeControlBounds), "Free Control Bounds");
             }
+
+            PropertyField(nameof(ControllerManager.IsEnableRepelBox), "Enable RepelBox");
         }
         protected override void OnInspectorRuntimeGUI()
         {
@@ -74,9 +74,13 @@ namespace HT.Framework
                 GUILayout.Space(20);
                 GUILayout.Label(Target.LookPoint.ToString());
                 GUILayout.FlexibleSpace();
-                if (GUILayout.Button("Copy", EditorStyles.miniButton))
+                if (GUILayout.Button("Copy", EditorGlobalTools.Styles.ButtonLeft))
                 {
                     GUIUtility.systemCopyBuffer = Target.LookPoint.ToCopyString("F2");
+                }
+                if (GUILayout.Button("Paste", EditorGlobalTools.Styles.ButtonRight))
+                {
+                    Target.SetLookPoint(GUIUtility.systemCopyBuffer.ToPasteVector3(Vector3.zero));
                 }
                 GUILayout.EndHorizontal();
 
@@ -88,9 +92,13 @@ namespace HT.Framework
                 GUILayout.Space(20);
                 GUILayout.Label(Target.LookAngle.ToString());
                 GUILayout.FlexibleSpace();
-                if (GUILayout.Button("Copy", EditorStyles.miniButton))
+                if (GUILayout.Button("Copy", EditorGlobalTools.Styles.ButtonLeft))
                 {
                     GUIUtility.systemCopyBuffer = Target.LookAngle.ToCopyString("F2");
+                }
+                if (GUILayout.Button("Paste", EditorGlobalTools.Styles.ButtonRight))
+                {
+                    Target.SetLookAngle(GUIUtility.systemCopyBuffer.ToPasteVector3(Vector3.zero));
                 }
                 GUILayout.EndHorizontal();
             }

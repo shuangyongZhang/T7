@@ -1,5 +1,6 @@
 using System;
 using System.Reflection;
+#if HTFRAMEWORK_LEGACY_020
 using UnityEditor;
 using UnityEngine;
 
@@ -71,3 +72,4 @@ namespace HT.Framework
         }
     }
 }
+#endif

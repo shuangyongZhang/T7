@@ -14,14 +14,6 @@ namespace HT.Framework
         private Dictionary<string, StepContent> _stepContentIDs;
         private Dictionary<string, string> _customOrder;
 
-        protected override string Intro
-        {
-            get
-            {
-                return "Step Master, the stepflow controller!";
-            }
-        }
-
         protected override void OnRuntimeEnable()
         {
             base.OnRuntimeEnable();
@@ -58,11 +50,13 @@ namespace HT.Framework
             if (Target.ContentAsset != null)
             {
                 GUILayout.BeginHorizontal();
-                GUILayout.Label("Step Count: " + Target.StepCount);
+                GUILayout.Label("Step Count: ", GUILayout.Width(LabelWidth));
+                GUILayout.Label(Target.StepCount.ToString());
                 GUILayout.EndHorizontal();
 
                 GUILayout.BeginHorizontal();
-                GUILayout.Label("Is Running: " + Target.IsRunning);
+                GUILayout.Label("Is Running: ", GUILayout.Width(LabelWidth));
+                GUILayout.Label(Target.IsRunning.ToString());
                 GUILayout.EndHorizontal();
 
                 GUILayout.BeginHorizontal();
@@ -70,60 +64,69 @@ namespace HT.Framework
                 GUILayout.EndHorizontal();
 
                 GUILayout.BeginHorizontal();
-                GUILayout.Label("Current Step: " + Target.CurrentStepIndex);
+                GUILayout.Label("Current Step: ", GUILayout.Width(LabelWidth));
+                GUILayout.Label(Target.CurrentStepIndex.ToString());
                 GUILayout.FlexibleSpace();
-                if (GUILayout.Button("Skip", EditorStyles.miniButtonLeft))
+                if (GUILayout.Button("Skip", EditorGlobalTools.Styles.ButtonLeft))
                 {
                     Target.SkipCurrentStep();
                 }
-                if (GUILayout.Button("SkipImmediate", EditorStyles.miniButtonMid))
+                if (GUILayout.Button("SkipImmediate", EditorGlobalTools.Styles.ButtonMid))
                 {
                     Target.SkipCurrentStepImmediate();
                 }
-                if (GUILayout.Button("Guide", EditorStyles.miniButtonRight))
+                if (GUILayout.Button("Guide", EditorGlobalTools.Styles.ButtonRight))
                 {
                     Target.Guide();
                 }
                 GUILayout.EndHorizontal();
 
                 GUILayout.BeginHorizontal();
-                GUILayout.Label("Current Step Name: " + (Target.CurrentStepContent != null ? Target.CurrentStepContent.Name : "<None>"));
+                GUILayout.Label("Current Step Name: ", GUILayout.Width(LabelWidth));
+                GUILayout.Label(Target.CurrentStepContent != null ? Target.CurrentStepContent.Name : "<None>");
                 GUILayout.EndHorizontal();
 
                 GUILayout.BeginHorizontal();
-                GUILayout.Label("Current Step Target: ");
+                GUILayout.Label("Current Step Target: ", GUILayout.Width(LabelWidth));
                 EditorGUILayout.ObjectField(Target.CurrentStepContent != null ? Target.CurrentStepContent.Target : null, typeof(GameObject), true);
                 GUILayout.EndHorizontal();
 
                 GUILayout.BeginHorizontal();
-                GUILayout.Label("Current Step Helper: " + (Target.CurrentStepHelper != null ? Target.CurrentStepHelper.GetType().Name : "<None>"));
+                GUILayout.Label("Current Step Helper: ", GUILayout.Width(LabelWidth));
+                GUILayout.Label(Target.CurrentStepHelper != null ? Target.CurrentStepHelper.GetType().Name : "<None>");
                 GUILayout.EndHorizontal();
 
-                GUILayout.BeginHorizontal();
-                GUILayout.Label("Disabled Steps: ");
-                GUILayout.EndHorizontal();
-
-                foreach (var step in _stepContentIDs)
+                if (_stepContentIDs != null)
                 {
-                    if (!step.Value.IsEnable || !step.Value.IsEnableRunTime)
+                    GUILayout.BeginHorizontal();
+                    GUILayout.Label("Disabled Steps: ");
+                    GUILayout.EndHorizontal();
+
+                    foreach (var step in _stepContentIDs)
                     {
-                        GUILayout.BeginHorizontal();
-                        GUILayout.Space(20);
-                        GUILayout.Label(step.Value.Name);
-                        GUILayout.EndHorizontal();
+                        if (!step.Value.IsEnable || !step.Value.IsEnableRunTime)
+                        {
+                            GUILayout.BeginHorizontal();
+                            GUILayout.Space(20);
+                            GUILayout.Label(step.Value.Name);
+                            GUILayout.EndHorizontal();
+                        }
                     }
                 }
 
-                GUILayout.BeginHorizontal();
-                GUILayout.Label("Custom Order: " + _customOrder.Count);
-                GUILayout.EndHorizontal();
-
-                foreach (var order in _customOrder)
+                if (_customOrder != null)
                 {
                     GUILayout.BeginHorizontal();
-                    GUILayout.Space(20);
-                    GUILayout.Label(string.Format("{0} -> {1}", _stepContentIDs[order.Key].Name, _stepContentIDs[order.Value].Name));
+                    GUILayout.Label($"Custom Order: {_customOrder.Count}");
                     GUILayout.EndHorizontal();
+
+                    foreach (var order in _customOrder)
+                    {
+                        GUILayout.BeginHorizontal();
+                        GUILayout.Space(20);
+                        GUILayout.Label($"{_stepContentIDs[order.Key].Name} -> {_stepContentIDs[order.Value].Name}");
+                        GUILayout.EndHorizontal();
+                    }
                 }
             }
             else

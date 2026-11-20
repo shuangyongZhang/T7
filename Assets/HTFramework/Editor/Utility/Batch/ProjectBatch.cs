@@ -48,7 +48,8 @@ namespace HT.Framework
             base.OnBodyGUI();
 
             EditorGUILayout.BeginHorizontal();
-            EditorGUILayout.HelpBox("批处理[ " + (_folder ? _folder.name : "Root") + " ]文件夹下的[ " + (_objectType != null ? _objectType.FullName : "Object") + " ]对象！", MessageType.Info);
+            string prompt = string.Format("批处理[ {0} ]文件夹下的[ {1} ]对象！", _folder ? _folder.name : "Root", _objectType != null ? _objectType.FullName : "Object");
+            EditorGUILayout.HelpBox(prompt, MessageType.Info);
             EditorGUILayout.EndHorizontal();
 
             EditorGUILayout.BeginHorizontal();
@@ -66,7 +67,7 @@ namespace HT.Framework
             if (GUILayout.Button(_objectType != null ? _objectType.FullName : "<None>", EditorGlobalTools.Styles.MiniPopup))
             {
                 GenericMenu gm = new GenericMenu();
-                List<Type> types = ReflectionToolkit.GetTypesInRunTimeAssemblies(type =>
+                List<Type> types = ReflectionToolkit.GetTypesInAllAssemblies(type =>
                 {
                     return type.IsSubclassOf(typeof(UnityEngine.Object)) && !type.IsSubclassOf(typeof(Component)) && type.FullName.ToLower().Contains(_objectTypeFilter.ToLower());
                 });

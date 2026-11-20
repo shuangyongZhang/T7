@@ -34,7 +34,7 @@ namespace HT.Framework
             List<Type> types = EditorReflectionToolkit.GetTypesInEditorAssemblies(type =>
             {
                 return type.IsSubclassOf(typeof(SettingItemBase)) && type.GetCustomAttribute<InternalSettingItemAttribute>() == null;
-            });
+            }, false);
             for (int i = 0; i < types.Count; i++)
             {
                 _settingItems.Add(Activator.CreateInstance(types[i]) as SettingItemBase);
@@ -84,8 +84,8 @@ namespace HT.Framework
 
             GUILayout.FlexibleSpace();
 
-            _itemFilter = EditorGUILayout.TextField("", _itemFilter, EditorGlobalTools.Styles.ToolbarSeachTextField);
-            if (GUILayout.Button("", _itemFilter != "" ? EditorGlobalTools.Styles.ToolbarSeachCancelButton : EditorGlobalTools.Styles.ToolbarSeachCancelButtonEmpty))
+            _itemFilter = EditorGUILayout.TextField("", _itemFilter, EditorGlobalTools.Styles.ToolbarSearchTextField);
+            if (GUILayout.Button("", string.IsNullOrEmpty(_itemFilter) ? EditorGlobalTools.Styles.ToolbarSearchCancelButtonEmpty : EditorGlobalTools.Styles.ToolbarSearchCancelButton))
             {
                 _itemFilter = "";
                 GUI.FocusControl(null);
@@ -148,12 +148,12 @@ namespace HT.Framework
                 GUILayout.FlexibleSpace();
                 if (_settingItemSigns[_currentItem])
                 {
-                    if (GUILayout.Button(_editGUIContent, "InvisibleButton", GUILayout.Height(20), GUILayout.Width(20)))
+                    if (GUILayout.Button(_editGUIContent, EditorGlobalTools.Styles.InvisibleButton, GUILayout.Height(20), GUILayout.Width(20)))
                     {
                         EditModule();
                     }
                 }
-                if (GUILayout.Button(_resetGUIContent, "InvisibleButton", GUILayout.Height(20), GUILayout.Width(20)))
+                if (GUILayout.Button(_resetGUIContent, EditorGlobalTools.Styles.InvisibleButton, GUILayout.Height(20), GUILayout.Width(20)))
                 {
                     GenericMenu gm = new GenericMenu();
                     gm.AddItem(new GUIContent("Reset"), false, ResetCurrentItem);
@@ -176,7 +176,7 @@ namespace HT.Framework
 
         private bool IsDisplay(string name)
         {
-            if (_itemFilter == "")
+            if (string.IsNullOrEmpty(_itemFilter))
             {
                 return true;
             }

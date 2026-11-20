@@ -228,6 +228,26 @@ namespace HT.Framework
             }
         }
         /// <summary>
+        /// 当前的背景音乐剪辑
+        /// </summary>
+        public AudioClip BackgroundMusicClip
+        {
+            get
+            {
+                return _helper.BackgroundMusicClip;
+            }
+        }
+        /// <summary>
+        /// 当前的单通道音效剪辑
+        /// </summary>
+        public AudioClip SingleSoundClip
+        {
+            get
+            {
+                return _helper.SingleSoundClip;
+            }
+        }
+        /// <summary>
         /// 单通道音效播放结束事件，参数为播放结束时的音频剪辑名称
         /// </summary>
         public event HTFAction<string> SingleSoundEndOfPlayEvent;
@@ -236,6 +256,7 @@ namespace HT.Framework
         {
             base.OnInit();
 
+            _helper.SetAudioSourceRoot(transform);
             _helper.SingleSoundEndOfPlayEvent += (value) =>
             {
                 SingleSoundEndOfPlayEvent?.Invoke(value);
@@ -360,11 +381,12 @@ namespace HT.Framework
         /// </summary>
         /// <param name="attachTarget">附加目标</param>
         /// <param name="clip">音乐剪辑</param>
+        /// <param name="is3D">是否为3D模式，否则为2D模式</param>
         /// <param name="isLoop">是否循环</param>
         /// <param name="speed">播放速度</param>
-        public void PlayWorldSound(GameObject attachTarget, AudioClip clip, bool isLoop = false, float speed = 1)
+        public void PlayWorldSound(GameObject attachTarget, AudioClip clip, bool is3D = true, bool isLoop = false, float speed = 1)
         {
-            _helper.PlayWorldSound(attachTarget, clip, isLoop, speed);
+            _helper.PlayWorldSound(attachTarget, clip, is3D, isLoop, speed);
         }
         /// <summary>
         /// 暂停播放指定的世界音效

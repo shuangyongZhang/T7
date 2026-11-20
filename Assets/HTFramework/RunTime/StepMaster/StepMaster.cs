@@ -125,6 +125,16 @@ namespace HT.Framework
             }
         }
         /// <summary>
+        /// 当前是否有步骤在执行状态
+        /// </summary>
+        public bool IsExecuting
+        {
+            get
+            {
+                return _executing;
+            }
+        }
+        /// <summary>
         /// 暂停步骤控制者
         /// </summary>
         public bool Pause
@@ -432,7 +442,7 @@ namespace HT.Framework
                         }
                         else
                         {
-                            Log.Warning(string.Format("步骤控制者：发现相同GUID的目标！GUID：{0}\r\n目标物体：{1} 和 {2}", targetCaches[i].GUID, _targets[targetCaches[i].GUID].transform.FullName(), targetCaches[i].transform.FullName()));
+                            Log.Warning($"步骤控制者：发现相同GUID的目标！GUID：{targetCaches[i].GUID}\r\n目标物体：{_targets[targetCaches[i].GUID].transform.FullName()} 和 {targetCaches[i].transform.FullName()}");
                         }
                     }
                 }
@@ -445,7 +455,7 @@ namespace HT.Framework
                     StepContent content = ContentAsset.Content[i];
                     if (_stepContentIDs.ContainsKey(content.GUID))
                     {
-                        Log.Error(string.Format("步骤控制者：发现相同GUID的步骤！GUID：{0}\r\n步骤：{1} 和 {2}", content.GUID, _stepContentIDs[content.GUID].Name, content.Name));
+                        Log.Error($"步骤控制者：发现相同GUID的步骤！GUID：{content.GUID}\r\n步骤：{_stepContentIDs[content.GUID].Name} 和 {content.Name}");
                     }
                     else
                     {
@@ -466,7 +476,7 @@ namespace HT.Framework
                     }
                     else
                     {
-                        Log.Error(string.Format("步骤控制者：【步骤：{0}】【{1}】目标没有找到，目标路径：{2}", i, content.Name, content.TargetPath));
+                        Log.Error($"步骤控制者：【步骤：{i}】【{content.Name}】目标没有找到，目标路径：{content.TargetPath}");
                     }
 
                     for (int j = 0; j < content.Operations.Count; j++)
@@ -478,7 +488,7 @@ namespace HT.Framework
                         }
                         else
                         {
-                            Log.Error(string.Format("步骤控制者：【步骤：{0}】【操作：{1}】目标没有找到，目标路径：{2}", i, operation.Name, operation.TargetPath));
+                            Log.Error($"步骤控制者：【步骤：{i}】【操作：{operation.Name}】目标没有找到，目标路径：{operation.TargetPath}");
                         }
                     }
 
@@ -534,11 +544,8 @@ namespace HT.Framework
         /// </summary>
         public void End()
         {
-            if (_currentHelper != null)
-            {
-                _currentHelper.OnTermination();
-                _currentHelper = null;
-            }
+            DestroyHelper();
+
             _currentStepIndex = 0;
             _currentContent = null;
             _currentTarget = null;
@@ -702,14 +709,9 @@ namespace HT.Framework
 
                     RestoreStepEvent?.Invoke(_currentContent, _currentContent.IsEnable && _currentContent.IsEnableRunTime);
 
-                    //助手执行恢复
-                    if (_currentHelper != null)
-                    {
-                        _currentHelper.Task = StepHelperTask.Restore;
-                        _currentHelper.OnRestore();
-                        _currentHelper.OnTermination();
-                        _currentHelper = null;
-                    }
+                    //助手执行恢复，并销毁
+                    RestoreHelper();
+                    DestroyHelper();
                     
                     _currentStepIndex -= 1;
                 }
@@ -741,7 +743,14 @@ namespace HT.Framework
             {
                 if (_currentHelper != null)
                 {
-                    _currentHelper.OnGuide();
+                    try
+                    {
+                        _currentHelper.OnGuide();
+                    }
+                    catch (Exception e)
+                    {
+                        Log.Error($"步骤控制器：指引步骤【{CurrentStepIndex}.{CurrentStepContent.Name}】的助手【{CurrentStepContent.Helper}】时出错！错误描述：{e}", null, true);
+                    }
                 }
                 else
                 {
@@ -764,7 +773,7 @@ namespace HT.Framework
                     }
 
                     Main.m_Controller.Mode = _currentContent.InitialMode;
-                    Main.m_Controller.SetLookPoint(target.transform.position + _currentContent.ViewOffset, false);
+                    Main.m_Controller.SetLookPoint(target.transform.position + _currentContent.ViewOffset);
                     Main.m_Controller.SetLookAngle(_currentContent.BestView);
                 }
             }
@@ -843,7 +852,7 @@ namespace HT.Framework
                 }
                 else
                 {
-                    Log.Error(string.Format("步骤控制器：【步骤：{0}】【{1}】的目标丢失Button组件！", _currentStepIndex + 1, _currentContent.Name));
+                    Log.Error($"步骤控制器：【步骤：{_currentStepIndex + 1}】【{_currentContent.Name}】的目标丢失Button组件！");
                 }
             }
             //状态改变触发类型的步骤，自动重置状态
@@ -888,11 +897,7 @@ namespace HT.Framework
             }
 
             //销毁步骤助手
-            if (_currentHelper != null)
-            {
-                _currentHelper.OnTermination();
-                _currentHelper = null;
-            }
+            DestroyHelper();
         }
         /// <summary>
         /// 跳过当前步骤
@@ -920,7 +925,7 @@ namespace HT.Framework
                     }
                     else
                     {
-                        Log.Error(string.Format("步骤控制器：【步骤：{0}】【{1}】的目标丢失Button组件！", _currentStepIndex + 1, _currentContent.Name));
+                        Log.Error($"步骤控制器：【步骤：{_currentStepIndex + 1}】【{_currentContent.Name}】的目标丢失Button组件！");
                     }
                 }
                 _currentButton = null;
@@ -939,17 +944,8 @@ namespace HT.Framework
             float elapseTime = _currentContent.Instant ? 0 : (_currentHelper != null ? _currentHelper.ElapseTime : _currentContent.ElapseTime);
 
             //助手执行跳过，等待生命周期结束后销毁助手
-            if (_currentHelper != null)
-            {
-                _currentHelper.Task = StepHelperTask.Skip;
-                _currentHelper.OnSkip();
-                if (_currentHelper.SkipLifeTime > 0)
-                {
-                    yield return YieldInstructioner.GetWaitForSeconds(_currentHelper.SkipLifeTime);
-                }
-                _currentHelper.OnTermination();
-                _currentHelper = null;
-            }
+            yield return SkipHelper();
+            DestroyHelper();
 
             _waitCoroutine = Main.Current.StartCoroutine(WaitCoroutine(ChangeNextStep, elapseTime));
         }
@@ -986,7 +982,7 @@ namespace HT.Framework
                         }
                         else
                         {
-                            Log.Error(string.Format("步骤控制器：【步骤：{0}】【{1}】的目标丢失Button组件！", _currentStepIndex + 1, _currentContent.Name));
+                            Log.Error($"步骤控制器：【步骤：{_currentStepIndex + 1}】【{_currentContent.Name}】的目标丢失Button组件！");
                         }
                     }
                     _currentButton = null;
@@ -1005,17 +1001,8 @@ namespace HT.Framework
                 float elapseTime = _currentContent.Instant ? 0 : (_currentHelper != null ? _currentHelper.ElapseTime : _currentContent.ElapseTime);
 
                 //助手执行跳过，等待生命周期结束后销毁助手
-                if (_currentHelper != null)
-                {
-                    _currentHelper.Task = StepHelperTask.Skip;
-                    _currentHelper.OnSkip();
-                    if (_currentHelper.SkipLifeTime > 0)
-                    {
-                        yield return YieldInstructioner.GetWaitForSeconds(_currentHelper.SkipLifeTime);
-                    }
-                    _currentHelper.OnTermination();
-                    _currentHelper = null;
-                }
+                yield return SkipHelper();
+                DestroyHelper();
 
                 yield return YieldInstructioner.GetWaitForSeconds(elapseTime);
 
@@ -1052,7 +1039,7 @@ namespace HT.Framework
                     }
                     else
                     {
-                        Log.Error(string.Format("步骤控制器：【步骤：{0}】【{1}】的目标丢失Button组件！", _currentStepIndex + 1, _currentContent.Name));
+                        Log.Error($"步骤控制器：【步骤：{_currentStepIndex + 1}】【{_currentContent.Name}】的目标丢失Button组件！");
                     }
                 }
                 _currentButton = null;
@@ -1069,13 +1056,8 @@ namespace HT.Framework
             SkipStepImmediateEvent?.Invoke(_currentContent, _currentContent.IsEnable && _currentContent.IsEnableRunTime);
 
             //助手执行跳过，等待生命周期结束后销毁助手
-            if (_currentHelper != null)
-            {
-                _currentHelper.Task = StepHelperTask.SkipImmediate;
-                _currentHelper.OnSkipImmediate();
-                _currentHelper.OnTermination();
-                _currentHelper = null;
-            }
+            SkipImmediateHelper();
+            DestroyHelper();
 
             ChangeNextStep();
         }
@@ -1112,7 +1094,7 @@ namespace HT.Framework
                         }
                         else
                         {
-                            Log.Error(string.Format("步骤控制器：【步骤：{0}】【{1}】的目标丢失Button组件！", _currentStepIndex + 1, _currentContent.Name));
+                            Log.Error($"步骤控制器：【步骤：{_currentStepIndex + 1}】【{_currentContent.Name}】的目标丢失Button组件！");
                         }
                     }
                     _currentButton = null;
@@ -1129,13 +1111,8 @@ namespace HT.Framework
                 SkipStepImmediateEvent?.Invoke(_currentContent, _currentContent.IsEnable && _currentContent.IsEnableRunTime);
 
                 //助手执行跳过，等待生命周期结束后销毁助手
-                if (_currentHelper != null)
-                {
-                    _currentHelper.Task = StepHelperTask.SkipImmediate;
-                    _currentHelper.OnSkipImmediate();
-                    _currentHelper.OnTermination();
-                    _currentHelper = null;
-                }
+                SkipImmediateHelper();
+                DestroyHelper();
                 
                 _currentStepIndex += 1;
             }
@@ -1178,36 +1155,123 @@ namespace HT.Framework
         /// </summary>
         private StepHelper CreateHelper(StepContent content, StepHelperTask task)
         {
-            if (!string.IsNullOrEmpty(content.Helper) && content.Helper != "<None>")
+            try
             {
-                Type type = ReflectionToolkit.GetTypeInRunTimeAssemblies(content.Helper);
-                if (type != null)
+                if (!string.IsNullOrEmpty(content.Helper) && content.Helper != "<None>")
                 {
-                    StepHelper helper = Activator.CreateInstance(type) as StepHelper;
-                    for (int i = 0; i < content.Parameters.Count; i++)
+                    Type type = ReflectionToolkit.GetTypeInRunTimeAssemblies(content.Helper, false);
+                    if (type != null)
                     {
-                        StepParameter parameter = content.Parameters[i];
-                        if (parameter.Type == StepParameter.ParameterType.GameObject)
+                        StepHelper helper = Activator.CreateInstance(type) as StepHelper;
+                        for (int i = 0; i < content.Parameters.Count; i++)
                         {
-                            if (_targets.ContainsKey(parameter.GameObjectGUID))
+                            StepParameter parameter = content.Parameters[i];
+                            if (parameter.Type == StepParameter.ParameterType.GameObject)
                             {
-                                parameter.GameObjectValue = _targets[parameter.GameObjectGUID].gameObject;
+                                if (_targets.ContainsKey(parameter.GameObjectGUID))
+                                {
+                                    parameter.GameObjectValue = _targets[parameter.GameObjectGUID].gameObject;
+                                }
                             }
+                            helper.Parameters.Add(parameter);
                         }
-                        helper.Parameters.Add(parameter);
+                        helper.Content = content;
+                        helper.Target = content.Target.GetComponent<StepTarget>();
+                        helper.Task = task;
+                        helper.OnInit();
+                        return helper;
                     }
-                    helper.Content = content;
-                    helper.Target = content.Target.GetComponent<StepTarget>();
-                    helper.Task = task;
-                    helper.OnInit();
-                    return helper;
+                    else
+                    {
+                        Log.Error($"步骤控制器：步骤【{CurrentStepIndex}.{CurrentStepContent.Name}】的助手【{CurrentStepContent.Helper}】丢失！");
+                    }
                 }
-                else
+                return null;
+            }
+            catch (Exception e)
+            {
+                Log.Error($"步骤控制器：创建步骤【{CurrentStepIndex}.{CurrentStepContent.Name}】的助手【{CurrentStepContent.Helper}】时出错！错误描述：{e}", null, true);
+                return null;
+            }
+        }
+        /// <summary>
+        /// 跳过步骤助手
+        /// </summary>
+        private IEnumerator SkipHelper()
+        {
+            if (_currentHelper != null)
+            {
+                _currentHelper.Task = StepHelperTask.Skip;
+                try
                 {
-                    Log.Error(string.Format("步骤控制器：步骤 {0}.{1} 的助手 {2} 丢失！", _currentStepIndex + 1, _currentContent.Name, _currentContent.Helper));
+                    _currentHelper.OnSkip();
+                }
+                catch (Exception e)
+                {
+                    Log.Error($"步骤控制器：跳过步骤【{CurrentStepIndex}.{CurrentStepContent.Name}】的助手【{CurrentStepContent.Helper}】时出错！错误描述：{e}", null, true);
+                }
+                if (_currentHelper.SkipLifeTime > 0)
+                {
+                    yield return YieldInstructioner.GetWaitForSeconds(_currentHelper.SkipLifeTime);
                 }
             }
-            return null;
+        }
+        /// <summary>
+        /// 立即跳过步骤助手
+        /// </summary>
+        private void SkipImmediateHelper()
+        {
+            if (_currentHelper != null)
+            {
+                _currentHelper.Task = StepHelperTask.SkipImmediate;
+                try
+                {
+                    _currentHelper.OnSkipImmediate();
+                }
+                catch (Exception e)
+                {
+                    Log.Error($"步骤控制器：立即跳过步骤【{CurrentStepIndex}.{CurrentStepContent.Name}】的助手【{CurrentStepContent.Helper}】时出错！错误描述：{e}", null, true);
+                }
+            }
+        }
+        /// <summary>
+        /// 恢复步骤助手
+        /// </summary>
+        private void RestoreHelper()
+        {
+            if (_currentHelper != null)
+            {
+                _currentHelper.Task = StepHelperTask.Restore;
+                try
+                {
+                    _currentHelper.OnRestore();
+                }
+                catch (Exception e)
+                {
+                    Log.Error($"步骤控制器：恢复步骤【{CurrentStepIndex}.{CurrentStepContent.Name}】的助手【{CurrentStepContent.Helper}】时出错！错误描述：{e}", null, true);
+                }
+            }
+        }
+        /// <summary>
+        /// 销毁步骤助手
+        /// </summary>
+        private void DestroyHelper()
+        {
+            if (_currentHelper != null)
+            {
+                try
+                {
+                    _currentHelper.OnTermination();
+                }
+                catch (Exception e)
+                {
+                    Log.Error($"步骤控制器：销毁步骤【{CurrentStepIndex}.{CurrentStepContent.Name}】的助手【{CurrentStepContent.Helper}】时出错！错误描述：{e}", null, true);
+                }
+                finally
+                {
+                    _currentHelper = null;
+                }
+            }
         }
         /// <summary>
         /// 等待协程

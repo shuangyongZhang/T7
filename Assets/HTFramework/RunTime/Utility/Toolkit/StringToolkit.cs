@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Text.RegularExpressions;
 using UnityEngine;
 
 namespace HT.Framework
@@ -30,11 +31,11 @@ namespace HT.Framework
             if (NoRepeatNames.Contains(rawName))
             {
                 int index = 0;
-                string noRepeatName = rawName + " " + index.ToString();
+                string noRepeatName = $"{rawName} {index}";
                 while (NoRepeatNames.Contains(noRepeatName))
                 {
                     index += 1;
-                    noRepeatName = rawName + " " + index.ToString();
+                    noRepeatName = $"{rawName} {index}";
                 }
 
                 NoRepeatNames.Add(noRepeatName);
@@ -52,35 +53,71 @@ namespace HT.Framework
         private static StringBuilder StringInstance = new StringBuilder();
 
         /// <summary>
-        /// 字符串拼接
+        /// 开始字符串拼接
         /// </summary>
-        /// <param name="str">待拼接的字符串</param>
-        /// <returns>拼接成功的字符串</returns>
-        public static string Concat(params string[] str)
+        public static void BeginConcat()
         {
             StringInstance.Clear();
-            for (int i = 0; i < str.Length; i++)
-            {
-                StringInstance.Append(str[i]);
-            }
-            return StringInstance.ToString();
+        }
+        /// <summary>
+        /// 字符串拼接
+        /// </summary>
+        /// <param name="c">待拼接的字符</param>
+        /// <param name="isNewLine">拼接完成后是否自动换一行</param>
+        public static void Concat(char c, bool isNewLine = false)
+        {
+            StringInstance.Append(c);
+            if (isNewLine) StringInstance.Append("\r\n");
         }
         /// <summary>
         /// 字符串拼接
         /// </summary>
         /// <param name="str">待拼接的字符串</param>
-        /// <returns>拼接成功的字符串</returns>
-        public static string Concat(List<string> str)
+        /// <param name="isNewLine">拼接完成后是否自动换一行</param>
+        public static void Concat(string str, bool isNewLine = false)
+        {
+            StringInstance.Append(str);
+            if (isNewLine) StringInstance.Append("\r\n");
+        }
+        /// <summary>
+        /// 字符串拼接
+        /// </summary>
+        /// <param name="str">待拼接的字符串</param>
+        /// <param name="isNewLine">每一个字符串拼接完成后是否自动换一行</param>
+        public static void Concat(string[] str, bool isNewLine = false)
+        {
+            if (str == null || str.Length <= 0)
+                return;
+
+            for (int i = 0; i < str.Length; i++)
+            {
+                Concat(str[i], isNewLine);
+            }
+        }
+        /// <summary>
+        /// 字符串拼接
+        /// </summary>
+        /// <param name="str">待拼接的字符串</param>
+        /// <param name="isNewLine">每一个字符串拼接完成后是否自动换一行</param>
+        public static void Concat(List<string> str, bool isNewLine = false)
         {
             if (str == null || str.Count <= 0)
-                return null;
+                return;
 
-            StringInstance.Clear();
             for (int i = 0; i < str.Count; i++)
             {
-                StringInstance.Append(str[i]);
+                Concat(str[i], isNewLine);
             }
-            return StringInstance.ToString();
+        }
+        /// <summary>
+        /// 结束字符串拼接
+        /// </summary>
+        /// <returns>拼接完成的字符串</returns>
+        public static string EndConcat()
+        {
+            string content = StringInstance.ToString();
+            StringInstance.Clear();
+            return content;
         }
         #endregion
 
@@ -108,150 +145,115 @@ namespace HT.Framework
             return defaultValue;
         }
         /// <summary>
-        /// 转换成Vector3，格式：x,y,z
+        /// 转换成Vector2，格式：Vector2(x,y)
         /// </summary>
         /// <param name="value">字符串</param>
+        /// <param name="defaultValue">转换失败时的默认值</param>
+        /// <returns>Vector2值</returns>
+        public static Vector2 ToVector2(this string value, Vector2 defaultValue = default)
+        {
+            if (value.StartsWith("Vector2("))
+            {
+                value = value.Replace("Vector2(", "");
+                value = value.Replace(")", "");
+                value = value.Replace("f", "");
+                string[] vector2 = value.Split(',');
+                float x = 0;
+                float y = 0;
+                if (vector2.Length > 0) float.TryParse(vector2[0], out x);
+                if (vector2.Length > 1) float.TryParse(vector2[1], out y);
+                return new Vector2(x, y);
+            }
+            return defaultValue;
+        }
+        /// <summary>
+        /// 转换成Vector3，格式：Vector3(x,y,z)
+        /// </summary>
+        /// <param name="value">字符串</param>
+        /// <param name="defaultValue">转换失败时的默认值</param>
         /// <returns>Vector3值</returns>
-        public static Vector3 ToVector3(this string value)
+        public static Vector3 ToVector3(this string value, Vector3 defaultValue = default)
         {
-            value = value.Replace("f", "");
-            string[] values = value.Split(',');
-            if (values.Length == 3)
+            if (value.StartsWith("Vector3("))
             {
-                try
+                value = value.Replace("Vector3(", "");
+                value = value.Replace(")", "");
+                value = value.Replace("f", "");
+                string[] vector3 = value.Split(',');
+                float x = 0;
+                float y = 0;
+                float z = 0;
+                if (vector3.Length > 0) float.TryParse(vector3[0], out x);
+                if (vector3.Length > 1) float.TryParse(vector3[1], out y);
+                if (vector3.Length > 2) float.TryParse(vector3[2], out z);
+                return new Vector3(x, y, z);
+            }
+            return defaultValue;
+        }
+        #endregion
+
+        #region 正则表达式
+        private static readonly Regex IntRegex = new Regex("^([-]?[0-9]{1,})$");
+        private static readonly Regex FloatRegex = new Regex("^([-]?[0-9]{1,}[.][0-9]*)$");
+        private static HashSet<char> Tabs = new HashSet<char>() { '\t', '\r', '\n', '\v', '\f' };
+
+        /// <summary>
+        /// 是否为整型内容
+        /// </summary>
+        /// <param name="value">字符串值</param>
+        /// <returns>是否为整型内容</returns>
+        public static bool IsInt(this string value)
+        {
+            return IntRegex.IsMatch(value);
+        }
+        /// <summary>
+        /// 是否为浮点型内容
+        /// </summary>
+        /// <param name="value">字符串值</param>
+        /// <returns>是否为浮点型内容</returns>
+        public static bool IsFloat(this string value)
+        {
+            return FloatRegex.IsMatch(value);
+        }
+        /// <summary>
+        /// 获取字符串长度（忽略空白符及制表符）
+        /// </summary>
+        /// <param name="value">字符串值</param>
+        /// <returns>字符串长度</returns>
+        public static int LengthIgnoreBlank(this string value)
+        {
+            if (string.IsNullOrEmpty(value))
+                return 0;
+
+            int length = 0;
+            for (int i = 0; i < value.Length; i++)
+            {
+                if (!char.IsWhiteSpace(value[i]) && !Tabs.Contains(value[i]))
                 {
-                    return new Vector3(float.Parse(values[0]), float.Parse(values[1]), float.Parse(values[2]));
+                    length += 1;
                 }
-                catch
+            }
+            return length;
+        }
+        /// <summary>
+        /// 获取字符串长度（忽略空白符及制表符）
+        /// </summary>
+        /// <param name="value">字符串值</param>
+        /// <returns>字符串长度</returns>
+        public static int LengthIgnoreBlank(this StringBuilder value)
+        {
+            if (value.Length <= 0)
+                return 0;
+
+            int length = 0;
+            for (int i = 0; i < value.Length; i++)
+            {
+                if (!char.IsWhiteSpace(value[i]) && !Tabs.Contains(value[i]))
                 {
-                    return Vector3.zero;
+                    length += 1;
                 }
             }
-
-            return Vector3.zero;
-        }
-        /// <summary>
-        /// 将指定位置的子字串转换为富文本
-        /// </summary>
-        /// <param name="value">字符串</param>
-        /// <param name="subStr">子字串</param>
-        /// <param name="color">颜色</param>
-        /// <returns>转换后的字符串</returns>
-        public static string ToRichBoldColor(this string value, string subStr, Color color)
-        {
-            if (subStr.Length <= 0 || !value.Contains(subStr))
-            {
-                return value;
-            }
-
-            string valueRich = value;
-            int index = valueRich.IndexOf(subStr);
-            if (index >= 0) valueRich = valueRich.Insert(index, "<b><color=" + color.ToHexSystemString() + ">");
-            else return value;
-
-            index = valueRich.IndexOf(subStr) + subStr.Length;
-            if (index >= 0) valueRich = valueRich.Insert(index, "</color></b>");
-            else return value;
-
-            return valueRich;
-        }
-        /// <summary>
-        /// 将指定位置的子字串转换为富文本
-        /// </summary>
-        /// <param name="value">字符串</param>
-        /// <param name="subStr">子字串</param>
-        /// <param name="color">颜色</param>
-        /// <returns>转换后的字符串</returns>
-        public static string ToRichColor(this string value, string subStr, Color color)
-        {
-            if (subStr.Length <= 0 || !value.Contains(subStr))
-            {
-                return value;
-            }
-
-            string valueRich = value;
-            int index = valueRich.IndexOf(subStr);
-            if (index >= 0) valueRich = valueRich.Insert(index, "<color=" + color.ToHexSystemString() + ">");
-            else return value;
-
-            index = valueRich.IndexOf(subStr) + subStr.Length;
-            if (index >= 0) valueRich = valueRich.Insert(index, "</color>");
-            else return value;
-
-            return valueRich;
-        }
-        /// <summary>
-        /// 将指定位置的子字串转换为富文本
-        /// </summary>
-        /// <param name="value">字符串</param>
-        /// <param name="subStr">子字串</param>
-        /// <param name="size">字体大小</param>
-        /// <returns>转换后的字符串</returns>
-        public static string ToRichSize(this string value, string subStr, int size)
-        {
-            if (subStr.Length <= 0 || !value.Contains(subStr))
-            {
-                return value;
-            }
-
-            string valueRich = value;
-            int index = valueRich.IndexOf(subStr);
-            if (index >= 0) valueRich = valueRich.Insert(index, "<size=" + size + ">");
-            else return value;
-
-            index = valueRich.IndexOf(subStr) + subStr.Length;
-            if (index >= 0) valueRich = valueRich.Insert(index, "</size>");
-            else return value;
-
-            return valueRich;
-        }
-        /// <summary>
-        /// 将指定位置的子字串转换为富文本
-        /// </summary>
-        /// <param name="value">字符串</param>
-        /// <param name="subStr">子字串</param>
-        /// <returns>转换后的字符串</returns>
-        public static string ToRichBold(this string value, string subStr)
-        {
-            if (subStr.Length <= 0 || !value.Contains(subStr))
-            {
-                return value;
-            }
-
-            string valueRich = value;
-            int index = valueRich.IndexOf(subStr);
-            if (index >= 0) valueRich = valueRich.Insert(index, "<b>");
-            else return value;
-
-            index = valueRich.IndexOf(subStr) + subStr.Length;
-            if (index >= 0) valueRich = valueRich.Insert(index, "</b>");
-            else return value;
-
-            return valueRich;
-        }
-        /// <summary>
-        /// 将指定位置的子字串转换为富文本
-        /// </summary>
-        /// <param name="value">字符串</param>
-        /// <param name="subStr">子字串</param>
-        /// <returns>转换后的字符串</returns>
-        public static string ToRichItalic(this string value, string subStr)
-        {
-            if (subStr.Length <= 0 || !value.Contains(subStr))
-            {
-                return value;
-            }
-
-            string valueRich = value;
-            int index = valueRich.IndexOf(subStr);
-            if (index >= 0) valueRich = valueRich.Insert(index, "<i>");
-            else return value;
-
-            index = valueRich.IndexOf(subStr) + subStr.Length;
-            if (index >= 0) valueRich = valueRich.Insert(index, "</i>");
-            else return value;
-
-            return valueRich;
+            return length;
         }
         #endregion
     }

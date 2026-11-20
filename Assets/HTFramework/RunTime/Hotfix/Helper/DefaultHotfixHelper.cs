@@ -9,12 +9,12 @@ namespace HT.Framework
     /// <summary>
     /// 默认的热更新管理器助手
     /// </summary>
-    public sealed class DefaultHotfixHelper : IHotfixHelper
+    internal sealed class DefaultHotfixHelper : IHotfixHelper
     {
         private HotfixManager _module;
 
         /// <summary>
-        /// 热更新管理器
+        /// 所属的内置模块
         /// </summary>
         public IModuleManager Module { get; set; }
         /// <summary>
@@ -37,7 +37,7 @@ namespace HT.Framework
         /// 热修复后的方法
         /// </summary>
         public Dictionary<HotfixMethodType, Dictionary<string, Delegate>> FixedDelegates { get; private set; } = new Dictionary<HotfixMethodType, Dictionary<string, Delegate>>();
-
+        
         /// <summary>
         /// 初始化助手
         /// </summary>
@@ -59,16 +59,16 @@ namespace HT.Framework
         /// </summary>
         public void OnReady()
         {
-            // if (_module.IsEnableHotfix)
-            // {
-            //     if (Main.m_Resource.Mode == ResourceLoadMode.Resource)
-            //     {
-            //         throw new HTFrameworkException(HTFrameworkModule.Hotfix, "热更新初始化失败：热更新库不支持使用Resource加载模式！");
-            //     }
+            if (_module.IsEnableHotfix)
+            {
+                if (Main.m_Resource.Mode == ResourceLoadMode.Resource)
+                {
+                    throw new HTFrameworkException(HTFrameworkModule.Hotfix, "热更新初始化失败：热更新库不支持使用Resource加载模式！");
+                }
 
-            //     AssetInfo info = new AssetInfo(_module.HotfixDllAssetBundleName, _module.HotfixDllAssetsPath, "");
-            //     Main.m_Resource.LoadAsset<TextAsset>(info, null, HotfixDllLoadDone);
-            // }
+                AssetInfo info = new AssetInfo(_module.HotfixDllAssetBundleName, _module.HotfixDllAssetsPath, "");
+                Main.m_Resource.LoadAsset<TextAsset>(info, null, HotfixDllLoadDone);
+            }
         }
         /// <summary>
         /// 刷新助手
@@ -110,7 +110,7 @@ namespace HT.Framework
         /// <returns>修复后的方法</returns>
         public HTFAction FixMethod(HTFAction action)
         {
-            Delegate del = FixMethod(HotfixMethodType.HTFAction, action.Target.GetType().FullName + "." + action.Method.Name, typeof(HTFAction));
+            Delegate del = FixMethod(HotfixMethodType.HTFAction, $"{action.Target.GetType().FullName}.{action.Method.Name}", typeof(HTFAction));
             if (del != null) return del as HTFAction;
             else return action;
         }
@@ -121,7 +121,7 @@ namespace HT.Framework
         /// <returns>修复后的方法</returns>
         public HTFAction<T> FixMethod<T>(HTFAction<T> action)
         {
-            Delegate del = FixMethod(HotfixMethodType.HTFAction_1Arg, action.Target.GetType().FullName + "." + action.Method.Name, typeof(HTFAction<T>));
+            Delegate del = FixMethod(HotfixMethodType.HTFAction_1Arg, $"{action.Target.GetType().FullName}.{action.Method.Name}", typeof(HTFAction<T>));
             if (del != null) return del as HTFAction<T>;
             else return action;
         }
@@ -132,7 +132,7 @@ namespace HT.Framework
         /// <returns>修复后的方法</returns>
         public HTFAction<T1, T2> FixMethod<T1, T2>(HTFAction<T1, T2> action)
         {
-            Delegate del = FixMethod(HotfixMethodType.HTFAction_2Arg, action.Target.GetType().FullName + "." + action.Method.Name, typeof(HTFAction<T1, T2>));
+            Delegate del = FixMethod(HotfixMethodType.HTFAction_2Arg, $"{action.Target.GetType().FullName}.{action.Method.Name}", typeof(HTFAction<T1, T2>));
             if (del != null) return del as HTFAction<T1, T2>;
             else return action;
         }
@@ -143,7 +143,7 @@ namespace HT.Framework
         /// <returns>修复后的方法</returns>
         public HTFAction<T1, T2, T3> FixMethod<T1, T2, T3>(HTFAction<T1, T2, T3> action)
         {
-            Delegate del = FixMethod(HotfixMethodType.HTFAction_3Arg, action.Target.GetType().FullName + "." + action.Method.Name, typeof(HTFAction<T1, T2, T3>));
+            Delegate del = FixMethod(HotfixMethodType.HTFAction_3Arg, $"{action.Target.GetType().FullName}.{action.Method.Name}", typeof(HTFAction<T1, T2, T3>));
             if (del != null) return del as HTFAction<T1, T2, T3>;
             else return action;
         }
@@ -154,7 +154,7 @@ namespace HT.Framework
         /// <returns>修复后的方法</returns>
         public HTFFunc<TResult> FixMethod<TResult>(HTFFunc<TResult> action)
         {
-            Delegate del = FixMethod(HotfixMethodType.HTFFunc, action.Target.GetType().FullName + "." + action.Method.Name, typeof(HTFFunc<TResult>));
+            Delegate del = FixMethod(HotfixMethodType.HTFFunc, $"{action.Target.GetType().FullName}.{action.Method.Name}", typeof(HTFFunc<TResult>));
             if (del != null) return del as HTFFunc<TResult>;
             else return action;
         }
@@ -165,7 +165,7 @@ namespace HT.Framework
         /// <returns>修复后的方法</returns>
         public HTFFunc<T, TResult> FixMethod<T, TResult>(HTFFunc<T, TResult> action)
         {
-            Delegate del = FixMethod(HotfixMethodType.HTFFunc_1Arg, action.Target.GetType().FullName + "." + action.Method.Name, typeof(HTFFunc<T, TResult>));
+            Delegate del = FixMethod(HotfixMethodType.HTFFunc_1Arg, $"{action.Target.GetType().FullName}.{action.Method.Name}", typeof(HTFFunc<T, TResult>));
             if (del != null) return del as HTFFunc<T, TResult>;
             else return action;
         }
@@ -176,7 +176,7 @@ namespace HT.Framework
         /// <returns>修复后的方法</returns>
         public HTFFunc<T1, T2, TResult> FixMethod<T1, T2, TResult>(HTFFunc<T1, T2, TResult> action)
         {
-            Delegate del = FixMethod(HotfixMethodType.HTFFunc_2Arg, action.Target.GetType().FullName + "." + action.Method.Name, typeof(HTFFunc<T1, T2, TResult>));
+            Delegate del = FixMethod(HotfixMethodType.HTFFunc_2Arg, $"{action.Target.GetType().FullName}.{action.Method.Name}", typeof(HTFFunc<T1, T2, TResult>));
             if (del != null) return del as HTFFunc<T1, T2, TResult>;
             else return action;
         }
@@ -187,7 +187,7 @@ namespace HT.Framework
         /// <returns>修复后的方法</returns>
         public HTFFunc<T1, T2, T3, TResult> FixMethod<T1, T2, T3, TResult>(HTFFunc<T1, T2, T3, TResult> action)
         {
-            Delegate del = FixMethod(HotfixMethodType.HTFFunc_3Arg, action.Target.GetType().FullName + "." + action.Method.Name, typeof(HTFFunc<T1, T2, T3, TResult>));
+            Delegate del = FixMethod(HotfixMethodType.HTFFunc_3Arg, $"{action.Target.GetType().FullName}.{action.Method.Name}", typeof(HTFFunc<T1, T2, T3, TResult>));
             if (del != null) return del as HTFFunc<T1, T2, T3, TResult>;
             else return action;
         }
@@ -195,9 +195,7 @@ namespace HT.Framework
         private Delegate FixMethod(HotfixMethodType methodType, string targetName, Type type)
         {
             if (!_module.IsEnableHotfix)
-            {
                 return null;
-            }
 
             if (FixedDelegates[methodType].ContainsKey(targetName))
             {
@@ -256,7 +254,7 @@ namespace HT.Framework
             {
                 foreach (var item in FixedMethods[HotfixMethodType.Invalid])
                 {
-                    Log.Error("发现无效的热修复方法：" + item.Value.Name);
+                    Log.Error($"发现无效的热修复方法：{item.Value.Name}");
                 }
                 FixedMethods[HotfixMethodType.Invalid].Clear();
             }

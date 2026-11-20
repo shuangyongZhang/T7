@@ -12,8 +12,6 @@ namespace HT.Framework
     {
         private Dictionary<string, bool> _fsmGroupsShow;
 
-        protected override string Intro => "FSM manager, this is the master manager for all FSM!";
-
         protected override void OnRuntimeEnable()
         {
             base.OnRuntimeEnable();
@@ -28,7 +26,15 @@ namespace HT.Framework
         protected override void OnInspectorRuntimeGUI()
         {
             base.OnInspectorRuntimeGUI();
-            
+
+            if (_helper == null)
+            {
+                GUILayout.BeginHorizontal();
+                GUILayout.Label("No Runtime Data!");
+                GUILayout.EndHorizontal();
+                return;
+            }
+
             GUILayout.BeginHorizontal();
             GUILayout.Label("FSMs: " + _helper.FSMs.Count);
             GUILayout.EndHorizontal();
@@ -47,7 +53,7 @@ namespace HT.Framework
                     {
                         GUILayout.BeginHorizontal();
                         GUILayout.Space(20);
-                        GUILayout.Label("Name: " + fsms[i].Name);
+                        GUILayout.Label($"Name: {fsms[i].Name}");
                         GUILayout.EndHorizontal();
 
                         GUILayout.BeginHorizontal();

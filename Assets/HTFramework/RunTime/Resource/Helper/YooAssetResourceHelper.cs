@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Threading;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -11,17 +12,15 @@ namespace HT.Framework
     /// <summary>
     ///YooAsset资源管理器助手
     /// </summary>
-    internal sealed partial class YooAssetResourceHelper : IResourceHelper
+    internal sealed partial class YooAssetResourceHelper : IYooAssetResourceHelper
     {
 
 
         private ResourceManager _module;
-        private bool _isLoading;    //单线下载中
-        private WaitUntil _loadWait;    //单线下载等待;
-        /// <summary>
-        /// 是否是编辑器模式
-        /// </summary>
-        public bool IsEditorMode => _module.IsEditorMode;
+        private readonly SemaphoreSlim _assetLoadSemaphore = new SemaphoreSlim(1, 1);
+        private ResourcePackage _package;
+        private UniTaskCompletionSource<bool> _initializationSource;
+        private ResourcePlayMode _activePlayMode;
         /// <summary>
         /// 是否完成初始化完成
         /// </summary>
@@ -44,8 +43,8 @@ namespace HT.Framework
         public void OnInit()
         {
             _module = Module as ResourceManager;
-            _loadWait = new WaitUntil(() => !_isLoading);
-
+            // 全局目标预算；单个 Awake/OnEnable 的耗时仍需由组件自身控制。
+            AsyncInstantiateOperation.SetIntegrationTimeMS(2f);
         }
 
         /// <summary>
@@ -54,7 +53,7 @@ namespace HT.Framework
         public void OnReady()
         {
             if (_module.IsManually) return;
-            Initialize(PackageName, IsEditorMode);
+            Initialize(PackageName, _module.PlayMode).Forget();
 
         }
         /// <summary>
@@ -86,61 +85,107 @@ namespace HT.Framework
 
         }
 
-        public void Initialize(string packageName, bool isEditorMode)
+        public UniTask<bool> Initialize(string packageName, ResourcePlayMode playMode)
         {
-            if (IsInitialized) return;
+#if !UNITY_EDITOR
+            playMode = ResourcePlayMode.Offline;
+#endif
+            if (IsInitialized)
+            {
+                return UniTask.FromResult(true);
+            }
 
-            InitializePackage(packageName, isEditorMode).ContinueWith((result) =>
-               {
-                   IsInitialized = result;
-                   InitializationCompleted?.Invoke(result);
-               }).Forget();
+            if (_initializationSource != null)
+            {
+                return _initializationSource.Task;
+            }
+
+            var source = new UniTaskCompletionSource<bool>();
+            _initializationSource = source;
+            InitializeAndNotify(packageName, playMode, source).Forget();
+            return source.Task;
+        }
+
+        private async UniTaskVoid InitializeAndNotify(string packageName, ResourcePlayMode playMode, UniTaskCompletionSource<bool> source)
+        {
+            var result = false;
+            try
+            {
+                result = await InitializePackage(packageName, playMode);
+            }
+            catch (Exception exception)
+            {
+                Log.Error($"YooAsset初始化异常：{exception}");
+            }
+
+            IsInitialized = result;
+            if (ReferenceEquals(_initializationSource, source))
+            {
+                _initializationSource = null;
+            }
+            source.TrySetResult(result);
+            InitializationCompleted?.Invoke(result);
         }
 
         /// <summary>
         /// 初始化资源包
         /// </summary>
-        private async UniTask<bool> InitializePackage(string packageName, bool isEditorMode)
+        private async UniTask<bool> InitializePackage(string packageName, ResourcePlayMode playMode)
         {
             // 初始化资源系统
-            YooAssets.Initialize();
+            if (!YooAssets.Initialized)
+            {
+                YooAssets.Initialize();
+            }
             // 创建默认的资源包
-            var package = YooAssets.TryGetPackage(packageName) ?? YooAssets.CreatePackage(packageName);
-            YooAssets.SetDefaultPackage(package);
-
-            if (package.InitializeStatus == EOperationStatus.Succeed) return true;
+            _package = YooAssets.TryGetPackage(packageName) ?? YooAssets.CreatePackage(packageName);
+            YooAssets.SetDefaultPackage(_package);
+            _activePlayMode = playMode;
 
             // 初始化
             InitializeParameters initializeParameters = null;
-            if (isEditorMode)
+            if (playMode == ResourcePlayMode.EditorSimulate)
             {
+#if UNITY_EDITOR
                 var buildResult = EditorSimulateModeHelper.SimulateBuild(packageName);
                 var packageRoot = buildResult.PackageRootDirectory;
                 initializeParameters = new EditorSimulateModeParameters
                 {
                     EditorFileSystemParameters = FileSystemParameters.CreateDefaultEditorFileSystemParameters(packageRoot)
                 };
+#else
+                Log.Error("EditorSimulate模式仅可在Unity Editor中使用。");
+                return false;
+#endif
             }
-            else
+            else if (playMode == ResourcePlayMode.Offline)
             {
                 initializeParameters = new OfflinePlayModeParameters
                 {
                     BuildinFileSystemParameters = FileSystemParameters.CreateDefaultBuildinFileSystemParameters()
                 };
             }
-
-            var initializeOp = package.InitializeAsync(initializeParameters);
-            await initializeOp;
-            if (initializeOp.Status != EOperationStatus.Succeed)
+            else
             {
-                Log.Error(initializeOp.Error);
+                Log.Error($"不支持的YooAsset运行模式：{playMode}");
                 return false;
+            }
+
+            if (_package.InitializeStatus != EOperationStatus.Succeed)
+            {
+                var initializeOp = _package.InitializeAsync(initializeParameters);
+                await initializeOp;
+                if (initializeOp.Status != EOperationStatus.Succeed)
+                {
+                    Log.Error(initializeOp.Error);
+                    return false;
+                }
             }
 
 
 
             // 请求资源版本
-            var requetVersionOp = package.RequestPackageVersionAsync();
+            var requetVersionOp = _package.RequestPackageVersionAsync();
             await requetVersionOp;
             if (requetVersionOp.Status != EOperationStatus.Succeed)
             {
@@ -150,7 +195,7 @@ namespace HT.Framework
 
 
             // 更新资源清单
-            var updateManifestOp = package.UpdatePackageManifestAsync(requetVersionOp.PackageVersion);
+            var updateManifestOp = _package.UpdatePackageManifestAsync(requetVersionOp.PackageVersion);
             await updateManifestOp;
             if (updateManifestOp.Status != EOperationStatus.Succeed)
             {
@@ -175,66 +220,99 @@ namespace HT.Framework
         /// <returns></returns>
         public async UniTask<T> LoadAssetAsync<T>(string location, bool isPrefab, Transform parent, bool isUI) where T : Object
         {
+            EnsureInitialized();
             var beginTime = Time.realtimeSinceStartup;
-            //单线加载，如果其他地方在加载资源，则等待
-            if (_isLoading)
-            {
-                await _loadWait;
-            }
-            //轮到本线路加载资源
-            _isLoading = true;
+            await _assetLoadSemaphore.WaitAsync();
             var waitTime = Time.realtimeSinceStartup;
-
-            //开始加载
-            Object result;
-
-            //从定位中获取到LoadHandle,如果没有则创建一个新的
-            var loadHandle = TryGetLoadHandleByLocation(location, true);
-            //设置LoadHandle 为正在加载中
-            loadHandle.SetWaitAsync(true);
-
-            if (loadHandle.Object != null)
+            float instantiateTime = 0f;
+            LoadHandle loadHandle = null;
+            try
             {
-                result = loadHandle.Object;
-            }
-            else
-            {
-                //使用YooAssets 加载 资源句柄
-                var assetOperationHandle = YooAssets.LoadAssetAsync<T>(location);
-                await assetOperationHandle.ToUniTask();
+                //从定位中获取到LoadHandle,如果没有则创建一个新的
+                loadHandle = TryGetLoadHandleByLocation(location, true);
+                loadHandle.SetWaitAsync(true);
 
-                //记录资源句柄
-                AddAssetOperationHandle(assetOperationHandle);
-
-                result = assetOperationHandle.AssetObject;
-
-                //将result 和 loadHandle 关联
-                if (AddLoadHandle(result, loadHandle))
+                Object result;
+                if (loadHandle.Object != null)
                 {
-                    loadHandle.ResetHandle(result, assetOperationHandle.GetHashCode());
+                    result = loadHandle.Object;
                 }
-            }
-
-            if (result != null)
-            {
-                // 只在成功加载资源后增加引用计数
-                loadHandle.AddRefCount();
-
-                //如果当前为预制件 则实例化对象
-                if (isPrefab)
+                else
                 {
-                    var prefabTem = result.Cast<GameObject>();
-                    result = InstanceGameObject(prefabTem, parent, isUI);
-                    //关联clone 与 prefab
-                    AddClone(result, prefabTem, loadHandle);
-                }
-            }
+                    var assetOperationHandle = _package.LoadAssetAsync<T>(location);
+                    try
+                    {
+                        await assetOperationHandle.ToUniTask();
+                    }
+                    catch
+                    {
+                        if (assetOperationHandle.IsValid)
+                        {
+                            assetOperationHandle.Release();
+                        }
+                        throw;
+                    }
 
-            loadHandle.SetWaitAsync(false);
-            LogLoadedInfo(result != null, location, beginTime, waitTime);
-            //本线路加载资源结束
-            _isLoading = false;
-            return result.Cast<T>();
+                    result = assetOperationHandle.AssetObject;
+                    if (result != null && AddLoadHandle(result, loadHandle))
+                    {
+                        loadHandle.ResetHandle(result, assetOperationHandle);
+                    }
+                    else
+                    {
+                        if (assetOperationHandle.IsValid)
+                        {
+                            assetOperationHandle.Release();
+                        }
+                        if (result != null)
+                        {
+                            Log.Error($"资源对象已关联到其他定位，无法建立句柄：{location}");
+                            result = null;
+                        }
+                    }
+                }
+
+                if (result != null)
+                {
+                    loadHandle.AddRefCount();
+                    if (isPrefab)
+                    {
+                        var prefabTem = result.Cast<GameObject>();
+                        GameObject clone = null;
+                        try
+                        {
+                            float instantiateStartTime = Time.realtimeSinceStartup;
+                            clone = await AsyncPrefabInstantiation.CreateAsync(prefabTem, parent, isUI);
+                            instantiateTime = Time.realtimeSinceStartup - instantiateStartTime;
+                            AddClone(clone, prefabTem, loadHandle);
+                            result = clone;
+                        }
+                        catch
+                        {
+                            if (clone != null) Main.Kill(clone);
+                            if (loadHandle.RemoveRefCount() && loadHandle.RefCount == 0)
+                            {
+                                loadHandle.SetWaitAsync(false);
+                                ReleaseHandle(loadHandle);
+                                loadHandle = null;
+                            }
+                            throw;
+                        }
+                    }
+                }
+
+                LogLoadedInfo(result != null, location, beginTime, waitTime, instantiateTime);
+                return result.Cast<T>();
+            }
+            finally
+            {
+                if (loadHandle != null)
+                {
+                    loadHandle.SetWaitAsync(false);
+                    DiscardEmptyLoadHandle(loadHandle);
+                }
+                _assetLoadSemaphore.Release();
+            }
         }
         #endregion
 
@@ -247,9 +325,17 @@ namespace HT.Framework
         public async UniTask<string> LoadRawFileTextAsync(string location)
         {
             var rawFileOperationHandle = await LoadRawFileAsync(location);
-            var rawFileText = rawFileOperationHandle.GetRawFileText();
-            rawFileOperationHandle.Release();
-            return rawFileText;
+            try
+            {
+                return rawFileOperationHandle.GetRawFileText();
+            }
+            finally
+            {
+                if (rawFileOperationHandle.IsValid)
+                {
+                    rawFileOperationHandle.Release();
+                }
+            }
         }
 
         /// <summary>
@@ -260,9 +346,17 @@ namespace HT.Framework
         public async UniTask<byte[]> LoadRawFileDataAsync(string location)
         {
             var rawFileOperationHandle = await LoadRawFileAsync(location);
-            var rawFileData = rawFileOperationHandle.GetRawFileData();
-            rawFileOperationHandle.Release();
-            return rawFileData;
+            try
+            {
+                return rawFileOperationHandle.GetRawFileData();
+            }
+            finally
+            {
+                if (rawFileOperationHandle.IsValid)
+                {
+                    rawFileOperationHandle.Release();
+                }
+            }
         }
 
         /// <summary>
@@ -271,24 +365,25 @@ namespace HT.Framework
         /// <param name="location">资源的定位地址</param>
         private async UniTask<RawFileHandle> LoadRawFileAsync(string location)
         {
+            EnsureInitialized();
             var beginTime = Time.realtimeSinceStartup;
-            //单线加载，如果其他地方在加载资源，则等待
-            if (_isLoading)
-            {
-                await _loadWait;
-            }
-            //轮到本线路加载资源
-            _isLoading = true;
             var waitTime = Time.realtimeSinceStartup;
-
-            var handle = YooAssets.LoadRawFileAsync(location);
-            await handle.ToUniTask();
-
-            LogLoadedInfo(handle.IsValid, location, beginTime, waitTime);
-
-            //本线路加载资源结束
-            _isLoading = false;
-            return handle;
+            RawFileHandle handle = null;
+            try
+            {
+                handle = _package.LoadRawFileAsync(location);
+                await handle.ToUniTask();
+                LogLoadedInfo(handle.IsValid, location, beginTime, waitTime);
+                return handle;
+            }
+            catch
+            {
+                if (handle != null && handle.IsValid)
+                {
+                    handle.Release();
+                }
+                throw;
+            }
         }
         #endregion
 
@@ -303,31 +398,30 @@ namespace HT.Framework
         /// <returns></returns>
         public async UniTask<Scene> LoadSceneAsync(string location, HTFAction<float> onLoading = null, LoadSceneMode sceneMode = LoadSceneMode.Single, LocalPhysicsMode physicsMode = LocalPhysicsMode.None, bool suspendLoad = false)
         {
+            EnsureInitialized();
             var beginTime = Time.realtimeSinceStartup;
-            //单线加载，如果其他地方在加载资源，则等待
-            if (_isLoading)
-            {
-                await _loadWait;
-            }
-            //轮到本线路加载资源
-            _isLoading = true;
             var waitTime = Time.realtimeSinceStartup;
-
-            var handle = YooAssets.LoadSceneAsync(location, sceneMode, physicsMode, suspendLoad);
-
-            var progress = Progress.Create<float>(p =>
+            SceneHandle handle = null;
+            try
             {
-                onLoading?.Invoke(p);
-            });
-            await handle.ToUniTask(progress);
+                handle = _package.LoadSceneAsync(location, sceneMode, physicsMode, suspendLoad);
+                var progress = Progress.Create<float>(p => onLoading?.Invoke(p));
+                await handle.ToUniTask(progress);
+                LogLoadedInfo(handle.IsValid, location, beginTime, waitTime);
 
-            LogLoadedInfo(handle.IsValid, location, beginTime, waitTime);
-            //本线路加载资源结束
-            _isLoading = false;
-
-            var scene = handle.SceneObject;
-            AddSceneOperationHandle(scene.name, handle);
-            return scene;
+                var scene = handle.SceneObject;
+                AddSceneOperationHandle(scene.name, handle);
+                _sceneNamesByLocation[location] = scene.name;
+                return scene;
+            }
+            catch
+            {
+                if (handle != null && handle.IsValid)
+                {
+                    handle.Release();
+                }
+                throw;
+            }
         }
 
         /// <summary>
@@ -338,7 +432,8 @@ namespace HT.Framework
         /// <returns></returns>
         public string[] GetAssetPath(string tag, bool isAddress)
         {
-            var assetInfos = YooAssets.GetAssetInfos(tag);
+            EnsureInitialized();
+            var assetInfos = _package.GetAssetInfos(tag);
             var pathAry = new string[assetInfos.Length];
             if (isAddress)
             {
@@ -367,7 +462,7 @@ namespace HT.Framework
         /// <param name="isClone"></param>
         public void UnLoadAsset(Object obj)
         {
-            if (obj is null)
+            if (obj == null)
             {
                 return;
             }
@@ -403,7 +498,11 @@ namespace HT.Framework
             }
 
             //减少引用
-            handle.RemoveRefCount();
+            if (!handle.RemoveRefCount())
+            {
+                "重复释放资源：引用计数已经为零。".Warning();
+                return;
+            }
 
             //如果引用为0 则释放
             if (handle.RefCount == 0)
@@ -418,12 +517,30 @@ namespace HT.Framework
         /// <param name="sceneName">场景名称</param>
         public async UniTask UnLoadScene(string sceneName)
         {
-            if (TryGetSceneOperationHandle(sceneName, out var sceneOperationHandle))
+            if (_sceneNamesByLocation.TryGetValue(sceneName, out var resolvedName))
+                sceneName = resolvedName;
+            if (!TryGetSceneOperationHandle(sceneName, out var sceneOperationHandle))
+            {
+                return;
+            }
+
+            RemoveSceneOperationHandle(sceneName);
+            try
             {
                 await sceneOperationHandle.UnloadAsync().ToUniTask();
-                await UnLoadDependencies();
+                if (!TryGetSceneOperationHandle(sceneName, out _))
+                {
+                    foreach (var location in new System.Collections.Generic.List<string>(_sceneNamesByLocation.Keys))
+                    {
+                        if (_sceneNamesByLocation[location] == sceneName) _sceneNamesByLocation.Remove(location);
+                    }
+                }
             }
-            RemoveSceneOperationHandle(sceneName);
+            catch
+            {
+                AddSceneOperationHandle(sceneName, sceneOperationHandle);
+                throw;
+            }
         }
 
         /// <summary>
@@ -431,52 +548,28 @@ namespace HT.Framework
         /// </summary>
         public async UniTask ClearMemory()
         {
-            ReleaseAllHandle();
-            var package = YooAssets.GetPackage(PackageName);
-            await package.UnloadUnusedAssetsAsync();
-
-            await Resources.UnloadUnusedAssets();
-            GC.Collect();
-            GC.WaitForPendingFinalizers();
-        }
-
-        public async UniTask UnLoadDependencies()
-        {
-            var package = YooAssets.GetPackage(PackageName);
-            await package.UnloadUnusedAssetsAsync();
-            await Resources.UnloadUnusedAssets();
-            GC.Collect();
-            GC.WaitForPendingFinalizers();
+            EnsureInitialized();
+            await _assetLoadSemaphore.WaitAsync();
+            try
+            {
+                ReleaseUnusedHandles();
+                await _package.UnloadUnusedAssetsAsync();
+                await Resources.UnloadUnusedAssets();
+            }
+            finally
+            {
+                _assetLoadSemaphore.Release();
+            }
         }
         #endregion
 
         #region 工具
-        /// <summary>
-        /// 实例化对象
-        /// </summary>
-        /// <param name="prefabTem">预制体</param>
-        /// <param name="parent">父物体</param>
-        /// <param name="isUI">是否是ui</param>
-        /// <returns></returns>
-        private GameObject InstanceGameObject(GameObject prefabTem, Transform parent, bool isUI)
+        private void EnsureInitialized()
         {
-            var clone = Main.Instantiate(prefabTem, parent);
-            if (isUI)
+            if (!IsInitialized || _package == null)
             {
-                clone.rectTransform().anchoredPosition3D = prefabTem.rectTransform().anchoredPosition3D;
-                clone.rectTransform().sizeDelta = prefabTem.rectTransform().sizeDelta;
-                clone.rectTransform().anchorMin = prefabTem.rectTransform().anchorMin;
-                clone.rectTransform().anchorMax = prefabTem.rectTransform().anchorMax;
-                clone.transform.localRotation = Quaternion.identity;
-                clone.transform.localScale = Vector3.one;
+                throw new InvalidOperationException("YooAsset资源包尚未初始化成功。");
             }
-            else
-            {
-                clone.transform.localPosition = prefabTem.transform.localPosition;
-                clone.transform.localRotation = Quaternion.identity;
-                clone.transform.localScale = Vector3.one;
-            }
-            return clone;
         }
 
         /// <summary>
@@ -486,15 +579,17 @@ namespace HT.Framework
         /// <param name="location"></param>
         /// <param name="beginTime"></param>
         /// <param name="waitTime"></param>
-        private void LogLoadedInfo(bool isValid, string location, float beginTime, float waitTime)
+        private void LogLoadedInfo(bool isValid, string location, float beginTime, float waitTime, float instantiateTime = 0f)
         {
             var endTime = Time.realtimeSinceStartup;
-            string.Format("异步加载资源{0}[{1}模式]：\r\n{2}\r\n等待耗时：{3}秒  加载耗时：{4}秒"
+            // 实例化耗时包含跨帧等待，不等于主线程连续阻塞时长。
+            string.Format("异步加载资源{0}[{1}模式]：{2}\n排队：{3:F1} ms  资源读取：{4:F1} ms  实例化等待：{5:F1} ms"
                 , isValid ? "成功" : "失败"
-                , _module.IsEditorMode ? "编辑器" : "本地离线"
+                , _activePlayMode == ResourcePlayMode.EditorSimulate ? "编辑器模拟" : "本地离线"
                 , location
-                , (waitTime - beginTime).ToString()
-                , (endTime - waitTime).ToString()).Info();
+                , (waitTime - beginTime) * 1000f
+                , Mathf.Max(0f, endTime - waitTime - instantiateTime) * 1000f
+                , instantiateTime * 1000f).Info();
         }
         #endregion
     }

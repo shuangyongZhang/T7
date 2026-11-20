@@ -11,17 +11,35 @@ namespace HT.Framework
     /// </summary>
     internal sealed class DebuggerScene
     {
+        /// <summary>
+        /// 所有的调试器组件（检索的目标类型，调试器类型）
+        /// </summary>
         private Dictionary<Type, Type> _debuggerComponents = new Dictionary<Type, Type>();
+        /// <summary>
+        /// 所有的组件类型
+        /// </summary>
         private List<Type> _componentTypes = new List<Type>();
-        private List<DebuggerGameObject> _gameObjects = new List<DebuggerGameObject>();
+        /// <summary>
+        /// 当前选中的游戏对象
+        /// </summary>
         private DebuggerGameObject _currentGameObject;
+        /// <summary>
+        /// 当前选中的组件
+        /// </summary>
         private Component _currentComponent;
+        /// <summary>
+        /// 游戏对象缓存队列
+        /// </summary>
         private List<GameObject> _gameObjectCaches = new List<GameObject>();
 
         /// <summary>
         /// 所有游戏对象根物体
         /// </summary>
         public List<DebuggerGameObject> GameObjectRoots { get; private set; } = new List<DebuggerGameObject>();
+        /// <summary>
+        /// 所有游戏对象
+        /// </summary>
+        public List<DebuggerGameObject> GameObjects { get; private set; } = new List<DebuggerGameObject>();
         /// <summary>
         /// 当前选中的游戏对象
         /// </summary>
@@ -66,9 +84,13 @@ namespace HT.Framework
                         if (_debuggerComponents.ContainsKey(type))
                         {
                             CurrentDebuggerComponent = Main.m_ReferencePool.Spawn(_debuggerComponents[type]) as DebuggerComponentBase;
-                            CurrentDebuggerComponent.Target = _currentComponent;
-                            CurrentDebuggerComponent.OnEnable();
                         }
+                        else
+                        {
+                            CurrentDebuggerComponent = Main.m_ReferencePool.Spawn<DebuggerComponentDefault>();
+                        }
+                        CurrentDebuggerComponent.Target = _currentComponent;
+                        CurrentDebuggerComponent.OnEnable();
                     }
                 }
             }
@@ -100,7 +122,7 @@ namespace HT.Framework
             List<Type> types = ReflectionToolkit.GetTypesInRunTimeAssemblies();
             for (int i = 0; i < types.Count; i++)
             {
-                if (types[i].IsSubclassOf(baseType))
+                if (types[i].IsSubclassOf(baseType) && !types[i].IsAbstract)
                 {
                     CustomDebuggerAttribute attr = types[i].GetCustomAttribute<CustomDebuggerAttribute>();
                     if (attr != null)
@@ -113,7 +135,7 @@ namespace HT.Framework
             baseType = typeof(Component);
             for (int i = 0; i < types.Count; i++)
             {
-                if (types[i].IsSubclassOf(baseType))
+                if (types[i].IsSubclassOf(baseType) && !types[i].IsAbstract)
                 {
                     _componentTypes.Add(types[i]);
                 }
@@ -136,19 +158,41 @@ namespace HT.Framework
             if (gameObjects == null) gameObjects = new List<DebuggerGameObject>();
             else gameObjects.Clear();
 
-            if (GameObjectFiltrate == "")
+            if (string.IsNullOrEmpty(GameObjectFiltrate))
             {
                 IsShowGameObjectFiltrate = false;
             }
             else
             {
-                IsShowGameObjectFiltrate = true;
-                string filtrate = GameObjectFiltrate.ToLower();
-                for (int i = 0; i < _gameObjects.Count; i++)
+                if (GameObjectFiltrate.StartsWith("[Tag]:"))
                 {
-                    if (_gameObjects[i].Name.ToLower().Contains(filtrate))
+                    string filtrate = GameObjectFiltrate.Replace("[Tag]:", "").ToLower();
+                    if (string.IsNullOrEmpty(filtrate))
                     {
-                        gameObjects.Add(_gameObjects[i]);
+                        IsShowGameObjectFiltrate = false;
+                    }
+                    else
+                    {
+                        IsShowGameObjectFiltrate = true;
+                        for (int i = 0; i < GameObjects.Count; i++)
+                        {
+                            if (GameObjects[i].Target.tag.ToLower().Contains(filtrate))
+                            {
+                                gameObjects.Add(GameObjects[i]);
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    IsShowGameObjectFiltrate = true;
+                    string filtrate = GameObjectFiltrate.ToLower();
+                    for (int i = 0; i < GameObjects.Count; i++)
+                    {
+                        if (GameObjects[i].Name.ToLower().Contains(filtrate))
+                        {
+                            gameObjects.Add(GameObjects[i]);
+                        }
                     }
                 }
             }
@@ -165,7 +209,7 @@ namespace HT.Framework
             string filtrate = ComponentFiltrate.ToLower();
             for (int i = 0; i < _componentTypes.Count; i++)
             {
-                if (_componentTypes[i].Name.ToLower().Contains(filtrate))
+                if (_componentTypes[i].FullName.ToLower().Contains(filtrate))
                 {
                     types.Add(_componentTypes[i]);
                 }
@@ -179,7 +223,7 @@ namespace HT.Framework
         {
             yield return YieldInstructioner.GetWaitForEndOfFrame();
 
-            Main.m_ReferencePool.Despawns(_gameObjects);
+            Main.m_ReferencePool.Despawns(GameObjects);
             GameObjectRoots.Clear();
 
             _gameObjectCaches.Clear();
@@ -202,7 +246,7 @@ namespace HT.Framework
             gameObject.Layer = LayerMask.LayerToName(transform.gameObject.layer);
             gameObject.IsMain = gameObject.Target.GetComponent<Main>();
             gameObject.Parent = parent;
-            _gameObjects.Add(gameObject);
+            GameObjects.Add(gameObject);
 
             if (gameObject.Parent != null)
             {

@@ -18,8 +18,6 @@ namespace HT.Framework
         private SerializedProperty _channelTypes;
         private ReorderableList _channelTypeList;
 
-        protected override string Intro => "Network Manager, help you implementing basic network client with socket!";
-
         protected override void OnDefaultEnable()
         {
             base.OnDefaultEnable();
@@ -46,19 +44,19 @@ namespace HT.Framework
                 if (!EditorApplication.isPlaying)
                 {
                     sub.Set(rect.x + rect.width - 40, rect.y - 2, 20, 20);
-                    if (GUI.Button(sub, _addGC, "InvisibleButton"))
+                    if (GUI.Button(sub, _addGC, EditorGlobalTools.Styles.InvisibleButton))
                     {
                         GenericMenu gm = new GenericMenu();
-                        List<Type> types = ReflectionToolkit.GetTypesInRunTimeAssemblies(type =>
+                        List<Type> types = ReflectionToolkit.GetTypesInAllAssemblies(type =>
                         {
                             return type.IsSubclassOf(typeof(ProtocolChannelBase)) && !type.IsAbstract;
-                        });
+                        }, false);
                         for (int i = 0; i < types.Count; i++)
                         {
                             int j = i;
                             if (Target.ChannelTypes.Contains(types[j].FullName))
                             {
-                                gm.AddDisabledItem(new GUIContent(types[j].FullName));
+                                gm.AddDisabledItem(new GUIContent(types[j].FullName), true);
                             }
                             else
                             {
@@ -75,7 +73,7 @@ namespace HT.Framework
 
                     sub.Set(rect.x + rect.width - 20, rect.y - 2, 20, 20);
                     GUI.enabled = _channelTypeList.index >= 0 && _channelTypeList.index < Target.ChannelTypes.Count;
-                    if (GUI.Button(sub, _removeGC, "InvisibleButton"))
+                    if (GUI.Button(sub, _removeGC, EditorGlobalTools.Styles.InvisibleButton))
                     {
                         Undo.RecordObject(target, "Delete Channel");
                         Target.ChannelTypes.RemoveAt(_channelTypeList.index);
@@ -96,9 +94,9 @@ namespace HT.Framework
                     if (isActive && isFocused)
                     {
                         subrect.Set(rect.x + rect.width - size, rect.y, 20, 20);
-                        if (GUI.Button(subrect, _editGC, "InvisibleButton"))
+                        if (GUI.Button(subrect, _editGC, EditorGlobalTools.Styles.InvisibleButton))
                         {
-                            MonoScriptToolkit.OpenMonoScript(Target.ChannelTypes[index]);
+                            CSharpScriptToolkit.OpenScript(Target.ChannelTypes[index]);
                         }
                         size += 20;
                     }
@@ -135,6 +133,14 @@ namespace HT.Framework
         {
             base.OnInspectorRuntimeGUI();
 
+            if (_helper == null)
+            {
+                GUILayout.BeginHorizontal();
+                GUILayout.Label("No Runtime Data!");
+                GUILayout.EndHorizontal();
+                return;
+            }
+
             GUILayout.BeginHorizontal();
             GUILayout.Label("Enabled Channels:");
             GUILayout.FlexibleSpace();
@@ -143,13 +149,13 @@ namespace HT.Framework
             foreach (var channel in _helper.ProtocolChannels)
             {
                 GUILayout.BeginHorizontal();
-                GUILayout.Label(channel.Key.FullName + " [" + channel.Value.Protocol.ToString() + "]");
+                GUILayout.Label($"{channel.Key.FullName} [{channel.Value.Protocol}]");
                 GUILayout.FlexibleSpace();
                 GUILayout.EndHorizontal();
 
                 GUILayout.BeginHorizontal();
                 GUILayout.Space(20);
-                GUILayout.Label("IsConnect:" + channel.Value.IsConnect.ToString());
+                GUILayout.Label($"IsConnect:{channel.Value.IsConnect}");
                 GUILayout.FlexibleSpace();
                 GUILayout.EndHorizontal();
             }

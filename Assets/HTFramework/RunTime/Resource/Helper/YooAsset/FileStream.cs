@@ -18,13 +18,13 @@ namespace HT.Framework
 
         public override int Read(byte[] array, int offset, int count)
         {
-            var index = base.Read(array, offset, count);
-            for (int i = 0; i < array.Length; i++)
+            var bytesRead = base.Read(array, offset, count);
+            for (int i = offset; i < offset + bytesRead; i++)
             {
                 array[i] ^= KEY;
             }
 
-            return index;
+            return bytesRead;
         }
     }
 }

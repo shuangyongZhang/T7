@@ -7,10 +7,10 @@ namespace HT.Framework
     /// <summary>
     /// 默认的协程调度器助手
     /// </summary>
-    public sealed class DefaultCoroutinerHelper : ICoroutinerHelper
+    internal sealed class DefaultCoroutinerHelper : ICoroutinerHelper
     {
         /// <summary>
-        /// 协程调度器
+        /// 所属的内置模块
         /// </summary>
         public IModuleManager Module { get; set; }
         /// <summary>
@@ -118,7 +118,7 @@ namespace HT.Framework
         {
             if (!CoroutineEnumerators.ContainsKey(id))
             {
-                Log.Warning("重启协程失败：不存在ID为 " + id + " 的协程！");
+                Log.Warning($"重启协程失败：不存在ID为 {id} 的协程！");
                 return;
             }
             CoroutineEnumerators[id].Rerun();
@@ -131,7 +131,7 @@ namespace HT.Framework
         {
             if (!CoroutineEnumerators.ContainsKey(id))
             {
-                Log.Warning("终止协程失败：不存在ID为 " + id + " 的协程！");
+                Log.Warning($"终止协程失败：不存在ID为 {id} 的协程！");
                 return;
             }
             CoroutineEnumerators[id].Stop();
@@ -191,7 +191,6 @@ namespace HT.Framework
                 RemoveWarehouse(enumerator.Value);
                 Main.m_ReferencePool.Despawn(enumerator.Value);
             }
-            notRunnings = null;
         }
 
         private void DepositWarehouse(CoroutineEnumerator enumerator)

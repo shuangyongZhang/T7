@@ -18,8 +18,6 @@ namespace HT.Framework
         private bool _overlayUIFoldout = true;
         private bool _cameraUIFoldout = true;
 
-        protected override string Intro => "UI Manager, this is the master controller for all UIs!";
-
         protected override void OnDefaultEnable()
         {
             base.OnDefaultEnable();
@@ -43,7 +41,7 @@ namespace HT.Framework
                 if (!EditorApplication.isPlaying)
                 {
                     sub.Set(rect.x + rect.width - 40, rect.y - 2, 20, 20);
-                    if (GUI.Button(sub, _addGC, "InvisibleButton"))
+                    if (GUI.Button(sub, _addGC, EditorGlobalTools.Styles.InvisibleButton))
                     {
                         Target.DefineUINames.Add("<None>");
                         Target.DefineUIEntitys.Add(null);
@@ -52,7 +50,7 @@ namespace HT.Framework
 
                     sub.Set(rect.x + rect.width - 20, rect.y - 2, 20, 20);
                     GUI.enabled = _uiList.index >= 0 && _uiList.index < Target.DefineUINames.Count;
-                    if (GUI.Button(sub, _removeGC, "InvisibleButton"))
+                    if (GUI.Button(sub, _removeGC, EditorGlobalTools.Styles.InvisibleButton))
                     {
                         Target.DefineUINames.RemoveAt(_uiList.index);
                         Target.DefineUIEntitys.RemoveAt(_uiList.index);
@@ -75,10 +73,10 @@ namespace HT.Framework
                         if (GUI.Button(subrect, Target.DefineUINames[index], EditorGlobalTools.Styles.MiniPopup))
                         {
                             GenericMenu gm = new GenericMenu();
-                            List<Type> types = ReflectionToolkit.GetTypesInRunTimeAssemblies(type =>
+                            List<Type> types = ReflectionToolkit.GetTypesInAllAssemblies(type =>
                             {
                                 return type.IsSubclassOf(typeof(UILogicBase)) && !type.IsAbstract;
-                            });
+                            }, false);
                             for (int m = 0; m < types.Count; m++)
                             {
                                 int j = index;
@@ -143,8 +141,7 @@ namespace HT.Framework
 
             PropertyField(nameof(UIManager.IsEnableOverlayUI), "Enable Overlay UI");
             PropertyField(nameof(UIManager.IsEnableCameraUI), "Enable Camera UI");
-            PropertyField(nameof(UIManager.IsEnableWorldUI), "Enable World UI");
-
+            
             _uiList.DoLayoutList();
 
             GUI.enabled = true;
@@ -152,6 +149,14 @@ namespace HT.Framework
         protected override void OnInspectorRuntimeGUI()
         {
             base.OnInspectorRuntimeGUI();
+
+            if (_helper == null)
+            {
+                GUILayout.BeginHorizontal();
+                GUILayout.Label("No Runtime Data!");
+                GUILayout.EndHorizontal();
+                return;
+            }
 
             GUILayout.BeginHorizontal();
             Target.IsHideAll = EditorGUILayout.Toggle("Hide All", Target.IsHideAll);
@@ -188,12 +193,12 @@ namespace HT.Framework
                     {
                         GUILayout.FlexibleSpace();
                         GUI.enabled = !ui.Value.IsOpened;
-                        if (GUILayout.Button("Open", EditorStyles.miniButtonLeft, GUILayout.Width(45)))
+                        if (GUILayout.Button("Open", EditorGlobalTools.Styles.ButtonLeft, GUILayout.Width(45)))
                         {
                             Target.OpenUI(ui.Key);
                         }
                         GUI.enabled = ui.Value.IsOpened;
-                        if (GUILayout.Button("Close", EditorStyles.miniButtonRight, GUILayout.Width(45)))
+                        if (GUILayout.Button("Close", EditorGlobalTools.Styles.ButtonRight, GUILayout.Width(45)))
                         {
                             Target.CloseUI(ui.Key);
                         }
@@ -226,12 +231,12 @@ namespace HT.Framework
                     {
                         GUILayout.FlexibleSpace();
                         GUI.enabled = !ui.Value.IsOpened;
-                        if (GUILayout.Button("Open", EditorStyles.miniButtonLeft, GUILayout.Width(45)))
+                        if (GUILayout.Button("Open", EditorGlobalTools.Styles.ButtonLeft, GUILayout.Width(45)))
                         {
                             Target.OpenUI(ui.Key);
                         }
                         GUI.enabled = ui.Value.IsOpened;
-                        if (GUILayout.Button("Close", EditorStyles.miniButtonRight, GUILayout.Width(45)))
+                        if (GUILayout.Button("Close", EditorGlobalTools.Styles.ButtonRight, GUILayout.Width(45)))
                         {
                             Target.CloseUI(ui.Key);
                         }

@@ -28,54 +28,70 @@ namespace HT.Framework
         /// </summary>
         /// <param name="uILogicBase">UI逻辑实例</param>
         /// <param name="fieldInfos">所有自动化字段</param>
-        public static void ApplyInject(UILogicBase uILogicBase, FieldInfo[] fieldInfos)
+        /// <returns>完成注入的数量</returns>
+        public static int ApplyInject(UILogicBase uILogicBase, FieldInfo[] fieldInfos)
         {
-            ApplyInject(uILogicBase, uILogicBase.UIEntity, fieldInfos);
+            return ApplyInject(uILogicBase, uILogicBase.UIEntity, fieldInfos);
+        }
+        /// <summary>
+        /// 应用UI逻辑类（常驻UI）的UI区域的依赖注入
+        /// </summary>
+        /// <param name="uIRegion">UI区域实例</param>
+        /// <param name="fieldInfos">所有自动化字段</param>
+        /// <returns>完成注入的数量</returns>
+        public static int ApplyInject(UILogicResident.UIRegion uIRegion, FieldInfo[] fieldInfos)
+        {
+            return ApplyInject(uIRegion, uIRegion.Host.UIEntity, fieldInfos);
         }
         /// <summary>
         /// 应用实体逻辑类的依赖注入
         /// </summary>
         /// <param name="entityLogicBase">实体逻辑实例</param>
         /// <param name="fieldInfos">所有自动化字段</param>
-        public static void ApplyInject(EntityLogicBase entityLogicBase, FieldInfo[] fieldInfos)
+        /// <returns>完成注入的数量</returns>
+        public static int ApplyInject(EntityLogicBase entityLogicBase, FieldInfo[] fieldInfos)
         {
-            ApplyInject(entityLogicBase, entityLogicBase.Entity, fieldInfos);
+            return ApplyInject(entityLogicBase, entityLogicBase.Entity, fieldInfos);
         }
         /// <summary>
         /// 应用HT行为类的依赖注入
         /// </summary>
         /// <param name="behaviour">HT行为类实例</param>
         /// <param name="fieldInfos">所有自动化字段</param>
-        public static void ApplyInject(HTBehaviour behaviour, FieldInfo[] fieldInfos)
+        /// <returns>完成注入的数量</returns>
+        public static int ApplyInject(HTBehaviour behaviour, FieldInfo[] fieldInfos)
         {
-            ApplyInject(behaviour, behaviour.gameObject, fieldInfos);
+            return ApplyInject(behaviour, behaviour.gameObject, fieldInfos);
         }
         /// <summary>
         /// 应用FSM数据的依赖注入
         /// </summary>
         /// <param name="fsmData">FSM数据实例</param>
         /// <param name="fieldInfos">所有自动化字段</param>
-        public static void ApplyInject(FSMDataBase fsmData, FieldInfo[] fieldInfos)
+        /// <returns>完成注入的数量</returns>
+        public static int ApplyInject(FSMDataBase fsmData, FieldInfo[] fieldInfos)
         {
-            ApplyInject(fsmData, fsmData.StateMachine.gameObject, fieldInfos);
+            return ApplyInject(fsmData, fsmData.StateMachine.gameObject, fieldInfos);
         }
         /// <summary>
         /// 应用FSM参数的依赖注入
         /// </summary>
         /// <param name="fsmArgs">FSM参数实例</param>
         /// <param name="fieldInfos">所有自动化字段</param>
-        public static void ApplyInject(FSMArgsBase fsmArgs, FieldInfo[] fieldInfos)
+        /// <returns>完成注入的数量</returns>
+        public static int ApplyInject(FSMArgsBase fsmArgs, FieldInfo[] fieldInfos)
         {
-            ApplyInject(fsmArgs, fsmArgs.StateMachine.gameObject, fieldInfos);
+            return ApplyInject(fsmArgs, fsmArgs.StateMachine.gameObject, fieldInfos);
         }
         /// <summary>
         /// 应用FSM状态的依赖注入
         /// </summary>
         /// <param name="fsmState">FSM状态实例</param>
         /// <param name="fieldInfos">所有自动化字段</param>
-        public static void ApplyInject(FiniteStateBase fsmState, FieldInfo[] fieldInfos)
+        /// <returns>完成注入的数量</returns>
+        public static int ApplyInject(FiniteStateBase fsmState, FieldInfo[] fieldInfos)
         {
-            ApplyInject(fsmState, fsmState.StateMachine.gameObject, fieldInfos);
+            return ApplyInject(fsmState, fsmState.StateMachine.gameObject, fieldInfos);
         }
         /// <summary>
         /// 应用依赖注入
@@ -83,8 +99,10 @@ namespace HT.Framework
         /// <param name="instance">目标实例</param>
         /// <param name="entity">目标在场景中的实体</param>
         /// <param name="fieldInfos">所有自动化字段</param>
-        private static void ApplyInject(object instance, GameObject entity, FieldInfo[] fieldInfos)
+        /// <returns>完成注入的数量</returns>
+        private static int ApplyInject(object instance, GameObject entity, FieldInfo[] fieldInfos)
         {
+            int count = 0;
             for (int i = 0; i < fieldInfos.Length; i++)
             {
                 if (fieldInfos[i].IsDefined(typeof(InjectPathAttribute), true))
@@ -100,6 +118,25 @@ namespace HT.Framework
                         GameObject obj = entity.FindChildren(path);
                         fieldInfos[i].SetValue(instance, obj != null ? obj.GetComponent(type) : null);
                     }
+                    else
+                    {
+                        Log.Error($"自动化任务：依赖注入（Path）失败，字段 {fieldInfos[i].Name} 的类型不被支持！");
+                    }
+                    count += 1;
+                }
+                else if (fieldInfos[i].IsDefined(typeof(InjectComponentAttribute), true))
+                {
+                    Type type = fieldInfos[i].FieldType;
+                    if (type.IsSubclassOf(typeof(Component)))
+                    {
+                        Component component = entity.GetComponentInChildren(type);
+                        fieldInfos[i].SetValue(instance, component);
+                    }
+                    else
+                    {
+                        Log.Error($"自动化任务：依赖注入（Component）失败，字段 {fieldInfos[i].Name} 的类型不被支持！");
+                    }
+                    count += 1;
                 }
                 else if (fieldInfos[i].IsDefined(typeof(InjectUIAttribute), true))
                 {
@@ -110,10 +147,12 @@ namespace HT.Framework
                     }
                     else
                     {
-                        Log.Error(string.Format("自动化任务：依赖注入（UI）失败，字段 {0} 必须为UI逻辑类对象（UILogicBase），且不能为抽象类！", fieldInfos[i].Name));
+                        Log.Error($"自动化任务：依赖注入（UI）失败，字段 {fieldInfos[i].Name} 必须为UI逻辑类对象（UILogicBase），且不能为抽象类！");
                     }
+                    count += 1;
                 }
             }
+            return count;
         }
 
         /// <summary>
@@ -121,8 +160,11 @@ namespace HT.Framework
         /// </summary>
         /// <param name="instance">目标实例</param>
         /// <param name="fieldInfos">所有自动化字段</param>
-        public static void ApplyDataBinding(object instance, FieldInfo[] fieldInfos)
+        /// <returns>完成绑定的数量</returns>
+        public static int ApplyDataBinding(object instance, FieldInfo[] fieldInfos)
         {
+            int count = 0;
+
             Type type = instance.GetType();
             Dictionary<string, FieldInfo> targetFieldsCache = new Dictionary<string, FieldInfo>();
             object[] args = new object[1];
@@ -132,9 +174,11 @@ namespace HT.Framework
                 if (!fieldInfos[i].IsDefined(typeof(DataBindingAttribute), true))
                     continue;
 
+                count += 1;
+
                 if (!fieldInfos[i].FieldType.IsSubclassOf(typeof(UIBehaviour)))
                 {
-                    Log.Error(string.Format("自动化任务：数据绑定失败，字段 {0}.{1} 的类型不支持数据绑定，只有 UnityEngine.EventSystems.UIBehaviour 的子类型支持数据绑定！", type.FullName, fieldInfos[i].Name));
+                    Log.Error($"自动化任务：数据绑定失败，字段 {type.FullName}.{fieldInfos[i].Name} 的类型不支持数据绑定，只有 UnityEngine.EventSystems.UIBehaviour 的子类型支持数据绑定！");
                     continue;
                 }
 
@@ -142,18 +186,18 @@ namespace HT.Framework
                 DataBindingAttribute attribute = fieldInfos[i].GetCustomAttribute<DataBindingAttribute>();
                 if (attribute.TargetType == null)
                 {
-                    Log.Error(string.Format("自动化任务：数据绑定失败，字段 {0}.{1} 绑定的目标数据模型类不存在！", type.FullName, fieldInfos[i].Name));
+                    Log.Error($"自动化任务：数据绑定失败，字段 {type.FullName}.{fieldInfos[i].Name} 绑定的目标数据模型类不存在！");
                     continue;
                 }
                 DataModelBase dataModel = Main.Current.GetDataModel(attribute.TargetType);
                 if (dataModel == null)
                 {
-                    Log.Error(string.Format("自动化任务：数据绑定失败，数据模型类 {0} 未添加至当前环境！", attribute.TargetType.FullName));
+                    Log.Error($"自动化任务：数据绑定失败，数据模型类 {attribute.TargetType.FullName} 未添加至当前环境！");
                     continue;
                 }
 
                 //获取绑定的目标数据模型的数据字段
-                string fieldName = attribute.TargetType.FullName + "." + attribute.TargetField;
+                string fieldName = $"{attribute.TargetType.FullName}.{attribute.TargetField}";
                 FieldInfo dataField = null;
                 if (targetFieldsCache.ContainsKey(fieldName))
                 {
@@ -169,12 +213,12 @@ namespace HT.Framework
                 }
                 if (dataField == null)
                 {
-                    Log.Error(string.Format("自动化任务：数据绑定失败，未找到字段 {0}.{1} 绑定的目标数据字段 {2}！", type.FullName, fieldInfos[i].Name, fieldName));
+                    Log.Error($"自动化任务：数据绑定失败，未找到字段 {type.FullName}.{fieldInfos[i].Name} 绑定的目标数据字段 {fieldName}！");
                     continue;
                 }
                 if (!(dataField.FieldType.BaseType.IsGenericType && dataField.FieldType.BaseType.GetGenericTypeDefinition() == typeof(BindableType<>)))
                 {
-                    Log.Error(string.Format("自动化任务：数据绑定失败，目标数据字段 {0} 并不是可绑定的数据类型 BindableType！", fieldName));
+                    Log.Error($"自动化任务：数据绑定失败，目标数据字段 {fieldName} 并不是可绑定的数据类型 BindableType！");
                     continue;
                 }
 
@@ -190,7 +234,7 @@ namespace HT.Framework
                 object controlValue = fieldInfos[i].GetValue(instance);
                 if (controlValue == null)
                 {
-                    Log.Error(string.Format("自动化任务：数据绑定失败，字段 {0}.{1} 是个空引用！", type.FullName, fieldInfos[i].Name));
+                    Log.Error($"自动化任务：数据绑定失败，字段 {type.FullName}.{fieldInfos[i].Name} 是个空引用！");
                     continue;
                 }
 
@@ -199,6 +243,8 @@ namespace HT.Framework
                 args[0] = controlValue;
                 binding.Invoke(dataValue, args);
             }
+
+            return count;
         }
         /// <summary>
         /// 清空数据绑定

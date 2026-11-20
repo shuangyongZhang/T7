@@ -13,6 +13,10 @@ namespace HT.Framework
     public sealed class Builder : HTFEditorWindow
     {
         /// <summary>
+        /// 构建器打开事件
+        /// </summary>
+        public static event HTFAction OnOpened;
+        /// <summary>
         /// 检查项目构建的前置条件，如果至少有一个条件返回false，将禁止打包，全部返回true，才启用打包
         /// </summary>
         public static List<HTFFunc<bool>> CheckBuildPreconditions = new List<HTFFunc<bool>>();
@@ -28,8 +32,10 @@ namespace HT.Framework
         [InitializeOnLoadMethod]
         private static void RegisterUpdate()
         {
+#if !DISABLE_BUILDER
             EditorApplication.update += CheckBuildPlayerWindow;
             BuildPlayerWindow.RegisterBuildPlayerHandler(OnRegisterBuildPlayerHandler);
+#endif
         }
         private static void CheckBuildPlayerWindow()
         {
@@ -40,9 +46,11 @@ namespace HT.Framework
                 Builder builder = GetWindow<Builder>(true, "HTFramework Builder", true);
                 builder.minSize = new Vector2(640, 580);
                 builder.Show();
+
+                OnOpened?.Invoke();
             }
         }
-
+        
         /// <summary>
         /// 项目发布后处理
         /// </summary>
@@ -51,9 +59,11 @@ namespace HT.Framework
         [PostProcessBuild(0)]
         private static void OnPostProcessBuild(BuildTarget target, string pathToBuildProject)
         {
-            Log.Info("项目发布成功！发布平台：" + target.ToString() + "！发布路径：" + pathToBuildProject + "！");
+#if !DISABLE_BUILDER
+            Log.Info($"项目发布成功！发布平台：{target}！发布路径：{pathToBuildProject.Hyperlink("file:///" + pathToBuildProject)}！");
 
             PostProcessBuildEvent?.Invoke(target, pathToBuildProject);
+#endif
         }
         /// <summary>
         /// 项目发布前处理
@@ -67,7 +77,19 @@ namespace HT.Framework
                 return;
             }
 
+            //蚀刻当前版本号到运行时程序
+            VersionInfo versionInfo = AssetDatabase.LoadAssetAtPath<VersionInfo>("Assets/HTFramework/Editor/Utility/Version/Version.asset");
+            Main main = FindObjectOfType<Main>();
+            if (main != null && versionInfo != null)
+            {
+                main.Version = versionInfo.CurrentVersion.GetFullNumber();
+                EditorUtility.SetDirty(main);
+            }
+
             PreProcessBuildEvent?.Invoke(options);
+
+            EditorApplication.ExecuteMenuItem("File/Save");
+            EditorApplication.ExecuteMenuItem("File/Save Project");
 
             BuildPlayerWindow.DefaultBuildMethods.BuildPlayer(options);
         }
@@ -194,12 +216,7 @@ namespace HT.Framework
             if (main != null)
             {
                 ResourceManager resource = main.GetComponentByChild<ResourceManager>("Resource");
-                // if (resource != null && resource.Mode == ResourceLoadMode.AssetBundle)
-                // {
-                //     _isShowBuildABButton = true;
-                // }
-
-                if (resource != null)
+                if (resource != null && resource.Mode == ResourceLoadMode.AssetBundle)
                 {
                     _isShowBuildABButton = true;
                 }

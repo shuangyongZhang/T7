@@ -22,6 +22,56 @@ namespace HT.Framework
             return Mathf.Approximately(sourceValue, targetValue);
         }
         /// <summary>
+        /// 是否约等于另一个向量
+        /// </summary>
+        /// <param name="sourceValue">源向量</param>
+        /// <param name="targetValue">目标向量</param>
+        /// <returns>是否约等于</returns>
+        public static bool Approximately(this Vector2 sourceValue, Vector2 targetValue)
+        {
+            return sourceValue.x.Approximately(targetValue.x) && sourceValue.y.Approximately(targetValue.y);
+        }
+        /// <summary>
+        /// 是否约等于另一个向量
+        /// </summary>
+        /// <param name="sourceValue">源向量</param>
+        /// <param name="targetValue">目标向量</param>
+        /// <returns>是否约等于</returns>
+        public static bool Approximately(this Vector3 sourceValue, Vector3 targetValue)
+        {
+            return sourceValue.x.Approximately(targetValue.x) && sourceValue.y.Approximately(targetValue.y) && sourceValue.z.Approximately(targetValue.z);
+        }
+        /// <summary>
+        /// 是否约等于另一个向量
+        /// </summary>
+        /// <param name="sourceValue">源向量</param>
+        /// <param name="targetValue">目标向量</param>
+        /// <returns>是否约等于</returns>
+        public static bool Approximately(this Vector4 sourceValue, Vector4 targetValue)
+        {
+            return sourceValue.x.Approximately(targetValue.x) && sourceValue.y.Approximately(targetValue.y) && sourceValue.z.Approximately(targetValue.z) && sourceValue.w.Approximately(targetValue.w);
+        }
+        /// <summary>
+        /// 是否约等于另一个Bounds
+        /// </summary>
+        /// <param name="sourceValue">源Bounds</param>
+        /// <param name="targetValue">目标Bounds</param>
+        /// <returns>是否约等于</returns>
+        public static bool Approximately(this Bounds sourceValue, Bounds targetValue)
+        {
+            return sourceValue.center.Approximately(targetValue.center) && sourceValue.size.Approximately(targetValue.size);
+        }
+        /// <summary>
+        /// 是否约等于另一个颜色
+        /// </summary>
+        /// <param name="sourceValue">源颜色</param>
+        /// <param name="targetValue">目标颜色</param>
+        /// <returns>是否约等于</returns>
+        public static bool Approximately(this Color sourceValue, Color targetValue)
+        {
+            return sourceValue.r.Approximately(targetValue.r) && sourceValue.g.Approximately(targetValue.g) && sourceValue.b.Approximately(targetValue.b) && sourceValue.a.Approximately(targetValue.a);
+        }
+        /// <summary>
         /// 从数组中随机获取一个值
         /// </summary>
         /// <typeparam name="T">值类型</typeparam>
@@ -48,6 +98,45 @@ namespace HT.Framework
 
             int index = UnityEngine.Random.Range(0, values.Count);
             return values[index];
+        }
+        /// <summary>
+        /// 随机执行一个Action
+        /// </summary>
+        /// <param name="action1">Action1</param>
+        /// <param name="action2">Action2</param>
+        public static void RandomExecute(HTFAction action1, HTFAction action2)
+        {
+            int value = UnityEngine.Random.Range(0, 10);
+            if (value < 5)
+            {
+                action1?.Invoke();
+            }
+            else
+            {
+                action2?.Invoke();
+            }
+        }
+        /// <summary>
+        /// 随机执行一个Action
+        /// </summary>
+        /// <param name="action1">Action1</param>
+        /// <param name="action2">Action2</param>
+        /// <param name="action3">Action3</param>
+        public static void RandomExecute(HTFAction action1, HTFAction action2, HTFAction action3)
+        {
+            int value = UnityEngine.Random.Range(0, 9);
+            if (value < 3)
+            {
+                action1?.Invoke();
+            }
+            else if (value < 6)
+            {
+                action2?.Invoke();
+            }
+            else
+            {
+                action3?.Invoke();
+            }
         }
         /// <summary>
         /// 随机执行一个Action
@@ -142,6 +231,26 @@ namespace HT.Framework
             value.y = Mathf.Clamp(value.y, minY, maxY);
             value.z = Mathf.Clamp(value.z, minZ, maxZ);
             return value;
+        }
+        /// <summary>
+        /// 计算2个整型坐标之间的曼哈顿距离
+        /// </summary>
+        /// <param name="value1">坐标1</param>
+        /// <param name="value2">坐标2</param>
+        /// <returns>曼哈顿距离</returns>
+        public static int ManhattanDistance(this Vector2Int value1, Vector2Int value2)
+        {
+            return Mathf.Abs(value1.x - value2.x) + Mathf.Abs(value1.y - value2.y);
+        }
+        /// <summary>
+        /// 计算2个整型坐标之间的曼哈顿距离
+        /// </summary>
+        /// <param name="value1">坐标1</param>
+        /// <param name="value2">坐标2</param>
+        /// <returns>曼哈顿距离</returns>
+        public static int ManhattanDistance(this Vector3Int value1, Vector3Int value2)
+        {
+            return Mathf.Abs(value1.x - value2.x) + Mathf.Abs(value1.y - value2.y) + Mathf.Abs(value1.z - value2.z);
         }
     }
 }

@@ -1,20 +1,16 @@
-﻿using System;
+﻿#if !DISABLE_ASPECTTRACK
+using System;
 using System.Reflection;
+using System.Runtime.Remoting.Messaging;
+using System.Runtime.Remoting.Proxies;
 
 namespace HT.Framework
 {
     /// <summary>
     /// 切面代理者基类
     /// </summary>
-    /// <remarks>
-    /// Unity 2021+ 默认使用 .NET Standard 2.1，已移除 System.Runtime.Remoting / RealProxy。
-    /// 这里改为直接返回真实对象的轻量实现（与 IsEnableAspectTrack = false 时的原有行为一致），
-    /// 并保留原有的抽象方法，确保现有派生类与调用方继续可用。
-    /// </remarks>
-    public abstract class AspectProxyBase<T> where T : IAspectTrackObject
+    public abstract class AspectProxyBase<T> : RealProxy where T : IAspectTrackObject
     {
-        private const string VOIDSIGN = "Void";
-
         protected T _realObject;
 
         /// <summary>
@@ -22,87 +18,95 @@ namespace HT.Framework
         /// </summary>
         public T RealObject
         {
-            get { return _realObject; }
+            get
+            {
+                return _realObject;
+            }
         }
 
-        public AspectProxyBase(T realObject)
+        public AspectProxyBase(T realObject) : base(typeof(T))
         {
             _realObject = realObject;
         }
-
         /// <summary>
-        /// 获取代理对象（.NET Standard 2.1 下 RealProxy 不可用，直接返回真实对象）
+        /// 获取代理对象
         /// </summary>
         /// <returns>代理对象</returns>
-        public virtual object GetTransparentProxy()
+        public sealed override object GetTransparentProxy()
         {
-            return _realObject;
-        }
-
-        /// <summary>
-        /// 透传执行方法（保留拦截钩子语义，但不再依赖 RealProxy 消息管道）
-        /// </summary>
-        protected object Invoke(MethodBase method, object[] args)
-        {
-            bool isVoid = false;
-            MethodInfo info = method as MethodInfo;
-            if (info != null)
+            if (Main.m_AspectTrack.IsEnableAspectTrack)
             {
-                isVoid = (info.ReturnType.Name == VOIDSIGN);
-                info = null;
+                return base.GetTransparentProxy();
             }
-
+            else
+            {
+                return _realObject;
+            }
+        }
+        /// <summary>
+        /// 执行
+        /// </summary>
+        /// <param name="msg">执行消息</param>
+        /// <returns>执行消息</returns>
+        public sealed override IMessage Invoke(IMessage msg)
+        {
+            IMethodCallMessage callMsg = msg as IMethodCallMessage;
             object returnValue = null;
-            object[] finalArgs = OnBeforeInvoke(method, args);
-
+            object[] args = OnBeforeInvoke(callMsg.MethodBase, callMsg.Args);
+            
             try
             {
-                if (isVoid && IsIntercept(method, finalArgs))
+                if (Main.m_AspectTrack.IsIntercept(callMsg.MethodBase, args))
                 {
-                    OnIntercept(method);
-                    return null;
+                    OnIntercept(callMsg.MethodBase);
+                    returnValue = null;
+                    return msg;
                 }
-                returnValue = method.Invoke(_realObject, finalArgs ?? args);
-                return returnValue;
+                else
+                {
+                    if (args != null && args.Length == callMsg.ArgCount)
+                    {
+                        returnValue = callMsg.MethodBase.Invoke(_realObject, args);
+                        return new ReturnMessage(returnValue, args, callMsg.ArgCount - callMsg.InArgCount, callMsg.LogicalCallContext, callMsg);
+                    }
+                    else
+                    {
+                        Log.Warning($"切面代理：方法 {callMsg.MethodBase.Name} 经过修改后传入的实参与形参数量不匹配！");
+                        returnValue = callMsg.MethodBase.Invoke(_realObject, callMsg.Args);
+                        return new ReturnMessage(returnValue, callMsg.Args, callMsg.ArgCount - callMsg.InArgCount, callMsg.LogicalCallContext, callMsg);
+                    }
+                }
             }
             catch (Exception ex)
             {
-                Log.Warning("切面追踪执行异常：" + ex.Message);
-                return null;
+                returnValue = null;
+                return new ReturnMessage(ex, callMsg);
             }
             finally
             {
-                OnAfterInvoke(method, returnValue);
+                OnAfterInvoke(callMsg.MethodBase, returnValue);
             }
         }
 
         /// <summary>
         /// 方法被拦截
         /// </summary>
+        /// <param name="method">方法</param>
         protected virtual void OnIntercept(MethodBase method)
         { }
         /// <summary>
         /// 方法调用前
         /// </summary>
+        /// <param name="method">方法</param>
+        /// <param name="args">参数</param>
+        /// <returns>修正后的参数</returns>
         protected abstract object[] OnBeforeInvoke(MethodBase method, object[] args);
         /// <summary>
         /// 方法调用后
         /// </summary>
+        /// <param name="method">方法</param>
+        /// <param name="returnValue">返回值</param>
         protected abstract void OnAfterInvoke(MethodBase method, object returnValue);
-        /// <summary>
-        /// 是否拦截
-        /// </summary>
-        private bool IsIntercept(MethodBase methodBase, object[] args)
-        {
-            if (Main.m_AspectTrack != null && Main.m_AspectTrack.IsEnableIntercept)
-            {
-                foreach (var condition in Main.m_AspectTrack.InterceptConditions)
-                {
-                    if (condition.Value != null && condition.Value.Invoke(methodBase, args))
-                        return true;
-                }
-            }
-            return false;
-        }
     }
 }
+#endif

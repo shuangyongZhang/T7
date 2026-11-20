@@ -1,5 +1,4 @@
 ﻿using System.Collections.Generic;
-using System.Reflection;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -19,10 +18,8 @@ namespace HT.Framework
         private Language _currentLanguage = Language.English;
         private Dictionary<string, Word> _localizeWords;
 
-        private MethodInfo _linkLabel;
-        private object[] _linkLabelParameter;
-
         private GUIContent _helpGC;
+        private GUIContent _copyPasteGC;
 
         /// <summary>
         /// 是否启用标题UI
@@ -45,7 +42,7 @@ namespace HT.Framework
         /// <summary>
         /// 管理员密码
         /// </summary>
-        protected virtual string Password => "I9JenlkXm6L7dBSt/dS7Pg==";
+        protected virtual string Password => "EbTpZa0mOiKtI5GVYvfl/Q==";
         /// <summary>
         /// 管理员模式颜色
         /// </summary>
@@ -93,7 +90,7 @@ namespace HT.Framework
             if (_localizeWindow != null)
             {
                 GenerateWords();
-                _languagePrefsKey = "HT.Framework.HTFEditorWindow.Language." + GetType().FullName;
+                _languagePrefsKey = $"HT.Framework.HTFEditorWindow.Language.{GetType().FullName}";
                 CurrentLanguage = (Language)EditorPrefs.GetInt(_languagePrefsKey, 1);
             }
 
@@ -103,6 +100,9 @@ namespace HT.Framework
                 _helpGC.image = EditorGUIUtility.IconContent("_Help").image;
                 _helpGC.tooltip = "Help";
             }
+            _copyPasteGC = new GUIContent();
+            _copyPasteGC.image = EditorGUIUtility.IconContent("d_editicon.sml").image;
+            _copyPasteGC.tooltip = "Copy or Paste";
         }
         protected void OnGUI()
         {
@@ -288,7 +288,7 @@ namespace HT.Framework
             }
             else
             {
-                Log.Error(string.Format("{0} 窗口发现相同Key的本地化词汇：{1}！", GetType().FullName, english));
+                Log.Error($"{GetType().FullName} 窗口发现相同Key的本地化词汇：{english}！");
             }
         }
         /// <summary>
@@ -304,7 +304,7 @@ namespace HT.Framework
             }
             else
             {
-                Log.Error(string.Format("{0} 窗口发现相同Key的本地化词汇：{1}！", GetType().FullName, english));
+                Log.Error($"{GetType().FullName} 窗口发现相同Key的本地化词汇：{english}！");
             }
         }
         /// <summary>
@@ -342,6 +342,33 @@ namespace HT.Framework
             }
         }
         /// <summary>
+        /// 绘制复制、粘贴按钮
+        /// </summary>
+        /// <param name="copy">复制回调</param>
+        /// <param name="paste">粘贴回调</param>
+        protected void DrawCopyPaste(HTFFunc<string> copy, HTFAction<string> paste)
+        {
+            if (GUILayout.Button(_copyPasteGC, EditorGlobalTools.Styles.InvisibleButton, GUILayout.Width(20), GUILayout.Height(20)))
+            {
+                GenericMenu gm = new GenericMenu();
+                gm.AddItem(new GUIContent("Copy"), false, () =>
+                {
+                    if (copy != null)
+                    {
+                        GUIUtility.systemCopyBuffer = copy();
+                    }
+                });
+                gm.AddItem(new GUIContent("Paste"), false, () =>
+                {
+                    if (paste != null)
+                    {
+                        paste(GUIUtility.systemCopyBuffer);
+                    }
+                });
+                gm.ShowAsContext();
+            }
+        }
+        /// <summary>
         /// 超链接文本
         /// </summary>
         /// <param name="label">文本显示内容</param>
@@ -349,29 +376,7 @@ namespace HT.Framework
         /// <param name="options">其他可选参数</param>
         protected void LinkLabel(string label, string url, params GUILayoutOption[] options)
         {
-            if (_linkLabel == null)
-            {
-                MethodInfo[] methods = typeof(EditorGUILayout).GetMethods(BindingFlags.Static | BindingFlags.NonPublic);
-                foreach (var method in methods)
-                {
-                    if (method.Name == "LinkLabel")
-                    {
-                        ParameterInfo[] parameters = method.GetParameters();
-                        if (parameters != null && parameters.Length > 0 && parameters[0].ParameterType == typeof(string))
-                        {
-                            _linkLabel = method;
-                            break;
-                        }
-                    }
-                }
-                _linkLabelParameter = new object[2];
-            }
-
-            _linkLabelParameter[0] = label;
-            _linkLabelParameter[1] = options;
-
-            bool isClick = (bool)_linkLabel.Invoke(null, _linkLabelParameter);
-            if (isClick)
+            if (EditorGUILayout.LinkButton(label, options))
             {
                 Application.OpenURL(url);
             }

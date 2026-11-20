@@ -6,14 +6,14 @@ namespace HT.Framework
     /// 调试管理器
     /// </summary>
     [InternalModule(HTFrameworkModule.Debug)]
-    public sealed class DebugManager : InternalModuleBase<IDebugHelper>
+    public sealed class DebugManager : InternalModuleBase<IDebugHelper>, IDrawGUI
     {
         /// <summary>
         /// 调试器皮肤【请勿在代码中修改】
         /// </summary>
         [SerializeField] internal GUISkin DebuggerSkin;
         /// <summary>
-        /// 是否启用调试器
+        /// 是否启用调试器（必须在初始时为true才能启用，初始为false动态改为true无效）
         /// </summary>
         public bool IsEnableDebugger = false;
         /// <summary>
@@ -38,16 +38,7 @@ namespace HT.Framework
             
             _helper.OnInitDebugger(DebuggerSkin, IsChinese);
         }
-        public override void OnUpdate()
-        {
-            base.OnUpdate();
-
-            if (useGUILayout != IsEnableDebugger)
-            {
-                useGUILayout = IsEnableDebugger;
-            }
-        }
-        private void OnGUI()
+        public void OnDrawGUI()
         {
             _helper.OnDebuggerGUI();
         }

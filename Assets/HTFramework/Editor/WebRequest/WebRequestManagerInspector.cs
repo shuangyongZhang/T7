@@ -9,15 +9,14 @@ namespace HT.Framework
     [CSDNBlogURL("https://wanderer.blog.csdn.net/article/details/89886124")]
     internal sealed class WebRequestManagerInspector : InternalModuleInspector<WebRequestManager, IWebRequestHelper>
     {
-        protected override string Intro => "Web request manager, it manages all web request! you can submit forms, upload files, download files!";
-
         protected override void OnInspectorDefaultGUI()
         {
             base.OnInspectorDefaultGUI();
 
             GUI.enabled = !EditorApplication.isPlaying;
 
-            PropertyField(nameof(WebRequestManager.IsOfflineState), "OfflineState");
+            PropertyField(nameof(WebRequestManager.IsOfflineState), "Offline State");
+            PropertyField(nameof(WebRequestManager.IsLogDetail), "Is Log Detail");
             PropertyField(nameof(WebRequestManager.DownloadAudioType), "Audio Type");
             
             GUI.enabled = true;
@@ -26,12 +25,20 @@ namespace HT.Framework
         {
             base.OnInspectorRuntimeGUI();
 
+            if (_helper == null)
+            {
+                GUILayout.BeginHorizontal();
+                GUILayout.Label("No Runtime Data!");
+                GUILayout.EndHorizontal();
+                return;
+            }
+
             GUILayout.BeginHorizontal();
-            GUILayout.Label("Web Interfaces:" + _helper.WebInterfaces.Count);
+            GUILayout.Label($"Web Interfaces: {_helper.WebInterfaces.Count}");
             GUILayout.EndHorizontal();
 
             GUILayout.BeginHorizontal();
-            GUILayout.Label("Connected Internet:" + _helper.IsConnectedInternet);
+            GUILayout.Label($"Connected Internet: {_helper.IsConnectedInternet}");
             GUILayout.EndHorizontal();
 
             foreach (var inter in _helper.WebInterfaces)

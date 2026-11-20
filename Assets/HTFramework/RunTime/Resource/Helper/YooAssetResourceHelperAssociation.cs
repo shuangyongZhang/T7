@@ -17,10 +17,9 @@ namespace HT.Framework
         private readonly Dictionary<Object, LoadHandle> o_LoadHandleMap = new Dictionary<Object, LoadHandle>();
         //gameObjectClone  gameObject
         private readonly Dictionary<int, Object> instanceID_ObjectMap = new Dictionary<int, Object>();
-        //资源句柄的hashcode 资源句柄
-        private readonly Dictionary<int, AssetHandle> i_AssetOperationHandleMap = new Dictionary<int, AssetHandle>();
         //场景名称  场景加载句柄
-        private Dictionary<string, SceneHandle> s_SceneOperationHandleMap = new Dictionary<string, SceneHandle>();
+        private readonly Dictionary<string, List<SceneHandle>> s_SceneOperationHandleMap = new Dictionary<string, List<SceneHandle>>();
+        private readonly Dictionary<string, string> _sceneNamesByLocation = new Dictionary<string, string>();
 
         #region location 2 LoadHandle
         /// <summary>
@@ -70,6 +69,23 @@ namespace HT.Framework
         {
             return o_LoadHandleMap.TryGetValue(obj, out handle);
         }
+
+        /// <summary>
+        /// Discards a newly created load handle when its load failed before producing an object.
+        /// </summary>
+        private void DiscardEmptyLoadHandle(LoadHandle handle)
+        {
+            if (handle == null || handle.Object != null || handle.RefCount != 0 || handle.WaitAsync)
+            {
+                return;
+            }
+
+            if (s_LoadHandleMap.TryGetValue(handle.Location, out var current) && ReferenceEquals(current, handle))
+            {
+                s_LoadHandleMap.Remove(handle.Location);
+                Main.m_ReferencePool.Despawn(handle);
+            }
+        }
         #endregion
 
 
@@ -108,19 +124,6 @@ namespace HT.Framework
         #endregion
 
 
-        /// <summary>
-        /// 将hashCode 和 handle 关联
-        /// </summary>
-        /// <param name="handle"></param>
-        private void AddAssetOperationHandle(AssetHandle handle)
-        {
-            //只有是有效的才加入
-            if (handle.IsValid)
-            {
-                i_AssetOperationHandleMap.Add(handle.GetHashCode(), handle);
-            }
-        }
-
         #region 场景
         /// <summary>
         /// 将场景名称 和 SceneOperationHandle 关联
@@ -129,7 +132,12 @@ namespace HT.Framework
         /// <param name="handle"></param>
         private void AddSceneOperationHandle(string sceneName, SceneHandle handle)
         {
-            s_SceneOperationHandleMap.Add(sceneName, handle);
+            if (!s_SceneOperationHandleMap.TryGetValue(sceneName, out var handles))
+            {
+                handles = new List<SceneHandle>();
+                s_SceneOperationHandleMap.Add(sceneName, handles);
+            }
+            handles.Add(handle);
         }
 
         /// <summary>
@@ -140,7 +148,14 @@ namespace HT.Framework
         /// <returns></returns>
         private bool TryGetSceneOperationHandle(string sceneName, out SceneHandle handle)
         {
-            return s_SceneOperationHandleMap.TryGetValue(sceneName, out handle);
+            if (s_SceneOperationHandleMap.TryGetValue(sceneName, out var handles) && handles.Count > 0)
+            {
+                handle = handles[handles.Count - 1];
+                return true;
+            }
+
+            handle = null;
+            return false;
         }
 
         /// <summary>
@@ -149,7 +164,14 @@ namespace HT.Framework
         /// <param name="sceneName"></param>
         private void RemoveSceneOperationHandle(string sceneName)
         {
-            s_SceneOperationHandleMap.Remove(sceneName);
+            if (s_SceneOperationHandleMap.TryGetValue(sceneName, out var handles) && handles.Count > 0)
+            {
+                handles.RemoveAt(handles.Count - 1);
+                if (handles.Count == 0)
+                {
+                    s_SceneOperationHandleMap.Remove(sceneName);
+                }
+            }
         }
         #endregion
 
@@ -173,21 +195,22 @@ namespace HT.Framework
                 instanceID_ObjectMap.Remove(instanceID);
             }
 
-            if (i_AssetOperationHandleMap.ContainsKey(handle.Handle))
+            if (handle.AssetHandle != null && handle.AssetHandle.IsValid)
             {
-                var assetOperationHandle = i_AssetOperationHandleMap[handle.Handle];
-                assetOperationHandle.Release();
+                handle.AssetHandle.Release();
             }
 
             Main.m_ReferencePool.Despawn(handle);
         }
 
         /// <summary>
-        /// 释放所有Handle
+        /// 释放没有活动引用的资源句柄。
         /// </summary>
-        private void ReleaseAllHandle()
+        private void ReleaseUnusedHandles()
         {
-            var loadHandles = s_LoadHandleMap.Values.ToArray();
+            var loadHandles = s_LoadHandleMap.Values
+                .Where(handle => handle.RefCount == 0 && !handle.WaitAsync)
+                .ToArray();
             foreach (var handle in loadHandles)
             {
                 ReleaseHandle(handle);

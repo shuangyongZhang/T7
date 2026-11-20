@@ -35,8 +35,6 @@ namespace HT.Framework
         private string _hotfixEnvironmentPath = "/Hotfix/Environment/HotfixEnvironment.cs";
         private string _hotfixAssemblyDefinitionPath = "/Hotfix/Hotfix.asmdef";
 
-        protected override string Intro => "Hotfix manager, help you implement basic hot fixes in your game!";
-
         protected override void OnDefaultEnable()
         {
             base.OnDefaultEnable();
@@ -70,13 +68,13 @@ namespace HT.Framework
                 GUILayout.BeginVertical(EditorGlobalTools.Styles.Box);
 
                 GUILayout.BeginHorizontal();
-                GUILayout.Label("HotfixDll AssetBundleName");
+                EditorGUILayout.LabelField("HotfixDll AssetBundleName");
                 GUILayout.EndHorizontal();
 
                 PropertyField(nameof(HotfixManager.HotfixDllAssetBundleName), "");
                 
                 GUILayout.BeginHorizontal();
-                GUILayout.Label("HotfixDll AssetsPath");
+                EditorGUILayout.LabelField("HotfixDll AssetsPath");
                 GUILayout.EndHorizontal();
 
                 PropertyField(nameof(HotfixManager.HotfixDllAssetsPath), "");
@@ -94,7 +92,7 @@ namespace HT.Framework
                     GUILayout.BeginVertical(EditorGlobalTools.Styles.Box);
 
                     GUILayout.BeginHorizontal();
-                    GUILayout.Label("Hotfix Directory");
+                    EditorGUILayout.LabelField("Hotfix Directory");
                     GUILayout.EndHorizontal();
 
                     GUILayout.BeginHorizontal();
@@ -202,7 +200,6 @@ namespace HT.Framework
             {
                 string code = asset.text;
                 File.AppendAllText(filePath, code, Encoding.UTF8);
-                asset = null;
                 AssetDatabase.Refresh();
             }
         }

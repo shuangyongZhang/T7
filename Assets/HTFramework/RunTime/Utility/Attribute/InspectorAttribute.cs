@@ -73,11 +73,21 @@ namespace HT.Framework
     }
 
     /// <summary>
-    /// 层级检视器（支持 string 类型）
+    /// 层级检视器（支持 string、int 类型）
     /// </summary>
     [AttributeUsage(AttributeTargets.Field, AllowMultiple = false, Inherited = true)]
     [Conditional("UNITY_EDITOR")]
     public sealed class LayerAttribute : InspectorAttribute
+    {
+
+    }
+
+    /// <summary>
+    /// 标签检视器（支持 string 类型）
+    /// </summary>
+    [AttributeUsage(AttributeTargets.Field, AllowMultiple = false, Inherited = true)]
+    [Conditional("UNITY_EDITOR")]
+    public sealed class TagAttribute : InspectorAttribute
     {
 
     }
@@ -148,6 +158,34 @@ namespace HT.Framework
     public sealed class FolderPathAttribute : InspectorAttribute
     {
         
+    }
+
+    /// <summary>
+    /// Class类型检视器（支持 string 类型）
+    /// </summary>
+    [AttributeUsage(AttributeTargets.Field, AllowMultiple = false, Inherited = true)]
+    [Conditional("UNITY_EDITOR")]
+    public sealed class ClassTypeAttribute : InspectorAttribute
+    {
+        public Type ParentClass { get; private set; }
+        public bool IsShowFullName { get; private set; }
+        public bool IsIgnoreAbstract { get; private set; }
+        public bool IsOnlyRuntime { get; private set; }
+
+        /// <summary>
+        /// Class类型检视器（支持 string 类型）
+        /// </summary>
+        /// <param name="parentClass">检索类型的父类</param>
+        /// <param name="isShowFullName">是否显示类型全称，否则只显示类名</param>
+        /// <param name="isIgnoreAbstract">是否忽略抽象类</param>
+        /// <param name="isOnlyRuntime">是否仅检索运行时程序集，否则检索所有程序集</param>
+        public ClassTypeAttribute(Type parentClass, bool isShowFullName = true, bool isIgnoreAbstract = true, bool isOnlyRuntime = true)
+        {
+            ParentClass = parentClass;
+            IsShowFullName = isShowFullName;
+            IsIgnoreAbstract = isIgnoreAbstract;
+            IsOnlyRuntime = isOnlyRuntime;
+        }
     }
 
     /// <summary>
@@ -409,7 +447,7 @@ namespace HT.Framework
         public string Style { get; private set; }
         public int Order { get; private set; }
 
-        public ButtonAttribute(string text = null, EnableMode mode = EnableMode.Always, string style = "Button", int order = 0)
+        public ButtonAttribute(string text = null, EnableMode mode = EnableMode.Always, string style = "LargeButton", int order = 0)
         {
             Text = text;
             Mode = mode;

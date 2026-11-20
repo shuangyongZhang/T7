@@ -12,8 +12,6 @@ namespace HT.Framework
     {
         private Dictionary<string, bool> _systemFoldouts;
 
-        protected override string Intro => "ECS Manager, this is a ECS based development mode!";
-
         protected override void OnRuntimeEnable()
         {
             base.OnRuntimeEnable();
@@ -28,6 +26,14 @@ namespace HT.Framework
         protected override void OnInspectorRuntimeGUI()
         {
             base.OnInspectorRuntimeGUI();
+
+            if (_helper == null)
+            {
+                GUILayout.BeginHorizontal();
+                GUILayout.Label("No Runtime Data!");
+                GUILayout.EndHorizontal();
+                return;
+            }
 
             foreach (var system in _helper.Systems)
             {
@@ -49,7 +55,7 @@ namespace HT.Framework
                         GUILayout.Space(20);
                         EditorGUILayout.ObjectField(entity.gameObject, typeof(GameObject), true);
                         GUILayout.FlexibleSpace();
-                        if (GUILayout.Button("Remove", EditorStyles.miniButton, GUILayout.Width(60)))
+                        if (GUILayout.Button("Remove", GUILayout.Width(60)))
                         {
                             system.Value.StarEntities.Remove(entity);
                             break;

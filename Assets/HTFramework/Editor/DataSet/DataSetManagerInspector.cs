@@ -9,23 +9,22 @@ namespace HT.Framework
     [CSDNBlogURL("https://wanderer.blog.csdn.net/article/details/89395574")]
     internal sealed class DataSetManagerInspector : InternalModuleInspector<DataSetManager, IDataSetHelper>
     {
-        protected override string Intro => "DataSet Manager, manage of all dataSet, you can create, modify, delete any dataSets!";
-
         protected override void OnInspectorRuntimeGUI()
         {
             base.OnInspectorRuntimeGUI();
 
-            if (_helper.DataSets.Count == 0)
+            if (_helper == null || _helper.DataSets.Count == 0)
             {
                 GUILayout.BeginHorizontal();
                 GUILayout.Label("No Runtime Data!");
                 GUILayout.EndHorizontal();
+                return;
             }
 
             foreach (var item in _helper.DataSets)
             {
                 GUILayout.BeginHorizontal();
-                GUILayout.Label("DataSet Type: " + item.Key.Name);
+                GUILayout.Label($"DataSet Type: {item.Key.Name}");
                 GUILayout.EndHorizontal();
 
                 if (item.Value.Count == 0)
@@ -41,7 +40,7 @@ namespace HT.Framework
                     {
                         GUILayout.BeginHorizontal();
                         GUILayout.Space(20);
-                        EditorGUILayout.ObjectField(item.Value[i], typeof(DataSetBase), true);
+                        EditorGUILayout.ObjectField(item.Value[i], typeof(DataSetBase), false);
                         GUILayout.EndHorizontal();
                     }
                 }

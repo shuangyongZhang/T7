@@ -1,5 +1,6 @@
 ﻿using System;
 using UnityEditor;
+using UnityEditor.SceneManagement;
 using UnityEngine;
 
 namespace HT.Framework
@@ -11,7 +12,7 @@ namespace HT.Framework
             StepParameterWindow window = GetWindow<StepParameterWindow>();
             window.CurrentLanguage = language;
             window.titleContent.image = EditorGUIUtility.IconContent("d_editicon.sml").image;
-            window.titleContent.text = "Parameters";
+            window.titleContent.text = "Step Parameters";
             window._stepEditorWindow = stepEditorWindow;
             window._contentAsset = contentAsset;
             window._content = content;
@@ -23,6 +24,8 @@ namespace HT.Framework
         private StepEditorWindow _stepEditorWindow;
         private StepContentAsset _contentAsset;
         private StepContent _content;
+        private GUIContent _valueEditorGC;
+        private GUIContent _deleteGC;
         private Vector2 _scroll;
         
         protected override void OnTitleGUI()
@@ -35,7 +38,7 @@ namespace HT.Framework
                 for (int i = 0; i < _contentAsset.Content.Count; i++)
                 {
                     StepContent stepContent = _contentAsset.Content[i];
-                    gm.AddItem(new GUIContent(i + "." + stepContent.Name), stepContent == _content, () =>
+                    gm.AddItem(new GUIContent($"{i}.{stepContent.Name}"), stepContent == _content, () =>
                     {
                         _content = stepContent;
                     });
@@ -75,7 +78,6 @@ namespace HT.Framework
                     {
                         _content.Parameters.Remove(stepParameter);
                         _content.Parameters.Insert(i - 1, stepParameter);
-                        continue;
                     }
                 }
                 if (GUILayout.Button("▼", EditorStyles.miniButtonMid, GUILayout.Width(20)))
@@ -84,14 +86,12 @@ namespace HT.Framework
                     {
                         _content.Parameters.Remove(stepParameter);
                         _content.Parameters.Insert(i + 1, stepParameter);
-                        continue;
                     }
                 }
                 GUI.backgroundColor = Color.red;
                 if (GUILayout.Button(GetWord("Delete"), EditorStyles.miniButtonRight))
                 {
-                    _content.Parameters.RemoveAt(i);
-                    continue;
+                    DeleteParameter(i);
                 }
                 GUI.backgroundColor = Color.white;
                 GUILayout.EndHorizontal();
@@ -103,10 +103,18 @@ namespace HT.Framework
 
                 GUILayout.BeginHorizontal();
                 GUILayout.Label(GetWord("Value") + ":", GUILayout.Width(40));
-                switch (_content.Parameters[i].Type)
+                switch (stepParameter.Type)
                 {
                     case StepParameter.ParameterType.String:
                         stepParameter.StringValue = EditorGUILayout.TextField(stepParameter.StringValue);
+                        if (GUILayout.Button(_valueEditorGC, EditorGlobalTools.Styles.IconButton, GUILayout.Width(20)))
+                        {
+                            StringValueEditor.OpenWindow(this, stepParameter.StringValue, stepParameter.Name, (str) =>
+                            {
+                                stepParameter.StringValue = str;
+                                HasChanged(_contentAsset);
+                            });
+                        }
                         break;
                     case StepParameter.ParameterType.Integer:
                         stepParameter.IntegerValue = EditorGUILayout.IntField(stepParameter.IntegerValue);
@@ -119,48 +127,35 @@ namespace HT.Framework
                         break;
                     case StepParameter.ParameterType.Vector2:
                         stepParameter.Vector2Value = EditorGUILayout.Vector2Field("", stepParameter.Vector2Value);
+                        DrawCopyPaste(
+                        () =>
+                        {
+                            return stepParameter.Vector2Value.ToCopyString("F4");
+                        },
+                        (str) =>
+                        {
+                            stepParameter.Vector2Value = str.ToPasteVector2(Vector2.zero);
+                        });
                         break;
                     case StepParameter.ParameterType.Vector3:
                         stepParameter.Vector3Value = EditorGUILayout.Vector3Field("", stepParameter.Vector3Value);
+                        DrawCopyPaste(
+                        () =>
+                        {
+                            return stepParameter.Vector3Value.ToCopyString("F4");
+                        },
+                        (str) =>
+                        {
+                            stepParameter.Vector3Value = str.ToPasteVector3(Vector3.zero);
+                        });
                         break;
                     case StepParameter.ParameterType.Color:
                         stepParameter.ColorValue = EditorGUILayout.ColorField(stepParameter.ColorValue);
                         break;
                     case StepParameter.ParameterType.GameObject:
-                        #region 目标物体丢失，根据目标GUID重新搜寻
-                        if (!stepParameter.GameObjectValue)
-                        {
-                            if (stepParameter.GameObjectGUID != "<None>")
-                            {
-                                stepParameter.GameObjectValue = GameObject.Find(stepParameter.GameObjectPath);
-                                if (!stepParameter.GameObjectValue)
-                                {
-                                    StepTarget[] targets = FindObjectsOfType<StepTarget>();
-                                    foreach (StepTarget target in targets)
-                                    {
-                                        if (target.GUID == stepParameter.GameObjectGUID && !target.GetComponent<StepPreview>())
-                                        {
-                                            stepParameter.GameObjectValue = target.gameObject;
-                                            stepParameter.GameObjectPath = target.transform.FullName();
-                                            break;
-                                        }
-                                    }
-                                }
-                                else
-                                {
-                                    StepTarget target = stepParameter.GameObjectValue.GetComponent<StepTarget>();
-                                    if (!target)
-                                    {
-                                        target = stepParameter.GameObjectValue.AddComponent<StepTarget>();
-                                        target.GUID = stepParameter.GameObjectGUID;
-                                        HasChanged(stepParameter.GameObjectValue);
-                                    }
-                                }
-                            }
-                        }
-                        #endregion
+                        SearchParameterTarget(stepParameter);
 
-                        GUI.color = stepParameter.GameObjectValue ? Color.white : Color.gray;
+                        GUI.color = stepParameter.GameObjectGUID != "<None>" ? Color.white : Color.gray;
                         GameObject objValue = EditorGUILayout.ObjectField(stepParameter.GameObjectValue, typeof(GameObject), true) as GameObject;
                         GUI.color = Color.white;
 
@@ -178,6 +173,7 @@ namespace HT.Framework
                                 if (target.GUID == "<None>")
                                 {
                                     target.GUID = Guid.NewGuid().ToString();
+                                    HasChanged(target);
                                 }
                                 stepParameter.GameObjectValue = objValue;
                                 stepParameter.GameObjectGUID = target.GUID;
@@ -201,28 +197,62 @@ namespace HT.Framework
                         stepParameter.MaterialValue = EditorGUILayout.ObjectField(stepParameter.MaterialValue, typeof(Material), false) as Material;
                         GUI.color = Color.white;
                         break;
+                    case StepParameter.ParameterType.DataSet:
+                        GUI.color = stepParameter.DataSetValue ? Color.white : Color.gray;
+                        stepParameter.DataSetValue = EditorGUILayout.ObjectField(stepParameter.DataSetValue, typeof(DataSetBase), false) as DataSetBase;
+                        GUI.color = Color.white;
+                        break;
+                    case StepParameter.ParameterType.Custom:
+                        if (GUILayout.Button(stepParameter.StringValue, EditorStyles.popup, GUILayout.Width(205)))
+                        {
+                            if (StepEditorWindow.CustomParameterHandler != null)
+                            {
+                                StepEditorWindow.CustomParameterHandler?.Invoke(stepParameter);
+                            }
+                            else
+                            {
+                                Log.Error("无法编辑自定义参数：请使用 StepEditorWindow.RegisterCustomParameterHandler() 注册处理者，需注意，自定义参数存储的值为 StepParameter.StringValue 字段！");
+                            }
+                        }
+                        DrawCopyPaste(
+                        () =>
+                        {
+                            return stepParameter.StringValue;
+                        },
+                        (str) =>
+                        {
+                            stepParameter.StringValue = str;
+                        });
+                        break;
                 }
                 GUILayout.EndHorizontal();
 
-                if (_content.Parameters[i].Type == StepParameter.ParameterType.GameObject)
+                if (stepParameter.Type == StepParameter.ParameterType.String)
+                {
+                    GUILayout.Space(3);
+                }
+                else if (stepParameter.Type == StepParameter.ParameterType.GameObject)
                 {
                     GUILayout.BeginHorizontal();
                     GUILayout.Label(GetWord("GUID") + ":", GUILayout.Width(45));
-                    string guid = _content.Parameters[i].GameObjectGUID;
+                    string guid = stepParameter.GameObjectGUID;
                     EditorGUILayout.TextField(guid == "<None>" ? GetWord(guid) : guid);
                     GUILayout.FlexibleSpace();
-                    if (GUILayout.Button(GetWord("Clear"), EditorStyles.miniButton, GUILayout.Width(45)))
+                    if (GUILayout.Button(_deleteGC, EditorGlobalTools.Styles.InvisibleButton, GUILayout.Width(20)))
                     {
-                        _content.Parameters[i].GameObjectValue = null;
-                        _content.Parameters[i].GameObjectGUID = "<None>";
-                        _content.Parameters[i].GameObjectPath = "<None>";
+                        stepParameter.GameObjectValue = null;
+                        stepParameter.GameObjectGUID = "<None>";
+                        stepParameter.GameObjectPath = "<None>";
                         GUI.FocusControl(null);
                     }
                     GUILayout.EndHorizontal();
+
+                    GUILayout.Space(3);
                 }
 
                 GUILayout.EndVertical();
             }
+            GUILayout.FlexibleSpace();
 
             GUILayout.EndScrollView();
             GUILayout.EndVertical();
@@ -230,14 +260,14 @@ namespace HT.Framework
             GUILayout.BeginHorizontal();
             if (GUILayout.Button(GetWord("Add"), EditorGlobalTools.Styles.ButtonLeft))
             {
-                _content.Parameters.Add(new StepParameter());
+                AddParameter();
             }
             if (GUILayout.Button(GetWord("Clear"), EditorGlobalTools.Styles.ButtonRight))
             {
                 string prompt = CurrentLanguage == Language.English ? "Are you sure delete all parameter？" : "你确定要删除所有的参数吗？";
                 if (EditorUtility.DisplayDialog(GetWord("Prompt"), prompt, GetWord("Yes"), GetWord("No")))
                 {
-                    _content.Parameters.Clear();
+                    ClearParameter();
                 }
             }
             GUILayout.FlexibleSpace();
@@ -265,11 +295,108 @@ namespace HT.Framework
             AddWord("不", "No");
             AddWord("<无>", "<None>");
         }
+        protected override void OnEnable()
+        {
+            base.OnEnable();
+
+            _valueEditorGC = new GUIContent();
+            _valueEditorGC.image = EditorGUIUtility.IconContent("UnityEditor.ConsoleWindow").image;
+            _valueEditorGC.tooltip = "Edit in a String Editor";
+            _deleteGC = new GUIContent();
+            _deleteGC.image = EditorGUIUtility.IconContent("TreeEditor.Trash").image;
+            _deleteGC.tooltip = "Delete";
+        }
         private void Update()
         {
+            if (EditorApplication.isCompiling)
+            {
+                Close();
+            }
+
             if (_stepEditorWindow == null || _contentAsset == null || _content == null)
             {
                 Close();
+            }
+        }
+
+        /// <summary>
+        /// 新增参数
+        /// </summary>
+        private void AddParameter()
+        {
+            StepParameter parameter = new StepParameter();
+            if (_content.Parameters.Count > 0)
+            {
+                parameter.Type = _content.Parameters[_content.Parameters.Count - 1].Type;
+                parameter.Name = _content.Parameters[_content.Parameters.Count - 1].Name;
+            }
+            _content.Parameters.Add(parameter);
+        }
+        /// <summary>
+        /// 删除参数
+        /// </summary>
+        private void DeleteParameter(int index)
+        {
+            _content.Parameters.RemoveAt(index);
+        }
+        /// <summary>
+        /// 清空参数
+        /// </summary>
+        private void ClearParameter()
+        {
+            _content.Parameters.Clear();
+        }
+        /// <summary>
+        /// 在场景中搜索参数目标
+        /// </summary>
+        private void SearchParameterTarget(StepParameter para)
+        {
+            if (para.Type != StepParameter.ParameterType.GameObject)
+                return;
+
+            if (para.GameObjectGUID == "<None>")
+                return;
+
+            if (para.IsTargetMatched())
+                return;
+
+            PrefabStage prefabStage = PrefabStageUtility.GetCurrentPrefabStage();
+            if (prefabStage != null)
+            {
+                para.GameObjectValue = prefabStage.prefabContentsRoot.FindChildren(para.GameObjectPath);
+                if (!para.IsTargetMatched())
+                {
+                    para.GameObjectValue = null;
+                    StepTarget[] targets = prefabStage.prefabContentsRoot.GetComponentsInChildren<StepTarget>(true);
+                    foreach (StepTarget target in targets)
+                    {
+                        if (target.GUID == para.GameObjectGUID && !target.GetComponent<StepPreview>())
+                        {
+                            para.GameObjectValue = target.gameObject;
+                            para.GameObjectPath = target.transform.FullName();
+                            para.GameObjectPath = para.GameObjectPath.Substring(para.GameObjectPath.IndexOf("/") + 1);
+                            break;
+                        }
+                    }
+                }
+            }
+            else
+            {
+                para.GameObjectValue = GameObject.Find(para.GameObjectPath);
+                if (!para.IsTargetMatched())
+                {
+                    para.GameObjectValue = null;
+                    StepTarget[] targets = FindObjectsOfType<StepTarget>(true);
+                    foreach (StepTarget target in targets)
+                    {
+                        if (target.GUID == para.GameObjectGUID && !target.GetComponent<StepPreview>())
+                        {
+                            para.GameObjectValue = target.gameObject;
+                            para.GameObjectPath = target.transform.FullName();
+                            break;
+                        }
+                    }
+                }
             }
         }
     }

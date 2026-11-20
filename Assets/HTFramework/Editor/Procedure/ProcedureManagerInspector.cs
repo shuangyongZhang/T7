@@ -19,8 +19,6 @@ namespace HT.Framework
         private SerializedProperty _procedures;
         private ReorderableList _procedureList;
 
-        protected override string Intro => "Procedure Manager, this is the beginning and the end of everything!";
-
         protected override void OnDefaultEnable()
         {
             base.OnDefaultEnable();
@@ -50,19 +48,19 @@ namespace HT.Framework
                 if (!EditorApplication.isPlaying)
                 {
                     sub.Set(rect.x + rect.width - 40, rect.y - 2, 20, 20);
-                    if (GUI.Button(sub, _addGC, "InvisibleButton"))
+                    if (GUI.Button(sub, _addGC, EditorGlobalTools.Styles.InvisibleButton))
                     {
                         GenericMenu gm = new GenericMenu();
-                        List<Type> types = ReflectionToolkit.GetTypesInRunTimeAssemblies(type =>
+                        List<Type> types = ReflectionToolkit.GetTypesInAllAssemblies(type =>
                         {
                             return type.IsSubclassOf(typeof(ProcedureBase)) && !type.IsAbstract;
-                        });
+                        }, false);
                         for (int i = 0; i < types.Count; i++)
                         {
                             int j = i;
                             if (Target.ActivatedProcedures.Contains(types[j].FullName))
                             {
-                                gm.AddDisabledItem(new GUIContent(types[j].FullName));
+                                gm.AddDisabledItem(new GUIContent(types[j].FullName), true);
                             }
                             else
                             {
@@ -85,7 +83,7 @@ namespace HT.Framework
 
                     sub.Set(rect.x + rect.width - 20, rect.y - 2, 20, 20);
                     GUI.enabled = _procedureList.index >= 0 && _procedureList.index < Target.ActivatedProcedures.Count;
-                    if (GUI.Button(sub, _removeGC, "InvisibleButton"))
+                    if (GUI.Button(sub, _removeGC, EditorGlobalTools.Styles.InvisibleButton))
                     {
                         Undo.RecordObject(target, "Delete Procedure");
 
@@ -112,13 +110,13 @@ namespace HT.Framework
                 {
                     Rect subrect = rect;
                     subrect.Set(rect.x, rect.y + 2, rect.width, 16);
-                    GUI.Label(subrect, Target.ActivatedProcedures[index]);
+                    GUI.Label(subrect, $"{index + 1}.{Target.ActivatedProcedures[index]}");
 
                     int size = 20;
                     if (Target.DefaultProcedure == Target.ActivatedProcedures[index])
                     {
                         subrect.Set(rect.x + rect.width - size, rect.y + 2, 20, 16);
-                        if (GUI.Button(subrect, _defaultGC, "InvisibleButton"))
+                        if (GUI.Button(subrect, _defaultGC, EditorGlobalTools.Styles.InvisibleButton))
                         {
                             GenericMenu gm = new GenericMenu();
                             for (int i = 0; i < Target.ActivatedProcedures.Count; i++)
@@ -138,9 +136,9 @@ namespace HT.Framework
                     if (isActive && isFocused)
                     {
                         subrect.Set(rect.x + rect.width - size, rect.y, 20, 20);
-                        if (GUI.Button(subrect, _editGC, "InvisibleButton"))
+                        if (GUI.Button(subrect, _editGC, EditorGlobalTools.Styles.InvisibleButton))
                         {
-                            MonoScriptToolkit.OpenMonoScript(Target.ActivatedProcedures[index]);
+                            CSharpScriptToolkit.OpenScript(Target.ActivatedProcedures[index]);
                         }
                         size += 20;
                     }
@@ -172,12 +170,20 @@ namespace HT.Framework
         {
             base.OnInspectorRuntimeGUI();
 
+            if (_helper == null || Target.CurrentProcedure == null)
+            {
+                GUILayout.BeginHorizontal();
+                GUILayout.Label("No Runtime Data!");
+                GUILayout.EndHorizontal();
+                return;
+            }
+
             GUILayout.BeginHorizontal();
-            GUILayout.Label("Current Procedure: " + Target.CurrentProcedure.GetType().Name);
+            GUILayout.Label($"Current Procedure: {Target.CurrentProcedure.GetType().Name}");
             GUILayout.EndHorizontal();
 
             GUILayout.BeginHorizontal();
-            GUILayout.Label("Procedures: " + _helper.Procedures.Count);
+            GUILayout.Label($"Procedures: {_helper.Procedures.Count}");
             GUILayout.EndHorizontal();
 
             foreach (var procedure in _helper.Procedures)
@@ -187,7 +193,7 @@ namespace HT.Framework
                 GUILayout.Label(procedure.Key.Name);
                 GUILayout.FlexibleSpace();
                 GUI.enabled = Target.CurrentProcedure != procedure.Value;
-                if (GUILayout.Button("Switch", EditorStyles.miniButton))
+                if (GUILayout.Button("Switch"))
                 {
                     Target.SwitchProcedure(procedure.Key);
                 }

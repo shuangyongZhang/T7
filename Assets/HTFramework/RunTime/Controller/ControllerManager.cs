@@ -1,5 +1,4 @@
 ﻿using DG.Tweening;
-using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Events;
@@ -38,6 +37,10 @@ namespace HT.Framework
         /// </summary>
         public bool IsEnableBounds = false;
         /// <summary>
+        /// 自由控制：是否启用排斥盒
+        /// </summary>
+        public bool IsEnableRepelBox = false;
+        /// <summary>
         /// 切换至自由控制事件
         /// </summary>
         public event HTFAction SwitchToFreeControlEvent;
@@ -54,6 +57,16 @@ namespace HT.Framework
         /// </summary>
         public event HTFAction<MouseRayTargetBase, Vector3, Vector2> RayEvent;
 
+        /// <summary>
+        /// 模块的优先级（越小越优先）
+        /// </summary>
+        public override int Priority
+        {
+            get
+            {
+                return -1;
+            }
+        }
         /// <summary>
         /// 主摄像机
         /// </summary>
@@ -258,6 +271,10 @@ namespace HT.Framework
                 _helper.HighlightAutoDie = value;
             }
         }
+        /// <summary>
+        /// 自由控制：排斥盒
+        /// </summary>
+        internal HashSet<RepelBox> FreeControlRepelBoxs { get; private set; } = new HashSet<RepelBox>();
 
         public override void OnInit()
         {
@@ -267,6 +284,7 @@ namespace HT.Framework
             DOTween.defaultAutoPlay = DefaultAutoPlay;
             DOTween.defaultAutoKill = IsAutoKill;
 
+            _helper.SetMainCameraAndTarget(transform.GetComponentByChild<Camera>("MainCamera"), transform.GetComponentByChild<CameraTarget>("CameraTarget"));
             _helper.RayEvent += (target, point, point2D) =>
             {
                 RayEvent?.Invoke(target, point, point2D);
@@ -299,6 +317,28 @@ namespace HT.Framework
             FreeControlBounds.Add(bounds);
         }
         /// <summary>
+        /// 自由控制：物体是否在边界盒范围内
+        /// </summary>
+        /// <param name="target">目标物体</param>
+        /// <param name="isIgnoreY">忽略物体Y坐标</param>
+        /// <returns>是否在边界盒范围内</returns>
+        public bool IsInBounds(GameObject target, bool isIgnoreY = false)
+        {
+            if (target == null)
+                return false;
+
+            if (Mode != ControlMode.FreeControl || !IsEnableBounds)
+                return true;
+
+            Vector3 pos = target.transform.position;
+            for (int i = 0; i < FreeControlBounds.Count; i++)
+            {
+                if (isIgnoreY) pos.y = FreeControlBounds[i].center.y;
+                if (FreeControlBounds[i].Contains(pos)) return true;
+            }
+            return false;
+        }
+        /// <summary>
         /// 自由控制：清空边界盒
         /// </summary>
         public void ClearBounds()
@@ -307,13 +347,38 @@ namespace HT.Framework
         }
 
         /// <summary>
+        /// 自由控制：添加排斥盒
+        /// </summary>
+        /// <param name="box">排斥盒</param>
+        public void AddRepelBox(RepelBox box)
+        {
+            FreeControlRepelBoxs.Add(box);
+        }
+        /// <summary>
+        /// 自由控制：移除排斥盒
+        /// </summary>
+        /// <param name="box">排斥盒</param>
+        public void RemoveRepelBox(RepelBox box)
+        {
+            FreeControlRepelBoxs.Remove(box);
+        }
+        /// <summary>
+        /// 自由控制：清空排斥盒
+        /// </summary>
+        public void ClearRepelBox()
+        {
+            FreeControlRepelBoxs.Clear();
+        }
+
+        /// <summary>
         /// 自由控制：设置摄像机注视点
         /// </summary>
         /// <param name="point">目标位置</param>
         /// <param name="damping">阻尼缓动模式</param>
-        public void SetLookPoint(Vector3 point, bool damping = true)
+        /// <param name="dampingTime">阻尼缓动时长</param>
+        public void SetLookPoint(Vector3 point, bool damping = false, float dampingTime = 1)
         {
-            _helper.SetLookPoint(point, damping);
+            _helper.SetLookPoint(point, damping, dampingTime);
         }
         /// <summary>
         /// 自由控制：设置摄像机注视角度
@@ -413,7 +478,7 @@ namespace HT.Framework
         {
             _helper.SetMouseRayFocusImage(background, content, uIType);
         }
-
+        
         /// <summary>
         /// 为挂载 MouseRayTargetBase 的目标添加鼠标左键点击事件
         /// </summary>

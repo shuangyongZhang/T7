@@ -9,9 +9,6 @@ namespace HT.Framework
 {
     [CanEditMultipleObjects]
     [CustomEditor(typeof(FSM))]
-    [GiteeURL("https://gitee.com/SaiTingHu/HTFramework")]
-    [GithubURL("https://github.com/SaiTingHu/HTFramework")]
-    [CSDNBlogURL("https://wanderer.blog.csdn.net/article/details/86073351")]
     internal sealed class FSMInspector : HTFEditor<FSM>
     {
         private GUIContent _stateGC;
@@ -70,13 +67,13 @@ namespace HT.Framework
                 if (!EditorApplication.isPlaying)
                 {
                     sub.Set(rect.x + rect.width - 40, rect.y - 2, 20, 20);
-                    if (GUI.Button(sub, _addGC, "InvisibleButton"))
+                    if (GUI.Button(sub, _addGC, EditorGlobalTools.Styles.InvisibleButton))
                     {
                         GenericMenu gm = new GenericMenu();
-                        List<Type> types = ReflectionToolkit.GetTypesInRunTimeAssemblies(type =>
+                        List<Type> types = ReflectionToolkit.GetTypesInAllAssemblies(type =>
                         {
                             return type.IsSubclassOf(typeof(FiniteStateBase)) && !type.IsAbstract;
-                        });
+                        }, false);
                         for (int i = 0; i < types.Count; i++)
                         {
                             int j = i;
@@ -89,7 +86,7 @@ namespace HT.Framework
 
                             if (Target.States.Contains(types[j].FullName))
                             {
-                                gm.AddDisabledItem(new GUIContent(stateName));
+                                gm.AddDisabledItem(new GUIContent(stateName), true);
                             }
                             else
                             {
@@ -114,7 +111,7 @@ namespace HT.Framework
 
                     sub.Set(rect.x + rect.width - 20, rect.y - 2, 20, 20);
                     GUI.enabled = _stateList.index >= 0 && _stateList.index < Target.States.Count;
-                    if (GUI.Button(sub, _removeGC, "InvisibleButton"))
+                    if (GUI.Button(sub, _removeGC, EditorGlobalTools.Styles.InvisibleButton))
                     {
                         Undo.RecordObject(target, "Delete FSM State");
 
@@ -151,7 +148,7 @@ namespace HT.Framework
                     string stateType = property.stringValue;
                     if (!_stateNames.ContainsKey(stateType))
                     {
-                        Type type = ReflectionToolkit.GetTypeInRunTimeAssemblies(stateType);
+                        Type type = ReflectionToolkit.GetTypeInRunTimeAssemblies(stateType, false);
                         if (type != null)
                         {
                             string stateName = type.FullName;
@@ -171,6 +168,7 @@ namespace HT.Framework
                     Rect subrect = rect;
                     subrect.Set(rect.x, rect.y + 2, rect.width, 16);
                     _stateGC.text = _stateNames[stateType];
+                    _stateGC.tooltip = stateType;
                     GUI.color = _stateGC.text != "<Missing>" ? Color.white : Color.red;
                     GUI.Label(subrect, _stateGC);
                     GUI.color = Color.white;
@@ -179,9 +177,11 @@ namespace HT.Framework
                     if (Target.FinalState == stateType)
                     {
                         subrect.Set(rect.x + rect.width - size, rect.y + 2, 20, 16);
-                        if (GUI.Button(subrect, _finalGC, "InvisibleButton"))
+                        if (GUI.Button(subrect, _finalGC, EditorGlobalTools.Styles.InvisibleButton))
                         {
                             GenericMenu gm = new GenericMenu();
+                            gm.AddDisabledItem(new GUIContent("Set Final State"));
+                            gm.AddSeparator("");
                             foreach (var state in _stateNames)
                             {
                                 gm.AddItem(new GUIContent(state.Value), Target.FinalState == state.Key, () =>
@@ -198,9 +198,11 @@ namespace HT.Framework
                     if (Target.DefaultState == stateType)
                     {
                         subrect.Set(rect.x + rect.width - size, rect.y + 2, 20, 16);
-                        if (GUI.Button(subrect, _defaultGC, "InvisibleButton"))
+                        if (GUI.Button(subrect, _defaultGC, EditorGlobalTools.Styles.InvisibleButton))
                         {
                             GenericMenu gm = new GenericMenu();
+                            gm.AddDisabledItem(new GUIContent("Set Default State"));
+                            gm.AddSeparator("");
                             foreach (var state in _stateNames)
                             {
                                 gm.AddItem(new GUIContent(state.Value), Target.DefaultState == state.Key, () =>
@@ -217,9 +219,9 @@ namespace HT.Framework
                     if (isActive && isFocused)
                     {
                         subrect.Set(rect.x + rect.width - size, rect.y, 20, 20);
-                        if (GUI.Button(subrect, _editGC, "InvisibleButton"))
+                        if (GUI.Button(subrect, _editGC, EditorGlobalTools.Styles.InvisibleButton))
                         {
-                            MonoScriptToolkit.OpenMonoScript(stateType);
+                            CSharpScriptToolkit.OpenScript(stateType);
                         }
                         size += 20;
                     }
@@ -264,10 +266,6 @@ namespace HT.Framework
 
             GUI.enabled = !EditorApplication.isPlaying;
 
-            GUILayout.BeginHorizontal();
-            EditorGUILayout.HelpBox("Finite state machine!", MessageType.Info);
-            GUILayout.EndHorizontal();
-
             PropertyField(nameof(FSM.IsAutoRegister), "Auto Register");
             PropertyField(nameof(FSM.Name), "Name");
             PropertyField(nameof(FSM.Group), "Group");
@@ -275,7 +273,7 @@ namespace HT.Framework
             _stateList.DoLayoutList();
 
             GUILayout.BeginHorizontal();
-            GUILayout.Label("Data", GUILayout.Width(LabelWidth));
+            EditorGUILayout.LabelField("Data", GUILayout.Width(LabelWidth));
             if (GUILayout.Button(Target.Data, EditorStyles.popup, GUILayout.Width(EditorGUIUtility.currentViewWidth - LabelWidth - 25)))
             {
                 GenericMenu gm = new GenericMenu();
@@ -290,10 +288,10 @@ namespace HT.Framework
                     EditorGlobalTools.CreateScriptFormTemplate(EditorPrefsTable.Script_FSMData_Folder, "FSMData", "FSMDataTemplate");
                 });
                 gm.AddSeparator("");
-                List<Type> types = ReflectionToolkit.GetTypesInRunTimeAssemblies(type =>
+                List<Type> types = ReflectionToolkit.GetTypesInAllAssemblies(type =>
                 {
                     return type.IsSubclassOf(typeof(FSMDataBase)) && !type.IsAbstract;
-                });
+                }, false);
                 for (int i = 0; i < types.Count; i++)
                 {
                     int j = i;
@@ -340,20 +338,20 @@ namespace HT.Framework
                 GUILayout.Label(state.Value);
                 GUILayout.FlexibleSpace();
                 GUI.enabled = Target.CurrentState.GetType().FullName != state.Key;
-                if (GUILayout.Button("Switch", EditorStyles.miniButton))
+                if (GUILayout.Button("Switch"))
                 {
-                    Target.SwitchState(ReflectionToolkit.GetTypeInRunTimeAssemblies(state.Key));
+                    Target.SwitchState(ReflectionToolkit.GetTypeInRunTimeAssemblies(state.Key, false));
                 }
                 GUI.enabled = true;
                 GUILayout.EndHorizontal();
             }
 
             GUILayout.BeginHorizontal();
-            if (GUILayout.Button("Renewal", EditorStyles.miniButtonLeft))
+            if (GUILayout.Button("Renewal", EditorGlobalTools.Styles.ButtonLeft))
             {
                 Target.Renewal();
             }
-            if (GUILayout.Button("Final", EditorStyles.miniButtonRight))
+            if (GUILayout.Button("Final", EditorGlobalTools.Styles.ButtonRight))
             {
                 Target.Final();
             }
@@ -362,7 +360,7 @@ namespace HT.Framework
         private void OnArgsGUI()
         {
             GUILayout.BeginHorizontal();
-            GUILayout.Label("Args", GUILayout.Width(LabelWidth));
+            EditorGUILayout.LabelField("Args", GUILayout.Width(LabelWidth));
             string argsName = Target.Args != null ? Target.Args.GetType().FullName : "<None>";
             if (GUILayout.Button(argsName, EditorStyles.popup, GUILayout.Width(EditorGUIUtility.currentViewWidth - LabelWidth - 25)))
             {
@@ -387,10 +385,10 @@ namespace HT.Framework
                 });
                 gm.AddSeparator("");
                 Type argsType = Target.Args != null ? Target.Args.GetType() : null;
-                List<Type> types = ReflectionToolkit.GetTypesInRunTimeAssemblies(type =>
+                List<Type> types = ReflectionToolkit.GetTypesInAllAssemblies(type =>
                 {
                     return type.IsSubclassOf(typeof(FSMArgsBase)) && !type.IsAbstract;
-                });
+                }, false);
                 for (int i = 0; i < types.Count; i++)
                 {
                     int j = i;

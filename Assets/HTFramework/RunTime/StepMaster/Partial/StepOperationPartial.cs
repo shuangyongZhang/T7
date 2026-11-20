@@ -1,11 +1,13 @@
 ﻿using UnityEngine;
-using System.Reflection;
-using DG.Tweening;
-using System;
 using UnityEngine.UI;
 using UnityEngine.Playables;
+using System;
+using System.Reflection;
+using DG.Tweening;
 #if UNITY_EDITOR
 using UnityEditor;
+using UnityEditor.SceneManagement;
+using System.IO;
 #endif
 
 namespace HT.Framework
@@ -25,6 +27,7 @@ namespace HT.Framework
 
         #region Value2
         [SerializeField] internal Vector3 Vector3Value2 = Vector3.zero;
+        [SerializeField] internal float FloatValue2 = 0;
         [SerializeField] internal string StringValue2 = "<None>";
         [SerializeField] internal bool BoolValue2 = false;
         #endregion
@@ -87,7 +90,7 @@ namespace HT.Framework
                     PlayTimelineExecute();
                     break;
                 default:
-                    Log.Warning("步骤控制者：[" + OperationType + " 操作] 没有可以执行的 Execute 定义！");
+                    Log.Warning($"步骤控制者：[{OperationType} 操作] 没有可以执行的 Execute 定义！");
                     break;
             }
         }
@@ -95,6 +98,7 @@ namespace HT.Framework
         {
             if (BoolValue)
             {
+                Target.transform.DOComplete();
                 Target.transform.localPosition = Vector3Value;
             }
             else
@@ -106,6 +110,7 @@ namespace HT.Framework
         {
             if (BoolValue2)
             {
+                Target.transform.DOComplete();
                 if (BoolValue)
                 {
                     Target.transform.localRotation = (Target.transform.localRotation.eulerAngles + Vector3Value).ToQuaternion();
@@ -131,6 +136,7 @@ namespace HT.Framework
         {
             if (BoolValue)
             {
+                Target.transform.DOComplete();
                 Target.transform.localScale = Vector3Value;
             }
             else
@@ -145,7 +151,7 @@ namespace HT.Framework
                 Renderer renderer = Target.GetComponent<Renderer>();
                 if (!renderer)
                 {
-                    Log.Error("步骤控制者：目标 " + Target.name + " 丢失组件Renderer！无法播放颜色改变动画！");
+                    Log.Error($"步骤控制者：目标 {Target.name} 丢失组件Renderer！无法播放颜色改变动画！");
                     return;
                 }
                 renderer.material.DOColor(ColorValue, ElapseTime).SetEase(AnimationEase);
@@ -155,7 +161,7 @@ namespace HT.Framework
                 Graphic graphic = Target.GetComponent<Graphic>();
                 if (!graphic)
                 {
-                    Log.Error("步骤控制者：目标 " + Target.name + " 丢失组件Graphic！无法播放颜色改变动画！");
+                    Log.Error($"步骤控制者：目标 {Target.name} 丢失组件Graphic！无法播放颜色改变动画！");
                     return;
                 }
                 graphic.DOColor(ColorValue, ElapseTime).SetEase(AnimationEase);
@@ -181,14 +187,22 @@ namespace HT.Framework
         }
         private void CameraFollowExecute()
         {
-            Main.m_Controller.SetLookPoint(Vector3Value, false);
-            Main.m_Controller.SetLookAngle(Vector2Value, FloatValue, true);
+            if (FloatValue2 <= 0)
+            {
+                Main.m_Controller.SetLookPoint(Vector3Value, false);
+                Main.m_Controller.SetLookAngle(Vector2Value, FloatValue, true);
+            }
+            else
+            {
+                Main.m_Controller.SetLookPoint(Vector3Value, true, FloatValue2);
+                Main.m_Controller.SetLookAngle(Vector2Value, FloatValue, true);
+            }
         }
         private void TextMeshExecute()
         {
             if (!Target.GetComponent<TextMesh>())
             {
-                Log.Error("步骤控制者：目标 " + Target.name + " 丢失组件TextMesh！无法设置TextMesh文本！");
+                Log.Error($"步骤控制者：目标 {Target.name} 丢失组件TextMesh！无法设置TextMesh文本！");
                 return;
             }
             Target.GetComponent<TextMesh>().text = StringValue;
@@ -201,7 +215,7 @@ namespace HT.Framework
         {
             if (StringValue != "<None>")
             {
-                Target.GetComponent<FSM>().SwitchState(ReflectionToolkit.GetTypeInRunTimeAssemblies(StringValue));
+                Target.GetComponent<FSM>().SwitchState(ReflectionToolkit.GetTypeInRunTimeAssemblies(StringValue, false));
             }
         }
         private void DelayExecute()
@@ -223,13 +237,14 @@ namespace HT.Framework
             else
             {
 
-                Log.Error("步骤控制者：未获取到组件类型 " + StringValue + " ！");
+                Log.Error($"步骤控制者：未获取到组件类型 {StringValue} ！");
             }
         }
         private void TransformExecute()
         {
             if (BoolValue)
             {
+                Target.transform.DOComplete();
                 Target.transform.localPosition = Vector3Value;
                 Target.transform.localRotation = Vector3Value2.ToQuaternion();
                 Target.transform.localScale = Vector3Value3;
@@ -246,6 +261,7 @@ namespace HT.Framework
             StepTarget parent = Main.m_StepMaster.GetTarget(StringValue);
             if (parent != null && parent.gameObject != Target)
             {
+                Target.transform.DOComplete();
                 Target.transform.SetParent(parent.transform);
             }
         }
@@ -313,7 +329,7 @@ namespace HT.Framework
                     PlayTimelineSkip();
                     break;
                 default:
-                    Log.Warning("步骤控制者：[" + OperationType + " 操作] 没有可以执行的 Skip 定义！");
+                    Log.Warning($"步骤控制者：[{OperationType} 操作] 没有可以执行的 Skip 定义！");
                     break;
             }
         }
@@ -321,6 +337,7 @@ namespace HT.Framework
         {
             if (BoolValue)
             {
+                Target.transform.DOComplete();
                 Target.transform.localPosition = Vector3Value;
             }
             else
@@ -332,6 +349,7 @@ namespace HT.Framework
         {
             if (BoolValue2)
             {
+                Target.transform.DOComplete();
                 if (BoolValue)
                 {
                     Target.transform.localRotation = (Target.transform.localRotation.eulerAngles + Vector3Value).ToQuaternion();
@@ -357,6 +375,7 @@ namespace HT.Framework
         {
             if (BoolValue)
             {
+                Target.transform.DOComplete();
                 Target.transform.localScale = Vector3Value;
             }
             else
@@ -371,7 +390,7 @@ namespace HT.Framework
                 Renderer renderer = Target.GetComponent<Renderer>();
                 if (!renderer)
                 {
-                    Log.Error("步骤控制者：目标 " + Target.name + " 丢失组件Renderer！无法播放颜色改变动画！");
+                    Log.Error($"步骤控制者：目标 {Target.name} 丢失组件Renderer！无法播放颜色改变动画！");
                     return;
                 }
                 renderer.material.DOColor(ColorValue, ElapseTime).SetEase(AnimationEase);
@@ -381,7 +400,7 @@ namespace HT.Framework
                 Graphic graphic = Target.GetComponent<Graphic>();
                 if (!graphic)
                 {
-                    Log.Error("步骤控制者：目标 " + Target.name + " 丢失组件Graphic！无法播放颜色改变动画！");
+                    Log.Error($"步骤控制者：目标 {Target.name} 丢失组件Graphic！无法播放颜色改变动画！");
                     return;
                 }
                 graphic.DOColor(ColorValue, ElapseTime).SetEase(AnimationEase);
@@ -407,14 +426,22 @@ namespace HT.Framework
         }
         private void CameraFollowSkip()
         {
-            Main.m_Controller.SetLookPoint(Vector3Value, false);
-            Main.m_Controller.SetLookAngle(Vector2Value, FloatValue, true);
+            if (FloatValue2 <= 0)
+            {
+                Main.m_Controller.SetLookPoint(Vector3Value, false);
+                Main.m_Controller.SetLookAngle(Vector2Value, FloatValue, true);
+            }
+            else
+            {
+                Main.m_Controller.SetLookPoint(Vector3Value, true, FloatValue2);
+                Main.m_Controller.SetLookAngle(Vector2Value, FloatValue, true);
+            }
         }
         private void TextMeshSkip()
         {
             if (!Target.GetComponent<TextMesh>())
             {
-                Log.Error("步骤控制者：目标 " + Target.name + " 丢失组件TextMesh！无法设置TextMesh文本！");
+                Log.Error($"步骤控制者：目标 {Target.name} 丢失组件TextMesh！无法设置TextMesh文本！");
                 return;
             }
             Target.GetComponent<TextMesh>().text = StringValue;
@@ -427,7 +454,7 @@ namespace HT.Framework
         {
             if (StringValue != "<None>")
             {
-                Target.GetComponent<FSM>().SwitchState(ReflectionToolkit.GetTypeInRunTimeAssemblies(StringValue));
+                Target.GetComponent<FSM>().SwitchState(ReflectionToolkit.GetTypeInRunTimeAssemblies(StringValue, false));
             }
         }
         private void DelaySkip()
@@ -448,13 +475,14 @@ namespace HT.Framework
             }
             else
             {
-                Log.Error("步骤控制者：未获取到组件类型 " + StringValue + " ！");
+                Log.Error($"步骤控制者：未获取到组件类型 {StringValue} ！");
             }
         }
         private void TransformSkip()
         {
             if (BoolValue)
             {
+                Target.transform.DOComplete();
                 Target.transform.localPosition = Vector3Value;
                 Target.transform.localRotation = Vector3Value2.ToQuaternion();
                 Target.transform.localScale = Vector3Value3;
@@ -471,6 +499,7 @@ namespace HT.Framework
             StepTarget parent = Main.m_StepMaster.GetTarget(StringValue);
             if (parent != null && parent.gameObject != Target)
             {
+                Target.transform.DOComplete();
                 Target.transform.SetParent(parent.transform);
             }
         }
@@ -538,7 +567,7 @@ namespace HT.Framework
                     PlayTimelineSkipImmediate();
                     break;
                 default:
-                    Log.Warning("步骤控制者：[" + OperationType + " 操作] 没有可以执行的 SkipImmediate 定义！");
+                    Log.Warning($"步骤控制者：[{OperationType} 操作] 没有可以执行的 SkipImmediate 定义！");
                     break;
             }
         }
@@ -568,7 +597,7 @@ namespace HT.Framework
                 Renderer renderer = Target.GetComponent<Renderer>();
                 if (!renderer)
                 {
-                    Log.Error("步骤控制者：目标 " + Target.name + " 丢失组件Renderer！无法播放颜色改变动画！");
+                    Log.Error($"步骤控制者：目标 {Target.name} 丢失组件Renderer！无法播放颜色改变动画！");
                     return;
                 }
                 renderer.material.color = ColorValue;
@@ -578,7 +607,7 @@ namespace HT.Framework
                 Graphic graphic = Target.GetComponent<Graphic>();
                 if (!graphic)
                 {
-                    Log.Error("步骤控制者：目标 " + Target.name + " 丢失组件Graphic！无法播放颜色改变动画！");
+                    Log.Error($"步骤控制者：目标 {Target.name} 丢失组件Graphic！无法播放颜色改变动画！");
                     return;
                 }
                 graphic.color = ColorValue;
@@ -611,7 +640,7 @@ namespace HT.Framework
         {
             if (!Target.GetComponent<TextMesh>())
             {
-                Log.Error("步骤控制者：目标 " + Target.name + " 丢失组件TextMesh！无法设置TextMesh文本！");
+                Log.Error($"步骤控制者：目标 {Target.name} 丢失组件TextMesh！无法设置TextMesh文本！");
                 return;
             }
             Target.GetComponent<TextMesh>().text = StringValue;
@@ -624,7 +653,7 @@ namespace HT.Framework
         {
             if (StringValue != "<None>")
             {
-                Target.GetComponent<FSM>().SwitchState(ReflectionToolkit.GetTypeInRunTimeAssemblies(StringValue));
+                Target.GetComponent<FSM>().SwitchState(ReflectionToolkit.GetTypeInRunTimeAssemblies(StringValue, false));
             }
         }
         private void DelaySkipImmediate()
@@ -645,7 +674,7 @@ namespace HT.Framework
             }
             else
             {
-                Log.Error("步骤控制者：未获取到组件类型 " + StringValue + " ！");
+                Log.Error($"步骤控制者：未获取到组件类型 {StringValue} ！");
             }
         }
         private void TransformSkipImmediate()
@@ -667,7 +696,9 @@ namespace HT.Framework
             PlayableDirector director = Target.GetComponent<PlayableDirector>();
             if (director && director.playableAsset)
             {
+                director.Play();
                 director.time = director.duration;
+                director.Stop();
             }
         }
         #endregion
@@ -703,6 +734,7 @@ namespace HT.Framework
             operation.AnimationEase = AnimationEase;
 
             operation.Vector3Value2 = Vector3Value2;
+            operation.FloatValue2 = FloatValue2;
             operation.StringValue2 = StringValue2;
             operation.BoolValue2 = BoolValue2;
 
@@ -764,7 +796,7 @@ namespace HT.Framework
                     PlayTimelineGUI(getWord);
                     break;
                 default:
-                    Log.Warning("步骤控制者：[" + OperationType + " 操作] 没有可以执行的 OnEditorGUI 定义！");
+                    Log.Warning($"步骤控制者：[{OperationType} 操作] 没有可以执行的 OnEditorGUI 定义！");
                     break;
             }
         }
@@ -774,7 +806,7 @@ namespace HT.Framework
             GUILayout.Label(getWord("Move To") + ":", GUILayout.Width(80));
             GUILayout.FlexibleSpace();
             GUI.enabled = Target;
-            if (GUILayout.Button(getWord("Get"), "Minibutton", GUILayout.Width(60)))
+            if (GUILayout.Button(getWord("Get"), GUILayout.Width(60)))
             {
                 Vector3Value = Target.transform.localPosition;
             }
@@ -804,7 +836,7 @@ namespace HT.Framework
             GUILayout.Label(getWord("Rotate To") + ":", GUILayout.Width(80));
             GUILayout.FlexibleSpace();
             GUI.enabled = Target;
-            if (GUILayout.Button(getWord("Get"), "Minibutton", GUILayout.Width(60)))
+            if (GUILayout.Button(getWord("Get"), GUILayout.Width(60)))
             {
                 Vector3Value = Target.transform.localRotation.eulerAngles;
             }
@@ -858,7 +890,7 @@ namespace HT.Framework
             GUILayout.Label(getWord("Scale To") + ":", GUILayout.Width(80));
             GUILayout.FlexibleSpace();
             GUI.enabled = Target;
-            if (GUILayout.Button(getWord("Get"), "Minibutton", GUILayout.Width(60)))
+            if (GUILayout.Button(getWord("Get"), GUILayout.Width(60)))
             {
                 Vector3Value = Target.transform.localScale;
             }
@@ -947,7 +979,7 @@ namespace HT.Framework
         {
             GUILayout.BeginHorizontal();
             GUILayout.Label(getWord("Set Active") + ":", GUILayout.Width(80));
-            if (GUILayout.Button(BoolValue ? "true" : "false", "MiniPopup", GUILayout.Width(105)))
+            if (GUILayout.Button(BoolValue ? "true" : "false", EditorStyles.popup, GUILayout.Width(105)))
             {
                 GenericMenu gm = new GenericMenu();
                 gm.AddItem(new GUIContent("true"), BoolValue, () =>
@@ -968,7 +1000,7 @@ namespace HT.Framework
             GUI.enabled = Target;
             GUILayout.Label(getWord("Action") + ":", GUILayout.Width(50));
             string value = StringValue == "<None>" ? getWord(StringValue) : StringValue;
-            if (GUILayout.Button(value, "MiniPopup", GUILayout.Width(135)))
+            if (GUILayout.Button(value, EditorStyles.popup, GUILayout.Width(135)))
             {
                 GenericMenu gm = new GenericMenu();
                 Component[] monos = Target.GetComponents<Component>();
@@ -977,11 +1009,17 @@ namespace HT.Framework
                     MethodInfo[] mis = mono.GetType().GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
                     foreach (MethodInfo mi in mis)
                     {
-                        if (mi.Name.Contains("set_") || mi.Name.Contains("get_") || mi.GetParameters().Length > 0 || mi.ReturnType.Name != "Void")
-                        {
+                        if (mi.Name.StartsWith("set_") || mi.Name.StartsWith("get_")
+                            || mi.Name.Contains("<") || mi.Name.Contains(">")
+                            || mi.GetParameters().Length > 0 || mi.ReturnType.Name != "Void")
                             continue;
-                        }
-                        gm.AddItem(new GUIContent(mono.GetType().Name + "/" + mi.Name + "()"), StringValue == mi.Name, () =>
+                        
+                        if (mi.Name == "Awake" || mi.Name == "Start" || mi.Name == "Update"
+                            || mi.Name == "OnEnable" || mi.Name == "OnDisable" || mi.Name == "OnDestroy"
+                            || mi.Name == "OnGUI" || mi.Name == "Finalize")
+                            continue;
+
+                        gm.AddItem(new GUIContent($"{mono.GetType().FullName}/void {mi.Name}()"), StringValue == mi.Name, () =>
                         {
                             StringValue = mi.Name;
                         });
@@ -989,17 +1027,26 @@ namespace HT.Framework
                 }
                 gm.ShowAsContext();
             }
+            GUILayout.EndHorizontal();
+
+            GUILayout.BeginHorizontal();
+            GUILayout.Label("");
+            GUILayout.FlexibleSpace();
+            GUI.enabled = Target && StringValue != "<None>";
+            if (GUILayout.Button(getWord("Edit"), GUILayout.Width(40)))
+            {
+                OpenScriptAction(Target, StringValue);
+            }
             GUI.enabled = true;
             GUILayout.EndHorizontal();
         }
         private void ActionArgsGUI(HTFFunc<string, string> getWord)
         {
-            GUI.enabled = Target;
-
             GUILayout.BeginHorizontal();
+            GUI.enabled = Target;
             GUILayout.Label(getWord("Action") + ":", GUILayout.Width(50));
             string value = StringValue == "<None>" ? getWord(StringValue) : StringValue;
-            if (GUILayout.Button(value, "MiniPopup", GUILayout.Width(135)))
+            if (GUILayout.Button(value, EditorStyles.popup, GUILayout.Width(135)))
             {
                 GenericMenu gm = new GenericMenu();
                 Component[] monos = Target.GetComponents<Component>();
@@ -1009,11 +1056,15 @@ namespace HT.Framework
                     foreach (MethodInfo mi in mis)
                     {
                         ParameterInfo[] pis = mi.GetParameters();
-                        if (mi.Name.Contains("set_") || mi.Name.Contains("get_") || pis.Length != 1 || pis[0].ParameterType.Name != "String" || mi.ReturnType.Name != "Void")
-                        {
+                        if (mi.Name.StartsWith("set_") || mi.Name.StartsWith("get_")
+                            || mi.Name.Contains("<") || mi.Name.Contains(">")
+                            || pis.Length != 1 || pis[0].ParameterType != typeof(string) || mi.ReturnType.Name != "Void")
                             continue;
-                        }
-                        gm.AddItem(new GUIContent(mono.GetType().Name + "/" + mi.Name + "(string)"), StringValue == mi.Name, () =>
+
+                        if (mi.Name == "SendMessage" || mi.Name == "SendMessageUpwards" || mi.Name == "BroadcastMessage")
+                            continue;
+
+                        gm.AddItem(new GUIContent($"{mono.GetType().FullName}/void {mi.Name}(string {pis[0].Name})"), StringValue == mi.Name, () =>
                         {
                             StringValue = mi.Name;
                         });
@@ -1028,7 +1079,16 @@ namespace HT.Framework
             StringValue2 = EditorGUILayout.TextField(StringValue2);
             GUILayout.EndHorizontal();
 
+            GUILayout.BeginHorizontal();
+            GUILayout.Label("");
+            GUILayout.FlexibleSpace();
+            GUI.enabled = Target && StringValue != "<None>";
+            if (GUILayout.Button(getWord("Edit"), GUILayout.Width(40)))
+            {
+                OpenScriptActionArgs(Target, StringValue);
+            }
             GUI.enabled = true;
+            GUILayout.EndHorizontal();
         }
         private void CameraFollowGUI(HTFFunc<string, string> getWord)
         {
@@ -1036,7 +1096,7 @@ namespace HT.Framework
             GUILayout.Label(getWord("Look Point") + ":");
             GUILayout.FlexibleSpace();
             GUI.enabled = EditorApplication.isPlaying;
-            if (GUILayout.Button(getWord("Get"), "Minibuttonleft"))
+            if (GUILayout.Button(getWord("Get"), "Buttonleft"))
             {
                 if (Main.m_Controller)
                 {
@@ -1044,18 +1104,25 @@ namespace HT.Framework
                 }
             }
             GUI.enabled = true;
-            if (GUILayout.Button(getWord("Paste"), "Minibuttonright"))
+            if (GUILayout.Button(getWord("Paste"), "Buttonright"))
             {
-                string[] vector3 = GUIUtility.systemCopyBuffer.Split(',');
-                if (vector3.Length == 3)
+                string value = GUIUtility.systemCopyBuffer;
+                if (value.StartsWith("Vector3("))
                 {
-                    float x, y, z;
-                    vector3[0] = vector3[0].Replace("f", "");
-                    vector3[1] = vector3[1].Replace("f", "");
-                    vector3[2] = vector3[2].Replace("f", "");
-                    if (float.TryParse(vector3[0], out x) && float.TryParse(vector3[1], out y) && float.TryParse(vector3[2], out z))
+                    value = value.Replace("Vector3(", "");
+                    value = value.Replace(")", "");
+
+                    string[] vector3 = value.Split(',');
+                    if (vector3.Length == 3)
                     {
-                        Vector3Value = new Vector3(x, y, z);
+                        float x, y, z;
+                        vector3[0] = vector3[0].Replace("f", "");
+                        vector3[1] = vector3[1].Replace("f", "");
+                        vector3[2] = vector3[2].Replace("f", "");
+                        if (float.TryParse(vector3[0], out x) && float.TryParse(vector3[1], out y) && float.TryParse(vector3[2], out z))
+                        {
+                            Vector3Value = new Vector3(x, y, z);
+                        }
                     }
                 }
             }
@@ -1069,7 +1136,7 @@ namespace HT.Framework
             GUILayout.Label(getWord("Look Angle") + ":");
             GUILayout.FlexibleSpace();
             GUI.enabled = EditorApplication.isPlaying;
-            if (GUILayout.Button(getWord("Get"), "Minibuttonleft"))
+            if (GUILayout.Button(getWord("Get"), "Buttonleft"))
             {
                 if (Main.m_Controller)
                 {
@@ -1078,19 +1145,26 @@ namespace HT.Framework
                 }
             }
             GUI.enabled = true;
-            if (GUILayout.Button(getWord("Paste"), "Minibuttonright"))
+            if (GUILayout.Button(getWord("Paste"), "Buttonright"))
             {
-                string[] vector3 = GUIUtility.systemCopyBuffer.Split(',');
-                if (vector3.Length == 3)
+                string value = GUIUtility.systemCopyBuffer;
+                if (value.StartsWith("Vector3("))
                 {
-                    float x, y, z;
-                    vector3[0] = vector3[0].Replace("f", "");
-                    vector3[1] = vector3[1].Replace("f", "");
-                    vector3[2] = vector3[2].Replace("f", "");
-                    if (float.TryParse(vector3[0], out x) && float.TryParse(vector3[1], out y) && float.TryParse(vector3[2], out z))
+                    value = value.Replace("Vector3(", "");
+                    value = value.Replace(")", "");
+
+                    string[] vector3 = value.Split(',');
+                    if (vector3.Length == 3)
                     {
-                        Vector2Value = new Vector3(x, y);
-                        FloatValue = z;
+                        float x, y, z;
+                        vector3[0] = vector3[0].Replace("f", "");
+                        vector3[1] = vector3[1].Replace("f", "");
+                        vector3[2] = vector3[2].Replace("f", "");
+                        if (float.TryParse(vector3[0], out x) && float.TryParse(vector3[1], out y) && float.TryParse(vector3[2], out z))
+                        {
+                            Vector2Value = new Vector3(x, y);
+                            FloatValue = z;
+                        }
                     }
                 }
             }
@@ -1103,6 +1177,11 @@ namespace HT.Framework
             GUILayout.BeginHorizontal();
             GUILayout.Label(getWord("Look Distance") + ":", GUILayout.Width(100));
             FloatValue = EditorGUILayout.FloatField("", FloatValue, GUILayout.Width(85));
+            GUILayout.EndHorizontal();
+
+            GUILayout.BeginHorizontal();
+            GUILayout.Label(getWord("Follow Time") + ":", GUILayout.Width(100));
+            FloatValue2 = EditorGUILayout.FloatField("", FloatValue2, GUILayout.Width(85));
             GUILayout.EndHorizontal();
         }
         private void TextMeshGUI(HTFFunc<string, string> getWord)
@@ -1135,7 +1214,7 @@ namespace HT.Framework
             GUI.enabled = Target;
             GUILayout.Label(getWord("State") + ":", GUILayout.Width(50));
             string value = StringValue == "<None>" ? getWord(StringValue) : StringValue;
-            if (GUILayout.Button(value, "MiniPopup", GUILayout.Width(135)))
+            if (GUILayout.Button(value, EditorStyles.popup, GUILayout.Width(135)))
             {
                 FSM fsm = Target.GetComponent<FSM>();
                 if (fsm)
@@ -1169,7 +1248,7 @@ namespace HT.Framework
             {
                 GUILayout.BeginHorizontal();
                 GUI.color = Color.cyan;
-                GUILayout.Label(string.Format("{0} {1} {2}", getWord("Delay Time"), ElapseTime, getWord("Second")));
+                GUILayout.Label($"{getWord("Delay Time")} {ElapseTime} {getWord("Second")}");
                 GUI.color = Color.white;
                 GUILayout.EndHorizontal();
             }
@@ -1180,7 +1259,7 @@ namespace HT.Framework
             GUILayout.BeginHorizontal();
             GUILayout.Label(getWord("Component") + ":", GUILayout.Width(80));
             string value = StringValue == "<None>" ? getWord(StringValue) : StringValue;
-            if (GUILayout.Button(value, "MiniPopup", GUILayout.Width(105)))
+            if (GUILayout.Button(value, EditorStyles.popup, GUILayout.Width(105)))
             {
                 GenericMenu gm = new GenericMenu();
                 Component[] monos = Target.GetComponents<Component>();
@@ -1201,7 +1280,7 @@ namespace HT.Framework
 
             GUILayout.BeginHorizontal();
             GUILayout.Label(getWord("Set Active") + ":", GUILayout.Width(80));
-            if (GUILayout.Button(BoolValue ? "true" : "false", "MiniPopup", GUILayout.Width(105)))
+            if (GUILayout.Button(BoolValue ? "true" : "false", EditorStyles.popup, GUILayout.Width(105)))
             {
                 GenericMenu gm = new GenericMenu();
                 gm.AddItem(new GUIContent("true"), BoolValue, () =>
@@ -1259,7 +1338,7 @@ namespace HT.Framework
             BoolValue = GUILayout.Toggle(BoolValue, getWord("Transformation"));
             GUILayout.FlexibleSpace();
             GUI.enabled = Target;
-            if (GUILayout.Button(getWord("Get"), "Minibutton", GUILayout.Width(60)))
+            if (GUILayout.Button(getWord("Get"), GUILayout.Width(60)))
             {
                 Vector3Value = Target.transform.localPosition;
                 Vector3Value2 = Target.transform.localRotation.eulerAngles;
@@ -1271,32 +1350,46 @@ namespace HT.Framework
         private void ChangeParentGUI(HTFFunc<string, string> getWord)
         {
             #region 父级目标物体丢失，根据目标GUID重新搜寻
-            if (!GameObjectValue)
+            if (StringValue != "<None>")
             {
-                if (StringValue != "<None>")
+                if (!IsParentMatched())
                 {
-                    GameObjectValue = GameObject.Find(StringValue2);
-                    if (!GameObjectValue)
+                    PrefabStage prefabStage = PrefabStageUtility.GetCurrentPrefabStage();
+                    if (prefabStage != null)
                     {
-                        StepTarget[] targets = UnityEngine.Object.FindObjectsOfType<StepTarget>();
-                        foreach (StepTarget target in targets)
+                        GameObjectValue = prefabStage.prefabContentsRoot.FindChildren(StringValue2);
+                        if (!IsParentMatched())
                         {
-                            if (target.GUID == StringValue && !target.GetComponent<StepPreview>())
+                            GameObjectValue = null;
+                            StepTarget[] targets = prefabStage.prefabContentsRoot.GetComponentsInChildren<StepTarget>(true);
+                            foreach (StepTarget target in targets)
                             {
-                                GameObjectValue = target.gameObject;
-                                StringValue2 = target.transform.FullName();
-                                break;
+                                if (target.GUID == StringValue && !target.GetComponent<StepPreview>())
+                                {
+                                    GameObjectValue = target.gameObject;
+                                    StringValue2 = target.transform.FullName();
+                                    StringValue2 = StringValue2.Substring(StringValue2.IndexOf("/") + 1);
+                                    break;
+                                }
                             }
                         }
                     }
                     else
                     {
-                        StepTarget target = GameObjectValue.GetComponent<StepTarget>();
-                        if (!target)
+                        GameObjectValue = GameObject.Find(StringValue2);
+                        if (!IsParentMatched())
                         {
-                            target = GameObjectValue.AddComponent<StepTarget>();
-                            target.GUID = StringValue;
-                            EditorUtility.SetDirty(GameObjectValue);
+                            GameObjectValue = null;
+                            StepTarget[] targets = UnityEngine.Object.FindObjectsOfType<StepTarget>(true);
+                            foreach (StepTarget target in targets)
+                            {
+                                if (target.GUID == StringValue && !target.GetComponent<StepPreview>())
+                                {
+                                    GameObjectValue = target.gameObject;
+                                    StringValue2 = target.transform.FullName();
+                                    break;
+                                }
+                            }
                         }
                     }
                 }
@@ -1340,7 +1433,7 @@ namespace HT.Framework
             }
             GUILayout.Label(StringValue == "<None>" ? getWord(StringValue) : StringValue, GUILayout.Width(90));
             GUILayout.FlexibleSpace();
-            if (GUILayout.Button(getWord("Clear"), EditorStyles.miniButton, GUILayout.Width(45)))
+            if (GUILayout.Button(getWord("Clear"), GUILayout.Width(45)))
             {
                 parent = GameObjectValue = null;
                 StringValue = "<None>";
@@ -1363,6 +1456,7 @@ namespace HT.Framework
                     if (target.GUID == "<None>")
                     {
                         target.GUID = Guid.NewGuid().ToString();
+                        EditorUtility.SetDirty(target);
                     }
                     GameObjectValue = parent;
                     StringValue = target.GUID;
@@ -1439,7 +1533,7 @@ namespace HT.Framework
                     ChangeParentPreviewTarget();
                     break;
                 default:
-                    Log.Warning("步骤控制者：[" + OperationType + " 操作] 没有可以执行的 InitPreviewTarget 定义！");
+                    Log.Warning($"步骤控制者：[{OperationType} 操作] 没有可以执行的 InitPreviewTarget 定义！");
                     break;
             }
         }
@@ -1495,6 +1589,84 @@ namespace HT.Framework
             if (GameObjectValue)
             {
                 PreviewTarget.transform.SetParent(GameObjectValue.transform);
+            }
+        }
+        private bool IsParentMatched()
+        {
+            if (GameObjectValue == null)
+                return false;
+
+            StepTarget target = GameObjectValue.GetComponent<StepTarget>();
+            return target && StringValue == target.GUID;
+        }
+
+        private void OpenScriptAction(GameObject target, string methodName)
+        {
+            Component[] monos = target.GetComponents<Component>();
+            foreach (Component mono in monos)
+            {
+                if (mono as MonoBehaviour == null)
+                    continue;
+
+                MethodInfo[] mis = mono.GetType().GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+                foreach (MethodInfo mi in mis)
+                {
+                    if (mi.Name == methodName && mi.ReturnType.Name == "Void" && mi.GetParameters().Length == 0)
+                    {
+                        string methodInfo = $"void {methodName}()";
+                        MonoScript monoScript = MonoScript.FromMonoBehaviour(mono as MonoBehaviour);
+                        string path = AssetDatabase.GetAssetPath(monoScript);
+                        path = path.Substring(path.IndexOf('/'));
+                        path = Application.dataPath + path;
+                        if (File.Exists(path))
+                        {
+                            string[] lines = File.ReadAllLines(path);
+                            for (int i = 0; i < lines.Length; i++)
+                            {
+                                if (lines[i].Contains(methodInfo))
+                                {
+                                    AssetDatabase.OpenAsset(monoScript, i + 1);
+                                    return;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        private void OpenScriptActionArgs(GameObject target, string methodName)
+        {
+            Component[] monos = target.GetComponents<Component>();
+            foreach (Component mono in monos)
+            {
+                if (mono as MonoBehaviour == null)
+                    continue;
+
+                MethodInfo[] mis = mono.GetType().GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+                foreach (MethodInfo mi in mis)
+                {
+                    ParameterInfo[] pis = mi.GetParameters();
+                    if (mi.Name == methodName && mi.ReturnType.Name == "Void" && pis.Length == 1 && pis[0].ParameterType == typeof(string))
+                    {
+                        string methodInfo = $"void {methodName}(string {pis[0].Name})";
+                        MonoScript monoScript = MonoScript.FromMonoBehaviour(mono as MonoBehaviour);
+                        string path = AssetDatabase.GetAssetPath(monoScript);
+                        path = path.Substring(path.IndexOf('/'));
+                        path = Application.dataPath + path;
+                        if (File.Exists(path))
+                        {
+                            string[] lines = File.ReadAllLines(path);
+                            for (int i = 0; i < lines.Length; i++)
+                            {
+                                if (lines[i].Contains(methodInfo))
+                                {
+                                    AssetDatabase.OpenAsset(monoScript, i + 1);
+                                    return;
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
 #endif

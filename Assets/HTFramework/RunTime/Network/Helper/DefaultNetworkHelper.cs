@@ -1,16 +1,17 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace HT.Framework
 {
     /// <summary>
     /// 默认的网络管理器助手
     /// </summary>
-    public sealed class DefaultNetworkHelper : INetworkHelper
+    internal sealed class DefaultNetworkHelper : INetworkHelper
     {
         /// <summary>
-        /// 网络管理器
+        /// 所属的内置模块
         /// </summary>
         public IModuleManager Module { get; set; }
         /// <summary>
@@ -33,10 +34,6 @@ namespace HT.Framework
         /// 与服务器断开连接事件
         /// </summary>
         public event HTFAction<ProtocolChannelBase> DisconnectServerEvent;
-        /// <summary>
-        /// 发送消息成功事件
-        /// </summary>
-        public event HTFAction<ProtocolChannelBase> SendMessageEvent;
         /// <summary>
         /// 接收消息成功事件
         /// </summary>
@@ -98,7 +95,7 @@ namespace HT.Framework
         {
             for (int i = 0; i < channelTypes.Count; i++)
             {
-                Type type = ReflectionToolkit.GetTypeInRunTimeAssemblies(channelTypes[i]);
+                Type type = ReflectionToolkit.GetTypeInRunTimeAssemblies(channelTypes[i], false);
                 if (type != null)
                 {
                     if (type.IsSubclassOf(typeof(ProtocolChannelBase)))
@@ -108,22 +105,18 @@ namespace HT.Framework
                     }
                     else
                     {
-                        throw new HTFrameworkException(HTFrameworkModule.Network, "加载通信协议通道失败：通信协议通道类 " + channelTypes[i] + " 必须继承至基类：ProtocolChannelBase！");
+                        throw new HTFrameworkException(HTFrameworkModule.Network, $"加载通信协议通道失败：通信协议通道类 {channelTypes[i]} 必须继承至基类：ProtocolChannelBase！");
                     }
                 }
                 else
                 {
-                    throw new HTFrameworkException(HTFrameworkModule.Network, "加载通信协议通道失败：丢失通信协议通道类 " + channelTypes[i] + "！");
+                    throw new HTFrameworkException(HTFrameworkModule.Network, $"加载通信协议通道失败：丢失通信协议通道类 {channelTypes[i]}！");
                 }
             }
 
             foreach (var channel in ProtocolChannels)
             {
                 channel.Value.OnInit();
-                channel.Value.SendMessageEvent += (cha) =>
-                {
-                    SendMessageEvent?.Invoke(cha);
-                };
                 channel.Value.ReceiveMessageEvent += (cha, message) =>
                 {
                     ReceiveMessageEvent?.Invoke(cha, message);
@@ -161,9 +154,7 @@ namespace HT.Framework
                 if (ProtocolChannels[channelType].IsNeedConnect)
                 {
                     if (ProtocolChannels[channelType].IsConnect)
-                    {
                         return;
-                    }
 
                     BeginConnectServerEvent?.Invoke(ProtocolChannels[channelType]);
 
@@ -171,12 +162,12 @@ namespace HT.Framework
                 }
                 else
                 {
-                    Log.Warning("连接服务器出错：" + ProtocolChannels[channelType].ToString() + " 不需要与服务器保持连接！");
+                    Log.Warning($"连接服务器出错：{ProtocolChannels[channelType]} 不需要与服务器保持连接！");
                 }
             }
             else
             {
-                Log.Warning("连接服务器出错：" + channelType.FullName + " 未启用或并不是有效的通信协议！");
+                Log.Warning($"连接服务器出错：{channelType.FullName} 未启用或并不是有效的通信协议！");
             }
         }
         private IEnumerator ConnectServerCoroutine(ProtocolChannelBase protocolChannel)
@@ -190,7 +181,7 @@ namespace HT.Framework
             }
             catch (Exception e)
             {
-                Log.Error("连接服务器出错：" + e.ToString());
+                Log.Error($"连接服务器出错：{e}");
             }
             finally
             {
@@ -216,13 +207,11 @@ namespace HT.Framework
                 if (ProtocolChannels[channelType].IsNeedConnect)
                 {
                     if (!ProtocolChannels[channelType].IsConnect)
-                    {
                         return;
-                    }
 
                     if (ProtocolChannels[channelType].IsDisconnectRequest(message))
                     {
-                        SendMessage(channelType, message);
+                        SendMessage(channelType, message).ConfigureAwait(false);
                     }
                     else
                     {
@@ -231,12 +220,12 @@ namespace HT.Framework
                 }
                 else
                 {
-                    Log.Warning("与服务器断开连接出错：" + ProtocolChannels[channelType].ToString() + " 不需要与服务器保持连接！");
+                    Log.Warning($"与服务器断开连接出错：{ProtocolChannels[channelType]} 不需要与服务器保持连接！");
                 }
             }
             else
             {
-                Log.Warning("与服务器断开连接出错：" + channelType.FullName + " 未启用或并不是有效的通信协议！");
+                Log.Warning($"与服务器断开连接出错：{channelType.FullName} 未启用或并不是有效的通信协议！");
             }
         }
         /// <summary>
@@ -245,7 +234,7 @@ namespace HT.Framework
         /// <param name="channelType">通信协议通道类型</param>
         /// <param name="message">消息对象</param>
         /// <returns>是否发送成功</returns>
-        public bool SendMessage(Type channelType, INetworkMessage message)
+        public async Task<int> SendMessage(Type channelType, INetworkMessage message)
         {
             if (ProtocolChannels.ContainsKey(channelType))
             {
@@ -253,25 +242,45 @@ namespace HT.Framework
                 {
                     if (ProtocolChannels[channelType].IsConnect)
                     {
-                        ProtocolChannels[channelType].InjectMessage(ProtocolChannels[channelType].EncapsulatedMessage(message));
-                        return true;
+                        int count = await ProtocolChannels[channelType].SendMessage(message.Encapsulate());
+                        Main.m_ReferencePool.Despawn(message);
+                        return count;
                     }
                     else
                     {
                         Log.Error("发送消息出错：客户端已断开连接！");
-                        return false;
+                        Main.m_ReferencePool.Despawn(message);
+                        return 0;
                     }
                 }
                 else
                 {
-                    ProtocolChannels[channelType].InjectMessage(ProtocolChannels[channelType].EncapsulatedMessage(message));
-                    return true;
+                    int count = await ProtocolChannels[channelType].SendMessage(message.Encapsulate());
+                    Main.m_ReferencePool.Despawn(message);
+                    return count;
                 }
             }
             else
             {
-                Log.Warning("发送消息出错：" + channelType.FullName + " 未启用或并不是有效的通信协议！");
-                return true;
+                Log.Warning($"发送消息出错：{channelType.FullName} 未启用或并不是有效的通信协议！");
+                Main.m_ReferencePool.Despawn(message);
+                return 0;
+            }
+        }
+        /// <summary>
+        /// 获取指定的通信管道
+        /// </summary>
+        /// <param name="channelType">通信协议通道类型</param>
+        /// <returns>通信协议通道实例</returns>
+        public ProtocolChannelBase GetProtocolChannel(Type channelType)
+        {
+            if (ProtocolChannels.ContainsKey(channelType))
+            {
+                return ProtocolChannels[channelType];
+            }
+            else
+            {
+                return null;
             }
         }
     }

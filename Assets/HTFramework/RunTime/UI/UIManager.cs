@@ -9,7 +9,7 @@ namespace HT.Framework
     /// UI管理器
     /// </summary>
     [InternalModule(HTFrameworkModule.UI)]
-    public sealed class UIManager : InternalModuleBase<IUIHelper>
+    public sealed partial class UIManager : InternalModuleBase<IUIHelper>
     {
         /// <summary>
         /// 是否启用Overlay类型的UI【请勿在代码中修改】
@@ -20,10 +20,6 @@ namespace HT.Framework
         /// </summary>
         [SerializeField] internal bool IsEnableCameraUI = false;
         /// <summary>
-        /// 是否启用World类型的UI【请勿在代码中修改】
-        /// </summary>
-        [SerializeField] internal bool IsEnableWorldUI = false;
-        /// <summary>
         /// 当前定义的UI名称【请勿在代码中修改】
         /// </summary>
         [SerializeField] internal List<string> DefineUINames = new List<string>();
@@ -31,7 +27,7 @@ namespace HT.Framework
         /// 当前定义的UI实体【请勿在代码中修改】
         /// </summary>
         [SerializeField] internal List<GameObject> DefineUIEntitys = new List<GameObject>();
-
+        
         /// <summary>
         /// Camera类型UI的摄像机
         /// </summary>
@@ -63,16 +59,7 @@ namespace HT.Framework
             }
         }
         /// <summary>
-        /// World类型的UI域根节点
-        /// </summary>
-        /// <param name="domainName">域名</param>
-        /// <returns>域根节点</returns>
-        public RectTransform WorldUIDomainRoot(string domainName)
-        {
-            return _helper.WorldUIDomainRoot(domainName);
-        }
-        /// <summary>
-        /// 是否锁住当前打开的非常驻UI（World类型UI无效），锁住后打开其他非常驻UI将无法顶掉当前打开的UI，使其显示于绝对顶端
+        /// 是否锁住当前打开的临时UI，锁住后打开其他临时UI将无法顶掉当前打开的UI，使其显示于绝对顶端
         /// </summary>
         public bool IsLockTemporaryUI
         {
@@ -114,6 +101,23 @@ namespace HT.Framework
             }
         }
 
+        public override void OnInit()
+        {
+            base.OnInit();
+
+            _helper.SetDefine(DefineUINames, DefineUIEntitys);
+        }
+
+        /// <summary>
+        /// 添加预定义（如果已存在则覆盖，已打开的UI不受影响，销毁后再次打开生效）
+        /// </summary>
+        /// <param name="defineUIName">预定义的UI名称</param>
+        /// <param name="defineUIEntity">预定义的UI实体</param>
+        public void AddDefine(string defineUIName, GameObject defineUIEntity)
+        {
+            _helper.AddDefine(defineUIName, defineUIEntity);
+        }
+
         /// <summary>
         /// 预加载UI
         /// </summary>
@@ -121,7 +125,7 @@ namespace HT.Framework
         /// <returns>加载协程</returns>
         public async UniTask<T> PreloadingUI<T>() where T : UILogicBase
         {
-            return (await PreloadingUI(typeof(T))).Cast<T>();
+            return (T)await PreloadingUI(typeof(T));
         }
         /// <summary>
         /// 预加载UI
@@ -135,11 +139,13 @@ namespace HT.Framework
 
             if (type.IsSubclassOf(typeof(UILogicResident)))
             {
-                return await _helper.PreloadingResidentUI(type);
+                await RunUIOperation(type, _helper.PreloadingResidentUI(type));
+                return GetUI(type);
             }
             else if (type.IsSubclassOf(typeof(UILogicTemporary)))
             {
-                return await _helper.PreloadingTemporaryUI(type);
+                await RunUIOperation(type, _helper.PreloadingTemporaryUI(type));
+                return GetUI(type);
             }
             return null;
         }
@@ -151,9 +157,8 @@ namespace HT.Framework
         /// <returns>加载协程</returns>
         public async UniTask<T> OpenUI<T>(params object[] args) where T : UILogicBase
         {
-            return (await OpenUI(typeof(T), args)).Cast<T>();
+            return (T)await OpenUI(typeof(T), args);
         }
-
         /// <summary>
         /// 打开UI
         /// </summary>
@@ -167,11 +172,13 @@ namespace HT.Framework
 
             if (type.IsSubclassOf(typeof(UILogicResident)))
             {
-                return await _helper.OpenResidentUI(type, args);
+                await RunUIOperation(type, _helper.OpenResidentUI(type, args));
+                return GetOpenedUI(type);
             }
             else if (type.IsSubclassOf(typeof(UILogicTemporary)))
             {
-                return await _helper.OpenTemporaryUI(type, args);
+                await RunUIOperation(type, _helper.OpenTemporaryUI(type, args));
+                return GetOpenedUI(type);
             }
             return null;
         }
@@ -199,6 +206,15 @@ namespace HT.Framework
                 return _helper.GetOpenedUI(type);
             }
             return null;
+        }
+        /// <summary>
+        /// 获取 transform 的最顶层父级所属的UI
+        /// </summary>
+        /// <param name="transform">目标 transform</param>
+        /// <returns>UI逻辑对象</returns>
+        public UILogicBase GetUIByTransform(Transform transform)
+        {
+            return _helper.GetUIByTransform(transform);
         }
         /// <summary>
         /// 获取UI
@@ -251,6 +267,7 @@ namespace HT.Framework
         /// 关闭UI
         /// </summary>
         /// <typeparam name="T">UI逻辑类</typeparam>
+        /// <returns>加载协程</returns>
         public void CloseUI<T>() where T : UILogicBase
         {
             CloseUI(typeof(T));
@@ -259,15 +276,10 @@ namespace HT.Framework
         /// 关闭UI
         /// </summary>
         /// <param name="type">UI逻辑类</param>
+        /// <returns>加载协程</returns>
         public void CloseUI(Type type)
         {
-            if (type.IsAbstract)
-                return;
-
-            if (type.IsSubclassOf(typeof(UILogicBase)))
-            {
-                _helper.CloseUI(type);
-            }
+            CloseUIAsync(type).Forget();
         }
         /// <summary>
         /// 销毁UI
@@ -288,8 +300,26 @@ namespace HT.Framework
 
             if (type.IsSubclassOf(typeof(UILogicBase)))
             {
+                _uiRevisions[type] = GetUIRevision(type) + 1;
                 _helper.DestroyUI(type);
             }
+        }
+
+        /// <summary>
+        /// 显示同属于一个深度的所有UI界面
+        /// </summary>
+        /// <param name="depth">深度</param>
+        public void ShowAllUIOfDepth(int depth)
+        {
+            _helper.ShowAllUIOfDepth(depth);
+        }
+        /// <summary>
+        /// 隐藏同属于一个深度的所有UI界面
+        /// </summary>
+        /// <param name="depth">深度</param>
+        public void HideAllUIOfDepth(int depth)
+        {
+            _helper.HideAllUIOfDepth(depth);
         }
     }
 }

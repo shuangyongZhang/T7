@@ -1,12 +1,9 @@
 ﻿using DG.Tweening;
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Net.NetworkInformation;
 using System.Reflection;
-using System.Text;
 using UnityEngine;
-using UnityEngine.EventSystems;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
@@ -105,12 +102,12 @@ namespace HT.Framework
         /// </summary>
         /// <typeparam name="T">组件类型</typeparam>
         /// <param name="tran">自身</param>
-        /// <param name="Result">组件列表</param>
+        /// <param name="result">组件列表</param>
         /// <param name="includeInactive">是否包含未激活的子物体</param>
-        public static void GetComponentsInSons<T>(this Transform tran, List<T> Result, bool includeInactive = false) where T : Component
+        public static void GetComponentsInSons<T>(this Transform tran, List<T> result, bool includeInactive = false) where T : Component
         {
-            if (Result == null) Result = new List<T>();
-            else Result.Clear();
+            if (result == null) result = new List<T>();
+            else result.Clear();
 
             for (int i = 0; i < tran.childCount; i++)
             {
@@ -120,13 +117,13 @@ namespace HT.Framework
                 {
                     if (child.gameObject.activeSelf)
                     {
-                        Result.Add(t);
+                        result.Add(t);
                     }
                     else
                     {
                         if (includeInactive)
                         {
-                            Result.Add(t);
+                            result.Add(t);
                         }
                     }
                 }
@@ -137,12 +134,12 @@ namespace HT.Framework
         /// </summary>
         /// <typeparam name="T">组件类型</typeparam>
         /// <param name="obj">自身</param>
-        /// <param name="Result">组件列表</param>
+        /// <param name="result">组件列表</param>
         /// <param name="includeInactive">是否包含未激活的子物体</param>
-        public static void GetComponentsInSons<T>(this GameObject obj, List<T> Result, bool includeInactive = false) where T : Component
+        public static void GetComponentsInSons<T>(this GameObject obj, List<T> result, bool includeInactive = false) where T : Component
         {
-            if (Result == null) Result = new List<T>();
-            else Result.Clear();
+            if (result == null) result = new List<T>();
+            else result.Clear();
 
             for (int i = 0; i < obj.transform.childCount; i++)
             {
@@ -152,13 +149,13 @@ namespace HT.Framework
                 {
                     if (child.gameObject.activeSelf)
                     {
-                        Result.Add(t);
+                        result.Add(t);
                     }
                     else
                     {
                         if (includeInactive)
                         {
-                            Result.Add(t);
+                            result.Add(t);
                         }
                     }
                 }
@@ -169,12 +166,12 @@ namespace HT.Framework
         /// </summary>
         /// <typeparam name="T">组件类型</typeparam>
         /// <param name="mono">自身</param>
-        /// <param name="Result">组件列表</param>
+        /// <param name="result">组件列表</param>
         /// <param name="includeInactive">是否包含未激活的子物体</param>
-        public static void GetComponentsInSons<T>(this MonoBehaviour mono, List<T> Result, bool includeInactive = false) where T : Component
+        public static void GetComponentsInSons<T>(this MonoBehaviour mono, List<T> result, bool includeInactive = false) where T : Component
         {
-            if (Result == null) Result = new List<T>();
-            else Result.Clear();
+            if (result == null) result = new List<T>();
+            else result.Clear();
 
             for (int i = 0; i < mono.transform.childCount; i++)
             {
@@ -184,13 +181,13 @@ namespace HT.Framework
                 {
                     if (child.gameObject.activeSelf)
                     {
-                        Result.Add(t);
+                        result.Add(t);
                     }
                     else
                     {
                         if (includeInactive)
                         {
-                            Result.Add(t);
+                            result.Add(t);
                         }
                     }
                 }
@@ -200,34 +197,34 @@ namespace HT.Framework
         /// 通过组件查找场景中所有的物体，包括隐藏和激活的
         /// </summary>
         /// <typeparam name="T">组件类型</typeparam>
-        /// <param name="Result">组件列表</param>
-        public static void FindObjectsOfType<T>(List<T> Result) where T : Component
+        /// <param name="result">组件列表</param>
+        public static void FindObjectsOfType<T>(List<T> result) where T : Component
         {
-            if (Result == null) Result = new List<T>();
-            else Result.Clear();
+            if (result == null) result = new List<T>();
+            else result.Clear();
 
             List<T> sub = new List<T>();
             GameObject[] rootObjs = SceneManager.GetActiveScene().GetRootGameObjects();
             foreach (GameObject rootObj in rootObjs)
             {
                 rootObj.transform.GetComponentsInChildren(true, sub);
-                Result.AddRange(sub);
+                result.AddRange(sub);
             }
         }
         /// <summary>
         /// 获取当前打开的所有场景中的根物体
         /// </summary>
-        /// <param name="Result">物体列表</param>
-        public static void GetRootGameObjectsInAllScene(List<GameObject> Result)
+        /// <param name="result">物体列表</param>
+        public static void GetRootGameObjectsInAllScene(List<GameObject> result)
         {
-            if (Result == null) Result = new List<GameObject>();
-            else Result.Clear();
+            if (result == null) result = new List<GameObject>();
+            else result.Clear();
 
             List<GameObject> sub = new List<GameObject>();
             for (int i = 0; i < SceneManager.sceneCount; i++)
             {
                 SceneManager.GetSceneAt(i).GetRootGameObjects(sub);
-                Result.AddRange(sub);
+                result.AddRange(sub);
             }
         }
         /// <summary>
@@ -401,16 +398,49 @@ namespace HT.Framework
                 tfs.Add(tf);
             }
 
-            StringBuilder builder = new StringBuilder();
-            builder.Append(tfs[tfs.Count - 1].name);
+            StringToolkit.BeginConcat();
+            StringToolkit.Concat(tfs[tfs.Count - 1].name);
             for (int i = tfs.Count - 2; i >= 0; i--)
             {
-                builder.Append("/" + tfs[i].name);
+                StringToolkit.Concat("/");
+                StringToolkit.Concat(tfs[i].name);
             }
-            return builder.ToString();
+            return StringToolkit.EndConcat();
+        }
+        /// <summary>
+        /// 获取自身基于目标 Transform 的子级路径（如果不是其子级或孙级，则返回 null）
+        /// </summary>
+        /// <param name="tran">自身 Transform</param>
+        /// <param name="target">目标 Transform</param>
+        /// <returns>子级路径</returns>
+        public static string ChildPathOf(this Transform tran, Transform target)
+        {
+            if (tran == null || target == null || tran == target)
+                return null;
+
+            if (!tran.IsChildOf(target))
+                return null;
+
+            List<Transform> tfs = new List<Transform>();
+            Transform tf = tran;
+            tfs.Add(tf);
+            while (tf.parent && tf.parent != target)
+            {
+                tf = tf.parent;
+                tfs.Add(tf);
+            }
+
+            StringToolkit.BeginConcat();
+            StringToolkit.Concat(tfs[tfs.Count - 1].name);
+            for (int i = tfs.Count - 2; i >= 0; i--)
+            {
+                StringToolkit.Concat("/");
+                StringToolkit.Concat(tfs[i].name);
+            }
+            return StringToolkit.EndConcat();
         }
         #endregion
-        
+
         #region 时间工具
         /// <summary>
         /// 转换为标准时间字符串（yyyy/MM/dd HH:mm:ss）
@@ -431,17 +461,12 @@ namespace HT.Framework
         /// <param name="array">数组</param>
         public static void Disrupt<T>(this T[] array)
         {
-            int index = 0;
-            T tmp;
             for (int i = 0; i < array.Length; i++)
             {
-                index = UnityEngine.Random.Range(0, array.Length);
-                if (index != i)
-                {
-                    tmp = array[i];
-                    array[i] = array[index];
-                    array[index] = tmp;
-                }
+                int j = UnityEngine.Random.Range(i, array.Length);
+                T temp = array[i];
+                array[i] = array[j];
+                array[j] = temp;
             }
         }
         /// <summary>
@@ -451,17 +476,12 @@ namespace HT.Framework
         /// <param name="array">集合</param>
         public static void Disrupt<T>(this List<T> array)
         {
-            int index = 0;
-            T tmp;
             for (int i = 0; i < array.Count; i++)
             {
-                index = UnityEngine.Random.Range(0, array.Count);
-                if (index != i)
-                {
-                    tmp = array[i];
-                    array[i] = array[index];
-                    array[index] = tmp;
-                }
+                int j = UnityEngine.Random.Range(i, array.Count);
+                T temp = array[i];
+                array[i] = array[j];
+                array[j] = temp;
             }
         }
         /// <summary>
@@ -496,6 +516,23 @@ namespace HT.Framework
         /// <param name="array">数组</param>
         /// <param name="value">元素</param>
         /// <returns>是否存在</returns>
+        public static bool Contains(this int[] array, int value)
+        {
+            for (int i = 0; i < array.Length; i++)
+            {
+                if (array[i] == value)
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+        /// <summary>
+        /// 判断数组中是否存在某元素
+        /// </summary>
+        /// <param name="array">数组</param>
+        /// <param name="value">元素</param>
+        /// <returns>是否存在</returns>
         public static bool Contains(this string[] array, string value)
         {
             for (int i = 0; i < array.Length; i++)
@@ -513,7 +550,7 @@ namespace HT.Framework
         /// <param name="array">数组</param>
         /// <param name="value">元素</param>
         /// <returns>是否存在</returns>
-        public static bool Contains(this int[] array, int value)
+        public static bool Contains<T>(this T[] array, T value) where T : class
         {
             for (int i = 0; i < array.Length; i++)
             {
@@ -653,261 +690,22 @@ namespace HT.Framework
         }
         #endregion
 
-        #region UGUI工具
-        /// <summary>
-        /// 限制Text内容的长度在length以内，超过的部分用replace代替
-        /// </summary>
-        public static void RestrictLength(this Text tex, int length, string replace)
-        {
-            if (tex.text.Length > length)
-            {
-                tex.text = tex.text.Substring(0, length) + replace;
-            }
-        }
-        /// <summary>
-        /// 限制Text中指定子字串的字体大小
-        /// </summary>
-        public static void ToRichSize(this Text tex, string subStr, int size)
-        {
-            if (subStr.Length <= 0 || !tex.text.Contains(subStr))
-            {
-                return;
-            }
-
-            string valueRich = tex.text;
-            int index = valueRich.IndexOf(subStr);
-            if (index >= 0) valueRich = valueRich.Insert(index, "<size=" + size + ">");
-            else return;
-
-            index = valueRich.IndexOf(subStr) + subStr.Length;
-            if (index >= 0) valueRich = valueRich.Insert(index, "</size>");
-            else return;
-
-            tex.text = valueRich;
-        }
-        /// <summary>
-        /// 限制Text中指定子字串的字体颜色
-        /// </summary>
-        public static void ToRichColor(this Text tex, string subStr, Color color)
-        {
-            if (subStr.Length <= 0 || !tex.text.Contains(subStr))
-            {
-                return;
-            }
-
-            string valueRich = tex.text;
-            int index = valueRich.IndexOf(subStr);
-            if (index >= 0) valueRich = valueRich.Insert(index, "<color=" + color.ToHexSystemString() + ">");
-            else return;
-
-            index = valueRich.IndexOf(subStr) + subStr.Length;
-            if (index >= 0) valueRich = valueRich.Insert(index, "</color>");
-            else return;
-
-            tex.text = valueRich;
-        }
-        /// <summary>
-        /// 限制Text中的指定子字串的字体加粗
-        /// </summary>
-        public static void ToRichBold(this Text tex, string subStr)
-        {
-            if (subStr.Length <= 0 || !tex.text.Contains(subStr))
-            {
-                return;
-            }
-
-            string valueRich = tex.text;
-            int index = valueRich.IndexOf(subStr);
-            if (index >= 0) valueRich = valueRich.Insert(index, "<b>");
-            else return;
-
-            index = valueRich.IndexOf(subStr) + subStr.Length;
-            if (index >= 0) valueRich = valueRich.Insert(index, "</b>");
-            else return;
-
-            tex.text = valueRich;
-        }
-        /// <summary>
-        /// 限制Text中的指定子字串的字体斜体
-        /// </summary>
-        public static void ToRichItalic(this Text tex, string subStr)
-        {
-            if (subStr.Length <= 0 || !tex.text.Contains(subStr))
-            {
-                return;
-            }
-
-            string valueRich = tex.text;
-            int index = valueRich.IndexOf(subStr);
-            if (index >= 0) valueRich = valueRich.Insert(index, "<i>");
-            else return;
-
-            index = valueRich.IndexOf(subStr) + subStr.Length;
-            if (index >= 0) valueRich = valueRich.Insert(index, "</i>");
-            else return;
-
-            tex.text = valueRich;
-        }
-        /// <summary>
-        /// 清除所有富文本样式
-        /// </summary>
-        public static void ClearRich(this Text tex)
-        {
-            string value = tex.text;
-            for (int i = 0; i < value.Length; i++)
-            {
-                if (value[i] == '<')
-                {
-                    for (int j = i + 1; j < value.Length; j++)
-                    {
-                        if (value[j] == '>')
-                        {
-                            int count = j - i + 1;
-                            value = value.Remove(i, count);
-                            i -= 1;
-                            break;
-                        }
-                    }
-                }
-            }
-            tex.text = value;
-        }
-        /// <summary>
-        /// 当前鼠标是否停留在UGUI控件上
-        /// </summary>
-        /// <returns>是否</returns>
-        public static bool IsPointerOverUGUI()
-        {
-            if (EventSystem.current)
-            {
-                return EventSystem.current.IsPointerOverGameObject();
-            }
-            else
-            {
-                return false;
-            }
-        }
-        /// <summary>
-        /// 屏幕坐标转换为UGUI坐标（只针对框架UI模块下的UI控件）
-        /// </summary>
-        /// <param name="position">屏幕坐标</param>
-        /// <param name="reference">参照物（要赋值的UGUI控件的根物体）</param>
-        /// <param name="uIType">UI类型</param>
-        /// <returns>基于参照物的局部UGUI坐标</returns>
-        public static Vector2 ScreenToUGUIPosition(this Vector3 position, RectTransform reference = null, UIType uIType = UIType.Overlay)
-        {
-            Vector2 anchoredPos = Vector2.zero;
-            if (position.z < 0)
-            {
-                anchoredPos.Set(-100000, -100000);
-            }
-            else
-            {
-                position.z = 0;
-                switch (uIType)
-                {
-                    case UIType.Overlay:
-                        RectTransformUtility.ScreenPointToLocalPointInRectangle(reference != null ? reference : Main.m_UI.OverlayUIRoot, position, null, out anchoredPos);
-                        break;
-                    case UIType.Camera:
-                        RectTransformUtility.ScreenPointToLocalPointInRectangle(reference != null ? reference : Main.m_UI.CameraUIRoot, position, Main.m_UI.UICamera, out anchoredPos);
-                        break;
-                    case UIType.World:
-                        RectTransformUtility.ScreenPointToLocalPointInRectangle(reference, position, Main.m_Controller.MainCamera, out anchoredPos);
-                        break;
-                }
-            }
-            return anchoredPos;
-        }
-        /// <summary>
-        /// 获取输入框的int类型值，若不是该类型值，则返回-1
-        /// </summary>
-        /// <param name="input">输入框</param>
-        /// <returns>值</returns>
-        public static int IntText(this InputField input)
-        {
-            int value = -1;
-            int.TryParse(input.text, out value);
-            return value;
-        }
-        /// <summary>
-        /// 获取输入框的float类型值，若不是该类型值，则返回float.NaN
-        /// </summary>
-        /// <param name="input">输入框</param>
-        /// <returns>值</returns>
-        public static float FloatText(this InputField input)
-        {
-            float value = -1f;
-            if (float.TryParse(input.text, out value))
-            {
-                return value;
-            }
-            else
-            {
-                return float.NaN;
-            }
-        }
-        /// <summary>
-        /// 设置下拉框值，若该下拉框不存在该值，则无效
-        /// </summary>
-        /// <param name="dropdown">下拉框</param>
-        /// <param name="value">目标值</param>
-        public static void SetValue(this Dropdown dropdown, string value)
-        {
-            for (int i = 0; i < dropdown.options.Count; i++)
-            {
-                if (dropdown.options[i].text == value)
-                {
-                    dropdown.value = i;
-                    return;
-                }
-            }
-        }
-        /// <summary>
-        /// 加载外部图片，并转换为Sprite
-        /// </summary>
-        /// <param name="path">图片路径</param>
-        /// <returns>转换后的Sprite</returns>
-        public static Sprite LoadSprite(string path)
-        {
-            if (!File.Exists(path))
-            {
-                return null;
-            }
-
-            FileStream stream = new FileStream(path, FileMode.Open, FileAccess.Read);
-
-            byte[] buffer = new byte[stream.Length];
-            stream.Read(buffer, 0, (int)stream.Length);
-
-            Texture2D texture = new Texture2D(80, 80);
-            texture.LoadImage(buffer);
-
-            Sprite sprite = Sprite.Create(texture, new Rect(0, 0, texture.width, texture.height), new Vector2(0, 0));
-
-            Main.Kill(texture);
-            stream.Close();
-
-            return sprite;
-        }
-        #endregion
-
         #region 系统工具
         /// <summary>
-        /// 获取本机Mac地址
+        /// 获取本机物理地址
         /// </summary>
-        /// <param name="name">网卡的名称</param>
-        /// <returns>Mac地址</returns>
-        public static string GetMacAddress(string name = "本地连接")
+        /// <returns>物理地址</returns>
+        public static string GetMacAddress()
         {
             try
             {
                 NetworkInterface[] nis = NetworkInterface.GetAllNetworkInterfaces();
                 for (int i = 0; i < nis.Length; i++)
                 {
-                    if (nis[i].Name == name)
+                    string address = nis[i].GetPhysicalAddress().ToString();
+                    if (!string.IsNullOrEmpty(address))
                     {
-                        return nis[i].GetPhysicalAddress().ToString();
+                        return address;
                     }
                 }
                 return null;
@@ -966,6 +764,36 @@ namespace HT.Framework
         public static T Cast<T>(this object target) where T : class
         {
             return target as T;
+        }
+        /// <summary>
+        /// 设置Transform的位置
+        /// </summary>
+        /// <param name="target">目标</param>
+        /// <param name="location">位置</param>
+        public static void SetLocation(this Transform target, Location location)
+        {
+            if (target == null || location == null)
+                return;
+
+            target.localPosition = location.Position;
+            target.localEulerAngles = location.Rotation;
+            target.localScale = location.Scale;
+        }
+        /// <summary>
+        /// 获取Transform的位置
+        /// </summary>
+        /// <param name="target">目标</param>
+        /// <returns>位置</returns>
+        public static Location GetLocation(this Transform target)
+        {
+            if (target == null)
+                return null;
+
+            Location location = new Location();
+            location.Position = target.localPosition;
+            location.Rotation = target.localEulerAngles;
+            location.Scale = target.localScale;
+            return location;
         }
         #endregion
     }

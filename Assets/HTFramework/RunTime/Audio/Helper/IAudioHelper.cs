@@ -1,5 +1,4 @@
-﻿using System.Collections.Generic;
-using UnityEngine;
+﻿using UnityEngine;
 
 namespace HT.Framework
 {
@@ -8,26 +7,6 @@ namespace HT.Framework
     /// </summary>
     public interface IAudioHelper : IInternalModuleHelper
     {
-        /// <summary>
-        /// 背景音乐音源
-        /// </summary>
-        AudioSource BackgroundSource { get; }
-        /// <summary>
-        /// 单通道音效音源
-        /// </summary>
-        AudioSource SingleSource { get; }
-        /// <summary>
-        /// 多通道音效音源
-        /// </summary>
-        List<AudioSource> MultipleSources { get; }
-        /// <summary>
-        /// 世界音效音源
-        /// </summary>
-        Dictionary<GameObject, AudioSource> WorldSources { get; }
-        /// <summary>
-        /// OneShoot音源
-        /// </summary>
-        AudioSource OneShootSource { get; }
         /// <summary>
         /// 静音
         /// </summary>
@@ -81,9 +60,23 @@ namespace HT.Framework
         /// </summary>
         float OneShootVolume { get; set; }
         /// <summary>
+        /// 当前的背景音乐剪辑
+        /// </summary>
+        AudioClip BackgroundMusicClip { get; }
+        /// <summary>
+        /// 当前的单通道音效剪辑
+        /// </summary>
+        AudioClip SingleSoundClip { get; }
+        /// <summary>
         /// 单通道音效播放结束事件，参数为播放结束时的音频剪辑名称
         /// </summary>
         event HTFAction<string> SingleSoundEndOfPlayEvent;
+
+        /// <summary>
+        /// 设置音源根节点
+        /// </summary>
+        /// <param name="transform">音源根节点</param>
+        void SetAudioSourceRoot(Transform transform);
 
         /// <summary>
         /// 播放背景音乐
@@ -155,9 +148,10 @@ namespace HT.Framework
         /// </summary>
         /// <param name="attachTarget">附加目标</param>
         /// <param name="clip">音乐剪辑</param>
+        /// <param name="is3D">是否为3D模式，否则为2D模式</param>
         /// <param name="isLoop">是否循环</param>
         /// <param name="speed">播放速度</param>
-        void PlayWorldSound(GameObject attachTarget, AudioClip clip, bool isLoop = false, float speed = 1);
+        void PlayWorldSound(GameObject attachTarget, AudioClip clip, bool is3D = true, bool isLoop = false, float speed = 1);
         /// <summary>
         /// 暂停播放指定的世界音效
         /// </summary>

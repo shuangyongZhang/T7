@@ -9,8 +9,6 @@ namespace HT.Framework
     [CSDNBlogURL("https://wanderer.blog.csdn.net/article/details/102894933")]
     internal sealed class ExceptionManagerInspector : InternalModuleInspector<ExceptionManager, IExceptionHelper>
     {
-        protected override string Intro => "Exception Manager, when any exception occurs, he catches it!";
-
         protected override void OnInspectorDefaultGUI()
         {
             base.OnInspectorDefaultGUI();
@@ -30,7 +28,7 @@ namespace HT.Framework
                     GUILayout.BeginVertical(EditorGlobalTools.Styles.Box);
 
                     GUILayout.BeginHorizontal();
-                    GUILayout.Label("Feedback Program Path");
+                    EditorGUILayout.LabelField("Feedback Program Path");
                     GUILayout.EndHorizontal();
 
                     PropertyField(nameof(ExceptionManager.FeedbackProgramPath), "");
@@ -51,7 +49,7 @@ namespace HT.Framework
                     PropertyField(nameof(ExceptionManager.SendMailbox), "Send Mail");
                     
                     GUILayout.BeginHorizontal();
-                    PasswordField(Target.SendMailboxPassword, out Target.SendMailboxPassword, "Password");
+                    PasswordField(ref Target.SendMailboxPassword, "Password");
                     GUILayout.EndHorizontal();
 
                     PropertyField(nameof(ExceptionManager.ReceiveMailbox), "Receive Mail");

@@ -18,8 +18,6 @@ namespace HT.Framework
         private Dictionary<Type, bool> _entityFoldouts;
         private Dictionary<Type, bool> _objectPoolFoldouts;
 
-        protected override string Intro => "Entity Manager, Everything is entity except UI, this is a controller of all entity!";
-
         protected override void OnDefaultEnable()
         {
             base.OnDefaultEnable();
@@ -43,7 +41,7 @@ namespace HT.Framework
                 if (!EditorApplication.isPlaying)
                 {
                     sub.Set(rect.x + rect.width - 40, rect.y - 2, 20, 20);
-                    if (GUI.Button(sub, _addGC, "InvisibleButton"))
+                    if (GUI.Button(sub, _addGC, EditorGlobalTools.Styles.InvisibleButton))
                     {
                         Target.DefineEntityNames.Add("<None>");
                         Target.DefineEntityTargets.Add(null);
@@ -52,7 +50,7 @@ namespace HT.Framework
 
                     sub.Set(rect.x + rect.width - 20, rect.y - 2, 20, 20);
                     GUI.enabled = _entityList.index >= 0 && _entityList.index < Target.DefineEntityNames.Count;
-                    if (GUI.Button(sub, _removeGC, "InvisibleButton"))
+                    if (GUI.Button(sub, _removeGC, EditorGlobalTools.Styles.InvisibleButton))
                     {
                         Target.DefineEntityNames.RemoveAt(_entityList.index);
                         Target.DefineEntityTargets.RemoveAt(_entityList.index);
@@ -75,17 +73,17 @@ namespace HT.Framework
                         if (GUI.Button(subrect, Target.DefineEntityNames[index], EditorGlobalTools.Styles.MiniPopup))
                         {
                             GenericMenu gm = new GenericMenu();
-                            List<Type> types = ReflectionToolkit.GetTypesInRunTimeAssemblies(type =>
+                            List<Type> types = ReflectionToolkit.GetTypesInAllAssemblies(type =>
                             {
                                 return type.IsSubclassOf(typeof(EntityLogicBase)) && !type.IsAbstract;
-                            });
+                            }, false);
                             for (int m = 0; m < types.Count; m++)
                             {
                                 int j = index;
                                 int n = m;
                                 if (Target.DefineEntityNames.Contains(types[n].FullName))
                                 {
-                                    gm.AddDisabledItem(new GUIContent(types[n].FullName));
+                                    gm.AddDisabledItem(new GUIContent(types[n].FullName), Target.DefineEntityNames[j] == types[n].FullName);
                                 }
                                 else
                                 {
@@ -161,6 +159,14 @@ namespace HT.Framework
         {
             base.OnInspectorRuntimeGUI();
 
+            if (_helper == null)
+            {
+                GUILayout.BeginHorizontal();
+                GUILayout.Label("No Runtime Data!");
+                GUILayout.EndHorizontal();
+                return;
+            }
+
             if (_helper.Entities.Count == 0 && _helper.ObjectPools.Count == 0)
             {
                 GUILayout.BeginHorizontal();
@@ -184,12 +190,12 @@ namespace HT.Framework
                         EditorGUILayout.ObjectField(entity.Value[i].Entity, typeof(GameObject), true);
                         GUILayout.FlexibleSpace();
                         GUI.enabled = !entity.Value[i].IsShowed;
-                        if (GUILayout.Button("Show", EditorStyles.miniButtonLeft, GUILayout.Width(40)))
+                        if (GUILayout.Button("Show", EditorGlobalTools.Styles.ButtonLeft, GUILayout.Width(50)))
                         {
                             Target.ShowEntity(entity.Value[i]);
                         }
                         GUI.enabled = entity.Value[i].IsShowed;
-                        if (GUILayout.Button("Hide", EditorStyles.miniButtonRight, GUILayout.Width(40)))
+                        if (GUILayout.Button("Hide", EditorGlobalTools.Styles.ButtonRight, GUILayout.Width(50)))
                         {
                             Target.HideEntity(entity.Value[i]);
                         }
@@ -203,7 +209,7 @@ namespace HT.Framework
             {
                 GUILayout.BeginHorizontal();
                 GUILayout.Space(10);
-                _objectPoolFoldouts[pool.Key] = EditorGUILayout.Foldout(_objectPoolFoldouts[pool.Key], pool.Key.FullName + " [Object Pool]", true);
+                _objectPoolFoldouts[pool.Key] = EditorGUILayout.Foldout(_objectPoolFoldouts[pool.Key], $"{pool.Key.FullName} [Object Pool]", true);
                 GUILayout.EndHorizontal();
 
                 if (_objectPoolFoldouts[pool.Key])

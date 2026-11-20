@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Reflection;
 using UnityEditor;
-
+using UnityEditor.SceneManagement;
 using UnityEngine;
 
 namespace HT.Framework
@@ -16,17 +16,18 @@ namespace HT.Framework
         private static HTFFunc<string, string> NewHelperScriptHandler;
         private static HTFFunc<ControlMode, Vector3> GetBestViewHandler;
         private static Dictionary<string, HTFFunc<StepContent, bool>> AdvancedSearchHandlers = new Dictionary<string, HTFFunc<StepContent, bool>>();
+        internal static HTFAction<StepParameter> CustomParameterHandler;
 
         /// <summary>
         /// 静态构造函数
         /// </summary>
         static StepEditorWindow()
         {
-            AdvancedSearchHandlers.Add("所有禁用的步骤", (stepContent) =>
+            AdvancedSearchHandlers.Add("禁用的步骤", (stepContent) =>
             {
                 return !stepContent.IsEnable;
             });
-            AdvancedSearchHandlers.Add("所有存在空目标的步骤", (stepContent) =>
+            AdvancedSearchHandlers.Add("存在空目标的步骤", (stepContent) =>
             {
                 if (stepContent.TargetGUID == "<None>")
                 {
@@ -40,12 +41,31 @@ namespace HT.Framework
                     });
                 }
             });
-            AdvancedSearchHandlers.Add("所有包含[行为]节点的步骤", (stepContent) =>
+            AdvancedSearchHandlers.Add("名称、提示中存在空格的步骤", (stepContent) =>
+            {
+                return stepContent.Name.Contains(' ') || stepContent.Prompt.Contains(' ');
+            });
+            AdvancedSearchHandlers.Add("包含<行为>节点的步骤", (stepContent) =>
             {
                 return stepContent.Operations.Exists((o) =>
                 {
                     return o.OperationType == StepOperationType.Action || o.OperationType == StepOperationType.ActionArgs;
                 });
+            });
+            AdvancedSearchHandlers.Add("包含<播放时间线>节点的步骤", (stepContent) =>
+            {
+                return stepContent.Operations.Exists((o) =>
+                {
+                    return o.OperationType == StepOperationType.PlayTimeline;
+                });
+            });
+            AdvancedSearchHandlers.Add("包含<String>类型参数的步骤", (stepContent) =>
+            {
+                return stepContent.Parameters.Exists((p) => { return p.Type == StepParameter.ParameterType.String; });
+            });
+            AdvancedSearchHandlers.Add("包含<Custom>类型参数的步骤", (stepContent) =>
+            {
+                return stepContent.Parameters.Exists((p) => { return p.Type == StepParameter.ParameterType.Custom; });
             });
         }
         /// <summary>
@@ -83,6 +103,14 @@ namespace HT.Framework
                 return;
 
             AdvancedSearchHandlers.Add(name, handler);
+        }
+        /// <summary>
+        /// 注册【编辑步骤参数（自定义类型）】时的自定义处理者
+        /// </summary>
+        /// <param name="handler">自定义处理者</param>
+        public static void RegisterCustomParameterHandler(HTFAction<StepParameter> handler)
+        {
+            CustomParameterHandler = handler;
         }
         /// <summary>
         /// 打开窗口
@@ -128,6 +156,9 @@ namespace HT.Framework
         private GUIContent _stepHelperGC;
         private GUIContent _previewGC;
         private GUIContent _advancedSearchGC;
+        private GUIContent _valueEditorGC;
+        private GUIContent _editGC;
+        private GUIContent _deleteGC;
         private Rect _stepListRect;
         private Vector2 _stepListScroll = Vector3.zero;
         private string _stepListFilter = null;
@@ -137,9 +168,7 @@ namespace HT.Framework
         private int _moveToIndex = 1;
 
         private Rect _stepContentProRect;
-        private Vector2 _stepContentProScroll = Vector3.zero;
         private Rect _stepOperationProRect;
-        private Vector2 _stepOperationProScroll = Vector3.zero;
         private Rect _stepContentAreaRect;
         private bool _stepContentAreaDragging = false;
         private Rect _splitterRect;
@@ -157,7 +186,7 @@ namespace HT.Framework
         private MousePosition _mp;
         private MouseRotation _mr;
         private Transform _player;
-        private Type _baseType = typeof(StepHelper);
+        private readonly Type _baseType = typeof(StepHelper);
         private HashSet<int> _operationIndexs = new HashSet<int>();
         private HTFFunc<string, string> _getWord;
         private string[] _operationTypes = new string[] {
@@ -197,6 +226,15 @@ namespace HT.Framework
             _advancedSearchGC = new GUIContent();
             _advancedSearchGC.image = EditorGUIUtility.IconContent("FilterByType").image;
             _advancedSearchGC.tooltip = "Advanced Search";
+            _valueEditorGC = new GUIContent();
+            _valueEditorGC.image = EditorGUIUtility.IconContent("UnityEditor.ConsoleWindow").image;
+            _valueEditorGC.tooltip = "Edit in String Editor";
+            _editGC = new GUIContent();
+            _editGC.image = EditorGUIUtility.IconContent("d_editicon.sml").image;
+            _editGC.tooltip = "Edit";
+            _deleteGC = new GUIContent();
+            _deleteGC.image = EditorGUIUtility.IconContent("TreeEditor.Trash").image;
+            _deleteGC.tooltip = "Delete";
             _background = AssetDatabase.LoadAssetAtPath<Texture>("Assets/HTFramework/Editor/Main/Texture/Grid.png");
 
             _ct = FindObjectOfType<CameraTarget>();
@@ -260,6 +298,15 @@ namespace HT.Framework
                                 usedTargets.Add(operation.TargetGUID);
                             }
                         }
+
+                        for (int j = 0; j < content.Parameters.Count; j++)
+                        {
+                            StepParameter parameter = content.Parameters[j];
+                            if (parameter.Type == StepParameter.ParameterType.GameObject && !usedTargets.Contains(parameter.GameObjectGUID) && parameter.GameObjectGUID != "<None>")
+                            {
+                                usedTargets.Add(parameter.GameObjectGUID);
+                            }
+                        }
                     }
 
                     GameObject[] rootObjs = UnityEngine.SceneManagement.SceneManager.GetActiveScene().GetRootGameObjects();
@@ -270,7 +317,24 @@ namespace HT.Framework
                         {
                             if (!usedTargets.Contains(target.GUID))
                             {
+                                GameObject obj = target.gameObject;
                                 DestroyImmediate(target);
+                                HasChanged(obj);
+                            }
+                        }
+                    }
+
+                    PrefabStage prefabStage = PrefabStageUtility.GetCurrentPrefabStage();
+                    if (prefabStage != null)
+                    {
+                        StepTarget[] targets = prefabStage.prefabContentsRoot.GetComponentsInChildren<StepTarget>(true);
+                        foreach (StepTarget target in targets)
+                        {
+                            if (!usedTargets.Contains(target.GUID))
+                            {
+                                GameObject obj = target.gameObject;
+                                DestroyImmediate(target);
+                                HasChanged(obj);
                             }
                         }
                     }
@@ -300,6 +364,12 @@ namespace HT.Framework
                 gm.AddItem(new GUIContent(content), false, () =>
                 {
                     StopPreviewInAllStep();
+                });
+                gm.AddSeparator("");
+                content = GetWord("Refind All Step Helper");
+                gm.AddItem(new GUIContent(content), false, () =>
+                {
+                    RefindAllStepHelper();
                 });
                 gm.ShowAsContext();
             }
@@ -380,6 +450,7 @@ namespace HT.Framework
             AddWord("粘贴", "Paste");
             AddWord("清除", "Clear");
             AddWord("提示", "Prompt");
+            AddWord("是否显示", "Is Display");
             AddWord("操作", "Operation");
             AddWord("查找", "Find");
             AddWord("进入", "Enter");
@@ -436,6 +507,7 @@ namespace HT.Framework
             AddWord("状态机", "FSM");
             AddWord("网格文本", "TextMesh");
             AddWord("摄像机跟随", "CameraFollow");
+            AddWord("跟随时间", "Follow Time");
             AddWord("激活组件", "ActiveComponent");
             AddWord("变换", "Transform");
             AddWord("改变父级", "ChangeParent");
@@ -444,6 +516,8 @@ namespace HT.Framework
             AddWord("初始的时间", "Initial Time");
             AddWord("启用所有步骤", "Enable All Steps");
             AddWord("禁用所有步骤", "Disable All Steps");
+            AddWord("立即模式", "Immediately");
+            AddWord("重新查找所有步骤助手", "Refind All Step Helper");
         }
         protected override void OnLanguageChanged()
         {
@@ -486,7 +560,7 @@ namespace HT.Framework
             GUILayout.BeginHorizontal();
             GUILayout.FlexibleSpace();
 
-            GUILayout.Label(GetWord("Step Count") + ":" + _contentAsset.Content.Count);
+            GUILayout.Label($"{GetWord("Step Count")}:{_contentAsset.Content.Count}");
 
             GUILayout.FlexibleSpace();
             GUILayout.EndHorizontal();
@@ -526,7 +600,7 @@ namespace HT.Framework
                 GUI.FocusControl(null);
             }
             GUI.color = string.IsNullOrEmpty(_stepListAdvancedSearch) ? Color.white : Color.yellow;
-            if (GUILayout.Button(_advancedSearchGC, "InvisibleButton", GUILayout.Width(20)))
+            if (GUILayout.Button(_advancedSearchGC, EditorGlobalTools.Styles.InvisibleButton, GUILayout.Width(20)))
             {
                 GenericMenu gm = new GenericMenu();
                 gm.AddItem(new GUIContent(GetWord("<None>")), string.IsNullOrEmpty(_stepListAdvancedSearch), () =>
@@ -556,31 +630,34 @@ namespace HT.Framework
                     if (string.IsNullOrEmpty(_stepListAdvancedSearch) || _contentAsset.Content[i].IsSearched)
                     {
                         GUILayout.BeginHorizontal();
-                        GUI.color = Color.white;
+                        GUI.color = _contentAsset.Content[i].IsEnable ? Color.white : Color.gray;
                         GUILayout.Label(_stepGC, GUILayout.Height(20), GUILayout.Width(20));
                         if (_isShowAncillary && !string.IsNullOrEmpty(_contentAsset.Content[i].Ancillary))
                         {
                             GUI.color = Color.yellow;
-                            GUILayout.Label("[" + _contentAsset.Content[i].Ancillary + "]", GUILayout.Height(16));
+                            GUILayout.Label($"[{_contentAsset.Content[i].Ancillary}]", GUILayout.Height(16));
                         }
                         GUI.color = _contentAsset.Content[i].IsEnable ? Color.white : Color.gray;
-                        string style = _currentStepIndex == i ? "SelectionRect" : "PrefixLabel";
-                        if (GUILayout.Button(i + "." + showName, style, GUILayout.Height(20), GUILayout.ExpandWidth(true)))
+                        GUI.backgroundColor = _currentStepIndex == i ? Color.cyan : Color.white;
+                        string style = _currentStepIndex == i ? "TV Selection" : "PrefixLabel";
+                        if (GUILayout.Button($"{i}.{showName}", style, GUILayout.Height(24), GUILayout.MinWidth(100)))
                         {
                             SelectStepContent(i);
                             SelectStepOperation(-1);
                             GUI.FocusControl(null);
                         }
                         GUILayout.FlexibleSpace();
-                        if (GUILayout.Button(_contentAsset.Content[i].IsEnable ? _enableGC : _disableGC, "InvisibleButton", GUILayout.Height(20), GUILayout.Width(20)))
+                        if (GUILayout.Button(_contentAsset.Content[i].IsEnable ? _enableGC : _disableGC, EditorGlobalTools.Styles.InvisibleButton, GUILayout.Height(20), GUILayout.Width(20)))
                         {
                             _contentAsset.Content[i].IsEnable = !_contentAsset.Content[i].IsEnable;
+                            HasChanged(_contentAsset);
                         }
                         GUILayout.EndHorizontal();
                     }
                 }
             }
             GUI.color = Color.white;
+            GUI.backgroundColor = Color.white;
             GUILayout.EndScrollView();
             #endregion
 
@@ -590,7 +667,7 @@ namespace HT.Framework
             if (_isMoveTo)
             {
                 GUILayout.BeginHorizontal();
-                GUI.enabled = (_currentStepIndex != -1);
+                GUI.enabled = _currentStepIndex != -1;
                 GUILayout.Label(GetWord("Move To") + ": ");
                 _moveToIndex = EditorGUILayout.IntField(_moveToIndex);
                 if (GUILayout.Button(GetWord("Sure"), EditorStyles.miniButtonLeft))
@@ -600,7 +677,7 @@ namespace HT.Framework
                         _contentAsset.Content.RemoveAt(_currentStepIndex);
                         _currentStepIndex = _moveToIndex;
                         _contentAsset.Content.Insert(_currentStepIndex, _currentStepObj);
-                        SetStepListScroll((float)_currentStepIndex / (_contentAsset.Content.Count - 1));
+                        SetStepListScroll((float)_currentStepIndex / _contentAsset.Content.Count);
                     }
                     else
                     {
@@ -692,8 +769,6 @@ namespace HT.Framework
 
                     GUILayout.Space(5);
 
-                    _stepContentProScroll = GUILayout.BeginScrollView(_stepContentProScroll);
-
                     GUILayout.BeginVertical("Tooltip");
 
                     GUILayout.BeginHorizontal();
@@ -726,7 +801,7 @@ namespace HT.Framework
                     GUILayout.EndHorizontal();
 
                     GUILayout.BeginHorizontal();
-                    if (GUILayout.Button(GetWord("GUID") + ":", "Label", GUILayout.Width(45)))
+                    if (GUILayout.Button(GetWord("GUID") + ":", EditorGlobalTools.Styles.Label, GUILayout.Width(45)))
                     {
                         GenericMenu gm = new GenericMenu();
                         if (_currentStepObj.TargetGUID == "<None>")
@@ -753,9 +828,9 @@ namespace HT.Framework
                         }
                         gm.ShowAsContext();
                     }
-                    GUILayout.Label(_currentStepObj.TargetGUID == "<None>" ? GetWord(_currentStepObj.TargetGUID) : _currentStepObj.TargetGUID, GUILayout.Width(90));
+                    GUILayout.Label(_currentStepObj.TargetGUID == "<None>" ? GetWord(_currentStepObj.TargetGUID) : _currentStepObj.TargetGUID, GUILayout.Width(115));
                     GUILayout.FlexibleSpace();
-                    if (GUILayout.Button(GetWord("Clear"), EditorStyles.miniButton, GUILayout.Width(45)))
+                    if (GUILayout.Button(_deleteGC, EditorGlobalTools.Styles.InvisibleButton, GUILayout.Width(20)))
                     {
                         contentObj = _currentStepObj.Target = null;
                         _currentStepObj.TargetGUID = "<None>";
@@ -794,11 +869,20 @@ namespace HT.Framework
                     GUILayout.BeginVertical("Tooltip");
 
                     GUILayout.BeginHorizontal();
-                    GUILayout.Label(GetWord("Prompt") + ":", GUILayout.Width(185));
+                    GUILayout.Label(GetWord("Prompt") + ":", GUILayout.Width(105));
+                    _currentStepObj.IsDisplayPrompt = GUILayout.Toggle(_currentStepObj.IsDisplayPrompt, GetWord("Is Display"), GUILayout.Width(80));
                     GUILayout.EndHorizontal();
 
                     GUILayout.BeginHorizontal();
-                    _currentStepObj.Prompt = EditorGUILayout.TextArea(_currentStepObj.Prompt, GUILayout.Width(185));
+                    _currentStepObj.Prompt = EditorGUILayout.TextField(_currentStepObj.Prompt, GUILayout.Width(165));
+                    if (GUILayout.Button(_valueEditorGC, EditorGlobalTools.Styles.IconButton, GUILayout.Width(20)))
+                    {
+                        StringValueEditor.OpenWindow(this, _currentStepObj.Prompt, $"{_currentStepIndex}.{_currentStepObj.Name}({GetWord("Prompt")})", (str) =>
+                        {
+                            _currentStepObj.Prompt = str;
+                            HasChanged(_contentAsset);
+                        });
+                    }
                     GUILayout.EndHorizontal();
 
                     GUILayout.BeginHorizontal();
@@ -806,12 +890,12 @@ namespace HT.Framework
                     GUILayout.EndHorizontal();
 
                     GUILayout.BeginHorizontal();
-                    _currentStepObj.Ancillary = EditorGUILayout.TextArea(_currentStepObj.Ancillary, GUILayout.Width(185));
+                    _currentStepObj.Ancillary = EditorGUILayout.TextField(_currentStepObj.Ancillary, GUILayout.Width(185));
                     GUILayout.EndHorizontal();
 
                     GUILayout.BeginHorizontal();
-                    GUILayout.Label(GetWord("Operation") + ": " + _currentStepObj.Operations.Count, GUILayout.Width(135));
-                    if (GUILayout.Button(GetWord("Find"), EditorGlobalTools.Styles.MiniPopup, GUILayout.Width(50)))
+                    GUILayout.Label($"{GetWord("Operation")}: {_currentStepObj.Operations.Count}", GUILayout.Width(135));
+                    if (GUILayout.Button(GetWord("Find"), EditorStyles.popup, GUILayout.Width(50)))
                     {
                         GUI.FocusControl(null);
                         GenericMenu gm = new GenericMenu();
@@ -849,7 +933,7 @@ namespace HT.Framework
                     GUILayout.Label(GetWord("Best View") + ":", GUILayout.Width(80));
                     GUILayout.FlexibleSpace();
                     GUI.enabled = _mr;
-                    if (GUILayout.Button(GetWord("Get"), EditorStyles.miniButton, GUILayout.Width(40)))
+                    if (GUILayout.Button(GetWord("Get"), GUILayout.Width(40)))
                     {
                         if (_currentStepObj.InitialMode == ControlMode.FreeControl)
                         {
@@ -874,7 +958,7 @@ namespace HT.Framework
                     GUILayout.Label(GetWord("View Offset") + ":", GUILayout.Width(80));
                     GUILayout.FlexibleSpace();
                     GUI.enabled = _ct && _currentStepObj.Target;
-                    if (GUILayout.Button(GetWord("Get"), EditorStyles.miniButton, GUILayout.Width(40)))
+                    if (GUILayout.Button(GetWord("Get"), GUILayout.Width(40)))
                     {
                         _currentStepObj.ViewOffset = _ct.transform.position - _currentStepObj.Target.transform.position;
                     }
@@ -886,10 +970,11 @@ namespace HT.Framework
                     GUILayout.EndHorizontal();
 
                     GUILayout.BeginHorizontal();
+                    GUI.enabled = _currentStepObj.InitialMode != ControlMode.FreeControl;
                     GUILayout.Label(GetWord("Best Pos") + ":", GUILayout.Width(80));
                     GUILayout.FlexibleSpace();
-                    GUI.enabled = _player && _currentStepObj.Target;
-                    if (GUILayout.Button(GetWord("Get"), EditorStyles.miniButton, GUILayout.Width(40)))
+                    GUI.enabled = _currentStepObj.InitialMode != ControlMode.FreeControl && _player && _currentStepObj.Target;
+                    if (GUILayout.Button(GetWord("Get"), GUILayout.Width(40)))
                     {
                         _currentStepObj.BestPos = _player.transform.position;
                     }
@@ -897,19 +982,21 @@ namespace HT.Framework
                     GUILayout.EndHorizontal();
 
                     GUILayout.BeginHorizontal();
+                    GUI.enabled = _currentStepObj.InitialMode != ControlMode.FreeControl;
                     _currentStepObj.BestPos = EditorGUILayout.Vector3Field("", _currentStepObj.BestPos, GUILayout.Width(185));
+                    GUI.enabled = true;
                     GUILayout.EndHorizontal();
 
                     GUILayout.BeginHorizontal();
                     GUILayout.Label(GetWord("Helper") + ":", GUILayout.Width(55));
                     _stepHelperGC.text = _currentStepObj.Helper == "<None>" ? GetWord(_currentStepObj.Helper) : _currentStepObj.Helper;
                     _stepHelperGC.tooltip = _currentStepObj.HelperName;
-                    if (GUILayout.Button(_stepHelperGC, EditorGlobalTools.Styles.MiniPopup, GUILayout.Width(90)))
+                    if (GUILayout.Button(_stepHelperGC, EditorStyles.popup, GUILayout.Width(105)))
                     {
-                        List<Type> types = ReflectionToolkit.GetTypesInRunTimeAssemblies(type =>
+                        List<Type> types = ReflectionToolkit.GetTypesInAllAssemblies(type =>
                         {
                             return type.IsSubclassOf(_baseType) && !type.IsAbstract;
-                        });
+                        }, false);
                         GenericMenu gm = new GenericMenu();
                         StringToolkit.BeginNoRepeatNaming();
                         gm.AddItem(new GUIContent(GetWord("<None>")), _currentStepObj.Helper == "<None>", () =>
@@ -935,26 +1022,24 @@ namespace HT.Framework
                         gm.ShowAsContext();
                     }
                     GUI.enabled = _currentStepObj.Helper != "<None>";
-                    if (GUILayout.Button(GetWord("Edit"), EditorStyles.miniButton, GUILayout.Width(35)))
+                    if (GUILayout.Button(_editGC, EditorGlobalTools.Styles.InvisibleButton, GUILayout.Width(20)))
                     {
                         OpenHelperScript(_currentStepObj.Helper);
                     }
                     GUI.enabled = true;
                     GUILayout.EndHorizontal();
-
+                    
                     GUILayout.BeginHorizontal();
                     GUILayout.Label(GetWord("Parameter") + ":", GUILayout.Width(70));
-                    if (GUILayout.Button(GetWord("Edit Parameter") + " " + _currentStepObj.Parameters.Count, EditorStyles.miniButton))
+                    if (GUILayout.Button($"{GetWord("Edit Parameter")} {_currentStepObj.Parameters.Count}"))
                     {
                         StepParameterWindow.ShowWindow(this, _contentAsset, _currentStepObj, CurrentLanguage);
                     }
                     GUILayout.EndHorizontal();
-
+                    
                     GUILayout.EndVertical();
 
                     GUILayout.FlexibleSpace();
-
-                    GUILayout.EndScrollView();
 
                     GUILayout.EndVertical();
 
@@ -969,7 +1054,7 @@ namespace HT.Framework
                 #region 摄像机组件
                 if (_isShowCamControl)
                 {
-                    GUILayout.BeginVertical(EditorStyles.helpBox, GUILayout.Width(205), GUILayout.Height(130));
+                    GUILayout.BeginVertical(EditorStyles.helpBox, GUILayout.Width(210), GUILayout.Height(130));
 
                     GUILayout.BeginHorizontal("TE NodeBoxSelected");
                     GUILayout.Label(GetWord("Camera Control"), EditorStyles.boldLabel);
@@ -982,34 +1067,34 @@ namespace HT.Framework
                     GUILayout.BeginHorizontal();
                     GUILayout.Label("CT:", GUILayout.Width(30));
                     GUI.color = _ct ? Color.white : Color.gray;
-                    _ct = EditorGUILayout.ObjectField(_ct, typeof(CameraTarget), true, GUILayout.Width(150)) as CameraTarget;
+                    _ct = EditorGUILayout.ObjectField(_ct, typeof(CameraTarget), true, GUILayout.Width(155)) as CameraTarget;
                     GUI.color = Color.white;
                     GUILayout.EndHorizontal();
 
                     GUILayout.BeginHorizontal();
                     GUILayout.Label("MR:", GUILayout.Width(30));
                     GUI.color = _mr ? Color.white : Color.gray;
-                    _mr = EditorGUILayout.ObjectField(_mr, typeof(MouseRotation), true, GUILayout.Width(150)) as MouseRotation;
+                    _mr = EditorGUILayout.ObjectField(_mr, typeof(MouseRotation), true, GUILayout.Width(155)) as MouseRotation;
                     GUI.color = Color.white;
                     GUILayout.EndHorizontal();
 
                     GUILayout.BeginHorizontal();
                     GUILayout.Label("MP:", GUILayout.Width(30));
                     GUI.color = _mp ? Color.white : Color.gray;
-                    _mp = EditorGUILayout.ObjectField(_mp, typeof(MousePosition), true, GUILayout.Width(150)) as MousePosition;
+                    _mp = EditorGUILayout.ObjectField(_mp, typeof(MousePosition), true, GUILayout.Width(155)) as MousePosition;
                     GUI.color = Color.white;
                     GUILayout.EndHorizontal();
 
                     GUILayout.BeginHorizontal();
                     GUILayout.Label("P:", GUILayout.Width(30));
                     GUI.color = _player ? Color.white : Color.gray;
-                    _player = EditorGUILayout.ObjectField(_player, typeof(Transform), true, GUILayout.Width(150)) as Transform;
+                    _player = EditorGUILayout.ObjectField(_player, typeof(Transform), true, GUILayout.Width(155)) as Transform;
                     GUI.color = Color.white;
                     GUILayout.EndHorizontal();
 
                     GUILayout.BeginHorizontal();
                     GUILayout.FlexibleSpace();
-                    if (GUILayout.Button(GetWord("ReFind"), EditorStyles.miniButton))
+                    if (GUILayout.Button(GetWord("ReFind")))
                     {
                         _ct = FindObjectOfType<CameraTarget>();
                         _mp = FindObjectOfType<MousePosition>();
@@ -1028,15 +1113,13 @@ namespace HT.Framework
                 #region 步骤操作的属性
                 if (_isShowStepOperation && _currentOperationIndex != -1)
                 {
-                    GUILayout.BeginVertical(EditorStyles.helpBox, GUILayout.Width(210), GUILayout.Height(340));
+                    GUILayout.BeginVertical(EditorStyles.helpBox, GUILayout.Width(210), GUILayout.Height(360));
 
                     GUILayout.BeginHorizontal("TE NodeBoxSelected");
                     GUILayout.Label(GetWord("Step Operation Properties"), EditorStyles.boldLabel);
                     GUILayout.EndHorizontal();
 
                     GUILayout.Space(5);
-
-                    _stepOperationProScroll = GUILayout.BeginScrollView(_stepOperationProScroll);
 
                     GUILayout.BeginVertical("Tooltip");
 
@@ -1070,7 +1153,7 @@ namespace HT.Framework
                     GUILayout.EndHorizontal();
 
                     GUILayout.BeginHorizontal();
-                    if (GUILayout.Button(GetWord("GUID") + ":", "Label", GUILayout.Width(45)))
+                    if (GUILayout.Button(GetWord("GUID") + ":", EditorGlobalTools.Styles.Label, GUILayout.Width(45)))
                     {
                         GenericMenu gm = new GenericMenu();
                         if (_currentOperationObj.TargetGUID == "<None>")
@@ -1097,9 +1180,9 @@ namespace HT.Framework
                         }
                         gm.ShowAsContext();
                     }
-                    GUILayout.Label(_currentOperationObj.TargetGUID == "<None>" ? GetWord(_currentOperationObj.TargetGUID) : _currentOperationObj.TargetGUID, GUILayout.Width(90));
+                    GUILayout.Label(_currentOperationObj.TargetGUID == "<None>" ? GetWord(_currentOperationObj.TargetGUID) : _currentOperationObj.TargetGUID, GUILayout.Width(115));
                     GUILayout.FlexibleSpace();
-                    if (GUILayout.Button(GetWord("Clear"), EditorStyles.miniButton, GUILayout.Width(45)))
+                    if (GUILayout.Button(_deleteGC, EditorGlobalTools.Styles.InvisibleButton, GUILayout.Width(20)))
                     {
                         operationObj = _currentOperationObj.Target = null;
                         _currentOperationObj.TargetGUID = "<None>";
@@ -1147,8 +1230,6 @@ namespace HT.Framework
                     GUILayout.EndVertical();
 
                     GUILayout.FlexibleSpace();
-
-                    GUILayout.EndScrollView();
 
                     GUILayout.BeginHorizontal();
                     GUI.enabled = _currentOperationObj.Target && !_currentOperationObj.PreviewTarget;
@@ -1367,7 +1448,7 @@ namespace HT.Framework
                                 for (int i = 0; i < _currentStepObj.Operations.Count; i++)
                                 {
                                     int j = i;
-                                    gm.AddItem(new GUIContent(StringToolkit.GetNoRepeatName(GetWord("Connect or break") + "/" + _currentStepObj.Operations[j].Name)), _currentStepObj.IsExistWired(-1, j), () =>
+                                    gm.AddItem(new GUIContent(StringToolkit.GetNoRepeatName($"{GetWord("Connect or break")}/{_currentStepObj.Operations[j].Name}")), _currentStepObj.IsExistWired(-1, j), () =>
                                     {
                                         ConnectOrBreakWired(_currentStepObj, -1, j);
                                     });
@@ -1396,7 +1477,7 @@ namespace HT.Framework
                                     if (i != downIndex)
                                     {
                                         int j = i;
-                                        gm.AddItem(new GUIContent(StringToolkit.GetNoRepeatName(GetWord("Connect or break") + "/" + _currentStepObj.Operations[j].Name)), _currentStepObj.IsExistWired(downIndex, j), () =>
+                                        gm.AddItem(new GUIContent(StringToolkit.GetNoRepeatName($"{GetWord("Connect or break")}/{_currentStepObj.Operations[j].Name}")), _currentStepObj.IsExistWired(downIndex, j), () =>
                                         {
                                             ConnectOrBreakWired(_currentStepObj, downIndex, j);
                                         });
@@ -1543,7 +1624,7 @@ namespace HT.Framework
                                     {
                                         SelectStepContent(stepIndex);
                                         SelectStepOperation(-1);
-                                        SetStepListScroll((float)stepIndex / (_contentAsset.Content.Count - 1));
+                                        SetStepListScroll((float)stepIndex / _contentAsset.Content.Count);
                                         GUI.changed = true;
                                     }
                                 }
@@ -1566,7 +1647,7 @@ namespace HT.Framework
                                     {
                                         SelectStepContent(stepIndex);
                                         SelectStepOperation(-1);
-                                        SetStepListScroll((float)stepIndex / (_contentAsset.Content.Count - 1));
+                                        SetStepListScroll((float)stepIndex / _contentAsset.Content.Count);
                                         GUI.changed = true;
                                     }
                                 }
@@ -1694,7 +1775,7 @@ namespace HT.Framework
             StepContent content = new StepContent();
             content.GUID = _contentAsset.StepIDName + _contentAsset.StepIDSign.ToString();
             _contentAsset.StepIDSign += 1;
-            content.EnterAnchor = new Vector2(position.width / 2, position.height / 2);
+            content.EnterAnchor = new Vector2(position.width * 0.5f, position.height * 0.5f);
             _contentAsset.Content.Add(content);
             AddStepContentHandler?.Invoke(content);
             SelectStepContent(_contentAsset.Content.Count - 1);
@@ -1711,7 +1792,7 @@ namespace HT.Framework
                 _contentAsset.Content.RemoveAt(_currentStepIndex);
                 _currentStepIndex -= 1;
                 _contentAsset.Content.Insert(_currentStepIndex, _currentStepObj);
-                SetStepListScroll((float)_currentStepIndex / (_contentAsset.Content.Count - 1));
+                SetStepListScroll((float)_currentStepIndex / _contentAsset.Content.Count);
             }
         }
         /// <summary>
@@ -1724,7 +1805,7 @@ namespace HT.Framework
                 _contentAsset.Content.RemoveAt(_currentStepIndex);
                 _currentStepIndex += 1;
                 _contentAsset.Content.Insert(_currentStepIndex, _currentStepObj);
-                SetStepListScroll((float)_currentStepIndex / (_contentAsset.Content.Count - 1));
+                SetStepListScroll((float)_currentStepIndex / _contentAsset.Content.Count);
             }
         }
         /// <summary>
@@ -1745,7 +1826,7 @@ namespace HT.Framework
         /// </summary>
         private void DeleteStepContent(int contentIndex)
         {
-            if (EditorUtility.DisplayDialog("Prompt", "Are you sure delete step " + _contentAsset.Content[contentIndex].Name + "？", "Yes", "No"))
+            if (EditorUtility.DisplayDialog("Prompt", $"Are you sure delete step {_contentAsset.Content[contentIndex].Name}？", "Yes", "No"))
             {
                 StopPreviewInStep(contentIndex);
                 _contentAsset.Content.RemoveAt(contentIndex);
@@ -1763,7 +1844,7 @@ namespace HT.Framework
             gm.AddSeparator("");
             foreach (StepOperationType type in Enum.GetValues(typeof(StepOperationType)))
             {
-                gm.AddItem(new GUIContent(GetWord("Add Step Operation") + "/" + GetWord(type.ToString())), false, () =>
+                gm.AddItem(new GUIContent($"{GetWord("Add Step Operation")}/{GetWord(type.ToString())}"), false, () =>
                 {
                     StepOperation operation = new StepOperation();
                     operation.GUID = Guid.NewGuid().ToString();
@@ -1862,7 +1943,7 @@ namespace HT.Framework
         /// </summary>
         private void FindStepOperation(Vector2 operationAnchor)
         {
-            Vector2 direction = new Vector2((position.width - _stepListGUIWidth) / 2, position.height / 2) - operationAnchor;
+            Vector2 direction = new Vector2((position.width - _stepListGUIWidth) * 0.5f, position.height * 0.5f) - operationAnchor;
             for (int i = 0; i < _currentStepObj.Operations.Count; i++)
             {
                 _currentStepObj.Operations[i].Anchor += direction;
@@ -1884,7 +1965,7 @@ namespace HT.Framework
                     showName = content.Name;
                     break;
                 case StepListShowType.IDAndName:
-                    showName = content.GUID + " " + content.Name;
+                    showName = $"{content.GUID} {content.Name}";
                     break;
                 default:
                     showName = "<None>";
@@ -1892,11 +1973,11 @@ namespace HT.Framework
             }
             if (_isShowTrigger)
             {
-                showName = string.Format("{0} [{1}]", showName, GetWord(content.Trigger.ToString()));
+                showName = $"{showName} [{GetWord(content.Trigger.ToString())}]";
             }
             if (_isShowHelper && content.Helper != "<None>")
             {
-                showName = string.Format("{0} [{1}]", showName, content.Helper);
+                showName = $"{showName} [{content.Helper}]";
             }
             return showName;
         }
@@ -1914,9 +1995,9 @@ namespace HT.Framework
             }
             else
             {
-                gm.AddItem(new GUIContent(GetWord("Copy") + " " + _currentStepObj.Name), false, () =>
+                gm.AddItem(new GUIContent($"{GetWord("Copy")} {_currentStepObj.Name}"), false, () =>
                 {
-                    GUIUtility.systemCopyBuffer = string.Format("StepContent|{0}|{1}", assetPath, _currentStepObj.GUID);
+                    GUIUtility.systemCopyBuffer = $"StepContent|{assetPath}|{_currentStepObj.GUID}";
                 });
             }
 
@@ -1944,7 +2025,7 @@ namespace HT.Framework
             }
             else
             {
-                gm.AddItem(new GUIContent(GetWord("Paste") + " " + stepContent.Name), false, () =>
+                gm.AddItem(new GUIContent($"{GetWord("Paste")} {stepContent.Name}"), false, () =>
                 {
                     StepContent content = stepContent.Clone();
                     content.GUID = _contentAsset.StepIDName + _contentAsset.StepIDSign.ToString();
@@ -1964,6 +2045,7 @@ namespace HT.Framework
                 {
                     _contentAsset.Content[i].IsEnable = true;
                 }
+                HasChanged(_contentAsset);
             });
             gm.AddItem(new GUIContent(GetWord("Disable All Steps")), false, () =>
             {
@@ -1971,6 +2053,7 @@ namespace HT.Framework
                 {
                     _contentAsset.Content[i].IsEnable = false;
                 }
+                HasChanged(_contentAsset);
             });
 
             gm.ShowAsContext();
@@ -1988,9 +2071,9 @@ namespace HT.Framework
             }
             else
             {
-                gm.AddItem(new GUIContent(GetWord("Copy") + " " + _currentOperationObj.Name), false, () =>
+                gm.AddItem(new GUIContent($"{GetWord("Copy")} {_currentOperationObj.Name}"), false, () =>
                 {
-                    GUIUtility.systemCopyBuffer = string.Format("StepOperation|{0}|{1}|{2}", assetPath, _currentStepObj.GUID, _currentOperationObj.GUID);
+                    GUIUtility.systemCopyBuffer = $"StepOperation|{assetPath}|{_currentStepObj.GUID}|{_currentOperationObj.GUID}";
                 });
             }
         }
@@ -2034,7 +2117,7 @@ namespace HT.Framework
             }
             else
             {
-                gm.AddItem(new GUIContent(GetWord("Paste") + " " + operation.Name), false, () =>
+                gm.AddItem(new GUIContent($"{GetWord("Paste")} {operation.Name}"), false, () =>
                 {
                     StepOperation ope = operation.Clone();
                     ope.Anchor = position - new Vector2(340, 0);
@@ -2123,7 +2206,7 @@ namespace HT.Framework
         /// </summary>
         public void OpenHelperScript(string helper)
         {
-            MonoScriptToolkit.OpenMonoScript(helper);
+            CSharpScriptToolkit.OpenScript(helper);
         }
         /// <summary>
         /// 新建助手脚本
@@ -2131,6 +2214,24 @@ namespace HT.Framework
         private void NewHelperScript()
         {
             _currentStepObj.Helper = EditorGlobalTools.CreateScriptFormTemplate(EditorPrefsTable.Script_StepHelper_Folder, "StepHelper", "StepHelperTemplate", NewHelperScriptHandler, "#HELPERNAME#");
+        }
+        /// <summary>
+        /// 重新查找所有步骤助手
+        /// </summary>
+        private void RefindAllStepHelper()
+        {
+            for (int i = 0; i < _contentAsset.Content.Count; i++)
+            {
+                EditorUtility.DisplayProgressBar("Refind......", $"{i}/{_contentAsset.Content.Count}", (float)i / _contentAsset.Content.Count);
+                StepContent content = _contentAsset.Content[i];
+                if (content.Helper != "<None>")
+                {
+                    content.Helper = CSharpScriptToolkit.GetScriptFullName(content.Helper);
+                }
+            }
+            EditorUtility.ClearProgressBar();
+
+            HasChanged(_contentAsset);
         }
 
         /// <summary>
@@ -2141,7 +2242,7 @@ namespace HT.Framework
             content.GetExecuteTwice(_operationIndexs);
             foreach (var item in _operationIndexs)
             {
-                Log.Warning("注意：操作节点【" + content.Operations[item].Name + "】有两次或以上连线接入，可能会被多次执行！");
+                Log.Warning($"注意：操作节点【{content.Operations[item].Name}】有两次或以上连线接入，可能会被多次执行！");
             }
             _operationIndexs.Clear();
 
@@ -2164,7 +2265,7 @@ namespace HT.Framework
         /// </summary>
         private void SetStepListScroll(float scroll)
         {
-            _stepListScroll.Set(0, scroll * (_contentAsset.Content.Count * 20 - position.height));
+            _stepListScroll.Set(0, scroll * (_contentAsset.Content.Count * 20));
         }
         /// <summary>
         /// 在场景中搜索步骤目标
@@ -2174,15 +2275,16 @@ namespace HT.Framework
             if (content.TargetGUID == "<None>")
                 return;
 
-            if (content.Target != null)
+            if (content.IsTargetMatched())
                 return;
 
-            UnityEditor.SceneManagement.PrefabStage prefabStage = UnityEditor.SceneManagement.PrefabStageUtility.GetCurrentPrefabStage();
+            PrefabStage prefabStage = PrefabStageUtility.GetCurrentPrefabStage();
             if (prefabStage != null)
             {
                 content.Target = prefabStage.prefabContentsRoot.FindChildren(content.TargetPath);
-                if (content.Target == null)
+                if (!content.IsTargetMatched())
                 {
+                    content.Target = null;
                     StepTarget[] targets = prefabStage.prefabContentsRoot.GetComponentsInChildren<StepTarget>(true);
                     foreach (StepTarget target in targets)
                     {
@@ -2199,9 +2301,10 @@ namespace HT.Framework
             else
             {
                 content.Target = GameObject.Find(content.TargetPath);
-                if (content.Target == null)
+                if (!content.IsTargetMatched())
                 {
-                    StepTarget[] targets = FindObjectsOfType<StepTarget>();
+                    content.Target = null;
+                    StepTarget[] targets = FindObjectsOfType<StepTarget>(true);
                     foreach (StepTarget target in targets)
                     {
                         if (target.GUID == content.TargetGUID && !target.GetComponent<StepPreview>())
@@ -2213,17 +2316,6 @@ namespace HT.Framework
                     }
                 }
             }
-
-            if (content.Target != null)
-            {
-                StepTarget target = content.Target.GetComponent<StepTarget>();
-                if (!target)
-                {
-                    target = content.Target.AddComponent<StepTarget>();
-                    target.GUID = content.TargetGUID;
-                    HasChanged(content.Target);
-                }
-            }
         }
         /// <summary>
         /// 在场景中搜索步骤（操作）目标
@@ -2233,15 +2325,16 @@ namespace HT.Framework
             if (operation.TargetGUID == "<None>")
                 return;
 
-            if (operation.Target != null)
+            if (operation.IsTargetMatched())
                 return;
-            
-            UnityEditor.SceneManagement.PrefabStage prefabStage = UnityEditor.SceneManagement.PrefabStageUtility.GetCurrentPrefabStage();
+
+            PrefabStage prefabStage = PrefabStageUtility.GetCurrentPrefabStage();
             if (prefabStage != null)
             {
                 operation.Target = prefabStage.prefabContentsRoot.FindChildren(operation.TargetPath);
-                if (operation.Target == null)
+                if (!operation.IsTargetMatched())
                 {
+                    operation.Target = null;
                     StepTarget[] targets = prefabStage.prefabContentsRoot.GetComponentsInChildren<StepTarget>(true);
                     foreach (StepTarget target in targets)
                     {
@@ -2258,9 +2351,10 @@ namespace HT.Framework
             else
             {
                 operation.Target = GameObject.Find(operation.TargetPath);
-                if (operation.Target == null)
+                if (!operation.IsTargetMatched())
                 {
-                    StepTarget[] targets = FindObjectsOfType<StepTarget>();
+                    operation.Target = null;
+                    StepTarget[] targets = FindObjectsOfType<StepTarget>(true);
                     foreach (StepTarget target in targets)
                     {
                         if (target.GUID == operation.TargetGUID && !target.GetComponent<StepPreview>())
@@ -2270,17 +2364,6 @@ namespace HT.Framework
                             break;
                         }
                     }
-                }
-            }
-
-            if (operation.Target != null)
-            {
-                StepTarget target = operation.Target.GetComponent<StepTarget>();
-                if (!target)
-                {
-                    target = operation.Target.AddComponent<StepTarget>();
-                    target.GUID = operation.TargetGUID;
-                    HasChanged(operation.Target);
                 }
             }
         }

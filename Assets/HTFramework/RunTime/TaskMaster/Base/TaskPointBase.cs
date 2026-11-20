@@ -1,6 +1,7 @@
 ﻿using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
+using System;
 #if UNITY_EDITOR
 using UnityEditor;
 using System.Reflection;
@@ -25,6 +26,10 @@ namespace HT.Framework
         /// 任务点细节
         /// </summary>
         [SerializeField] internal string Details = "";
+        /// <summary>
+        /// 是否展示任务点细节
+        /// </summary>
+        [SerializeField] internal bool IsDisplayDetails = false;
         /// <summary>
         /// 任务点目标
         /// </summary>
@@ -75,6 +80,16 @@ namespace HT.Framework
             }
         }
         /// <summary>
+        /// 获取是否展示任务点细节
+        /// </summary>
+        public bool GetIsDisplayDetails
+        {
+            get
+            {
+                return IsDisplayDetails;
+            }
+        }
+        /// <summary>
         /// 获取任务点目标
         /// </summary>
         public GameObject GetTarget
@@ -93,7 +108,7 @@ namespace HT.Framework
             {
                 if (GetTarget == null)
                 {
-                    Log.Error("任务点 " + GetName + " 的目标为空，这是不被允许的！");
+                    Log.Error($"任务点 {GetName} 的目标为空，这是不被允许的！");
                     return null;
                 }
 
@@ -137,7 +152,7 @@ namespace HT.Framework
 
         }
         /// <summary>
-        /// 任务点开始后，帧刷新
+        /// 任务点开始后，帧更新
         /// </summary>
         protected virtual void OnUpdate()
         {
@@ -183,7 +198,14 @@ namespace HT.Framework
 
             IsStart = true;
 
-            OnStart();
+            try
+            {
+                OnStart();
+            }
+            catch (Exception e)
+            {
+                Log.Error($"任务控制器：开始任务点【{Name}】时出错！错误描述：{e}", null, true);
+            }
 
             Main.m_Event.Throw(Main.m_ReferencePool.Spawn<EventTaskPointStart>().Fill(this, IsEnable && IsEnableRunTime, isAuto));
         }
@@ -209,7 +231,14 @@ namespace HT.Framework
             if (IsCompleting)
                 return;
 
-            OnGuide();
+            try
+            {
+                OnGuide();
+            }
+            catch (Exception e)
+            {
+                Log.Error($"任务控制器：指引任务点【{Name}】时出错！错误描述：{e}", null, true);
+            }
         }
         /// <summary>
         /// 完成任务点
@@ -265,7 +294,14 @@ namespace HT.Framework
             if (IsCompleting)
                 return false;
 
-            OnAutoComplete();
+            try
+            {
+                OnAutoComplete();
+            }
+            catch (Exception e)
+            {
+                Log.Error($"任务控制器：自动完成任务点【{Name}】时出错！错误描述：{e}", null, true);
+            }
 
             if (GetTaskTarget != null)
             {
@@ -286,7 +322,14 @@ namespace HT.Framework
         {
             IsStart = false;
 
-            OnEnd();
+            try
+            {
+                OnEnd();
+            }
+            catch (Exception e)
+            {
+                Log.Error($"任务控制器：结束任务点【{Name}】时出错！错误描述：{e}", null, true);
+            }
         }
 
         /// <summary>
@@ -601,6 +644,13 @@ namespace HT.Framework
             
             height += 20;
 
+            GUILayout.BeginHorizontal();
+            GUILayout.Space(55);
+            IsDisplayDetails = GUILayout.Toggle(IsDisplayDetails, getWord("Is Display Details"), GUILayout.Width(120));
+            GUILayout.EndHorizontal();
+
+            height += 20;
+
             TaskGameObject.DrawField(Target, getWord("Target") + ":", 50, Anchor.width, getWord("Copy"), getWord("Paste"));
 
             height += 20;
@@ -764,7 +814,7 @@ namespace HT.Framework
                                 });
                                 gm.AddItem(new GUIContent(getWord("Delete Point")), false, () =>
                                 {
-                                    if (EditorUtility.DisplayDialog("Delete Task Point", "Are you sure you want to delete task point [" + Name + "]?", "Yes", "No"))
+                                    if (EditorUtility.DisplayDialog("Delete Task Point", $"Are you sure you want to delete task point [{Name}]?", "Yes", "No"))
                                     {
                                         DeletePoint(asset, content);
                                         GUI.changed = true;
@@ -826,7 +876,7 @@ namespace HT.Framework
                         case KeyCode.Delete:
                             if (IsSelected)
                             {
-                                if (EditorUtility.DisplayDialog("Delete Task Point", "Are you sure you want to delete task point [" + Name + "]?", "Yes", "No"))
+                                if (EditorUtility.DisplayDialog("Delete Task Point", $"Are you sure you want to delete task point [{Name}]?", "Yes", "No"))
                                 {
                                     DeletePoint(asset, content);
                                     GUI.changed = true;

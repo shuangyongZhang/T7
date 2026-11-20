@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Reflection;
-using System.Text;
 using UnityEditor;
 using UnityEngine;
 
@@ -81,7 +80,7 @@ namespace HT.Framework
 
                 GUI.color = Color.white;
                 GUILayout.BeginHorizontal("IN BigTitle");
-                _enumerators[executor.Key] = EditorGUILayout.Foldout(_enumerators[executor.Key], string.Format("{0}.{1} -> {2}  [{3}]", index1, executor.Key.Target, executor.Key.Method, executor.Value.Count), true);
+                _enumerators[executor.Key] = EditorGUILayout.Foldout(_enumerators[executor.Key], $"{index1}.{executor.Key.Target} -> {executor.Key.Method}  [{executor.Value.Count}]", true);
                 GUILayout.EndHorizontal();
                 GUI.color = _bgColor;
                 index1 += 1;
@@ -157,13 +156,13 @@ namespace HT.Framework
         private void MouseDownEnumerator(CoroutinerManager.CoroutineEnumerator enumerator)
         {
             _currentEnumerator = enumerator;
-            _currentStackTrace = _currentEnumerator.ID + "\r\n\r\n" + GetFullStackTraceInfo(_currentEnumerator.StackTraceInfo);
+            _currentStackTrace = $"{_currentEnumerator.ID}\r\n\r\n{GetFullStackTraceInfo(_currentEnumerator.StackTraceInfo)}";
             Repaint();
         }
         private string GetFullStackTraceInfo(StackTrace trace)
         {
             string assetsPath = Application.dataPath.Replace("/", "\\");
-            StringBuilder info = new StringBuilder();
+            StringToolkit.BeginConcat();
             StackFrame[] frames = trace.GetFrames();
             for (int i = 0; i < frames.Length; i++)
             {
@@ -171,18 +170,18 @@ namespace HT.Framework
                 {
                     continue;
                 }
-                info.Append(frames[i].GetMethod().DeclaringType.FullName);
-                info.Append(".");
-                info.Append(frames[i].GetMethod().Name);
-                info.Append(" (");
-                info.Append("at Assets");
-                info.Append(frames[i].GetFileName().Replace(assetsPath, ""));
-                info.Append(":");
-                info.Append(frames[i].GetFileLineNumber());
-                info.Append(")");
-                info.Append("\r\n");
+                StringToolkit.Concat(frames[i].GetMethod().DeclaringType.FullName);
+                StringToolkit.Concat(".");
+                StringToolkit.Concat(frames[i].GetMethod().Name);
+                StringToolkit.Concat(" (");
+                StringToolkit.Concat("at Assets");
+                StringToolkit.Concat(frames[i].GetFileName().Replace(assetsPath, ""));
+                StringToolkit.Concat(":");
+                StringToolkit.Concat(frames[i].GetFileLineNumber().ToString());
+                StringToolkit.Concat(")");
+                StringToolkit.Concat("\r\n");
             }
-            return info.ToString();
+            return StringToolkit.EndConcat();
         }
     }
 }

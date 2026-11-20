@@ -107,7 +107,7 @@ namespace HT.Framework
             if (!PreviewTarget)
             {
                 PreviewTarget = Main.CloneGameObject(Target, Target.rectTransform());
-                PreviewTarget.name = "[Preview]" + Target.name + " - " + Name;
+                PreviewTarget.name = $"[Preview]{Target.name} - {Name}";
                 if (!PreviewTarget.GetComponent<StepPreview>())
                     PreviewTarget.AddComponent<StepPreview>();
                 SetPreviewTransform(stepContent, operationIndex);
@@ -256,6 +256,17 @@ namespace HT.Framework
                     EditorGUIUtility.PingObject(Target);
                 }
             }
+        }
+        /// <summary>
+        /// 当前是否存在操作目标实例，且操作目标的ID匹配
+        /// </summary>
+        internal bool IsTargetMatched()
+        {
+            if (Target == null)
+                return false;
+
+            StepTarget target = Target.GetComponent<StepTarget>();
+            return target && TargetGUID == target.GUID;
         }
 #endif
         #endregion

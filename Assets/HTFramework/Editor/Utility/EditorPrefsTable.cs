@@ -19,7 +19,7 @@ namespace HT.Framework
         /// <summary>
         /// 框架相关目录
         /// </summary>
-        public static readonly HashSet<string> HTFrameworkFolder = new HashSet<string>() { "HTFramework", "HTFrameworkAI", "HTFrameworkILHotfix", "HTFrameworkXLua", "HTFrameworkGameComponent" };
+        public static readonly HashSet<string> HTFrameworkFolder = new HashSet<string>() { "HTFramework", "HTFrameworkAI", "HTFrameworkDeployment", "HTFrameworkGameComponent" };
         #endregion
 
         #region Editor PrefsKey
@@ -113,13 +113,25 @@ namespace HT.Framework
         /// </summary>
         public static readonly string Transform_OnlyShowLocal = "HT.Framework.Transform.OnlyShowLocal";
         /// <summary>
+        /// Transform组件Inspector面板配置：是否拷贝InjectPath路径
+        /// </summary>
+        public static readonly string Transform_CopyInjectPath = "HT.Framework.Transform.CopyInjectPath";
+        /// <summary>
         /// 快捷工具是否启用
         /// </summary>
         public static readonly string LnkTools_Enable = "HT.Framework.LnkTools.Enable";
         /// <summary>
-        /// 快捷工具是否展开
+        /// 运行时存储数据功能是否启用
         /// </summary>
-        public static readonly string LnkTools_Expansion = "HT.Framework.LnkTools.Expansion";
+        public static readonly string SaveDataRuntime_Enable = "HT.Framework.SaveDataRuntime.Enable";
+        /// <summary>
+        /// 项目资源文件夹锁定器是否启用
+        /// </summary>
+        public static readonly string ProjectFolderLocker_Enable = "HT.Framework.ProjectFolderLocker.Enable";
+        /// <summary>
+        /// 支持自动使用记事本打开的文件格式
+        /// </summary>
+        public static readonly string OpenWithNotepadFormat = "HT.Framework.OpenWithNotepadFormat";
         /// <summary>
         /// VSCode的启动路径
         /// </summary>
@@ -149,11 +161,6 @@ namespace HT.Framework
         /// TaskEditorWindow配置：是否显示任务点全名
         /// </summary>
         public static readonly string TaskEditorWindow_ShowPointFullName = "HT.Framework.TaskEditorWindow.ShowPointFullName";
-
-        /// <summary>
-        /// Collider配置：是否绘制碰撞盒范围
-        /// </summary>
-        public static readonly string Collider_ShowBounds = "HT.Framework.Collider.ShowBounds";
         #endregion
     }
 }

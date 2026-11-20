@@ -1,4 +1,5 @@
 using System.IO;
+using System.Text;
 using UnityEngine;
 using YooAsset;
 
@@ -43,7 +44,12 @@ namespace HT.Framework
         /// </summary>
         byte[] IDecryptionServices.ReadFileData(DecryptFileInfo fileInfo)
         {
-            throw new System.NotImplementedException();
+            var data = File.ReadAllBytes(fileInfo.FileLoadPath);
+            for (var i = 0; i < data.Length; i++)
+            {
+                data[i] ^= BundleStream.KEY;
+            }
+            return data;
         }
 
         /// <summary>
@@ -51,7 +57,7 @@ namespace HT.Framework
         /// </summary>
         string IDecryptionServices.ReadFileText(DecryptFileInfo fileInfo)
         {
-            throw new System.NotImplementedException();
+            return Encoding.UTF8.GetString(((IDecryptionServices)this).ReadFileData(fileInfo));
         }
         private static uint GetManagedReadBufferSize()
         {

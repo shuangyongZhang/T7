@@ -9,8 +9,6 @@ namespace HT.Framework
     [CSDNBlogURL("https://wanderer.blog.csdn.net/article/details/104317219")]
     internal sealed class TaskMasterInspector : InternalModuleInspector<TaskMaster, ITaskMasterHelper>
     {
-        protected override string Intro => "Task Master, the tasks controller!";
-
         protected override void OnInspectorDefaultGUI()
         {
             base.OnInspectorDefaultGUI();
@@ -40,11 +38,13 @@ namespace HT.Framework
             if (Target.ContentAsset != null)
             {
                 GUILayout.BeginHorizontal();
-                GUILayout.Label("Task Content Count: " + Target.AllTaskContent.Count);
+                GUILayout.Label("Task Content Count: ", GUILayout.Width(LabelWidth));
+                GUILayout.Label(Target.AllTaskContent.Count.ToString());
                 GUILayout.EndHorizontal();
 
                 GUILayout.BeginHorizontal();
-                GUILayout.Label("Is Running: " + Target.IsRunning);
+                GUILayout.Label("Is Running: ", GUILayout.Width(LabelWidth));
+                GUILayout.Label(Target.IsRunning.ToString());
                 GUILayout.EndHorizontal();
 
                 GUILayout.BeginHorizontal();
@@ -52,10 +52,11 @@ namespace HT.Framework
                 GUILayout.EndHorizontal();
 
                 GUILayout.BeginHorizontal();
-                GUILayout.Label("Current Task: " + (Target.CurrentTaskContent != null ? Target.CurrentTaskContent.Name : "<None>"));
+                GUILayout.Label("Current Task: ", GUILayout.Width(LabelWidth));
+                GUILayout.Label(Target.CurrentTaskContent != null ? Target.CurrentTaskContent.Name : "<None>");
                 GUILayout.FlexibleSpace();
                 GUI.enabled = Target.CurrentTaskContent != null;
-                if (GUILayout.Button("Auto Complete", EditorStyles.miniButton))
+                if (GUILayout.Button("Auto Complete"))
                 {
                     Target.AutoCompleteCurrentTaskContent();
                 }

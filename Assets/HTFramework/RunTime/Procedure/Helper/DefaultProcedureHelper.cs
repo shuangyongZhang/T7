@@ -7,13 +7,13 @@ namespace HT.Framework
     /// <summary>
     /// 默认的流程管理器助手
     /// </summary>
-    public sealed class DefaultProcedureHelper : IProcedureHelper
+    internal sealed class DefaultProcedureHelper : IProcedureHelper
     {
         private float _timer = 0;
         private string _defaultProcedure;
 
         /// <summary>
-        /// 流程管理器
+        /// 所属的内置模块
         /// </summary>
         public IModuleManager Module { get; set; }
         /// <summary>
@@ -43,7 +43,7 @@ namespace HT.Framework
             //创建所有已激活的流程对象
             for (int i = 0; i < manager.ActivatedProcedures.Count; i++)
             {
-                Type type = ReflectionToolkit.GetTypeInRunTimeAssemblies(manager.ActivatedProcedures[i]);
+                Type type = ReflectionToolkit.GetTypeInRunTimeAssemblies(manager.ActivatedProcedures[i], false);
                 if (type != null)
                 {
                     if (type.IsSubclassOf(typeof(ProcedureBase)))
@@ -56,12 +56,12 @@ namespace HT.Framework
                     }
                     else
                     {
-                        throw new HTFrameworkException(HTFrameworkModule.Procedure, "创建流程失败：流程 " + manager.ActivatedProcedures[i] + " 必须继承至流程基类：ProcedureBase！");
+                        throw new HTFrameworkException(HTFrameworkModule.Procedure, $"创建流程失败：流程 {manager.ActivatedProcedures[i]} 必须继承至流程基类：ProcedureBase！");
                     }
                 }
                 else
                 {
-                    throw new HTFrameworkException(HTFrameworkModule.Procedure, "创建流程失败：丢失流程 " + manager.ActivatedProcedures[i] + "！");
+                    throw new HTFrameworkException(HTFrameworkModule.Procedure, $"创建流程失败：丢失流程 {manager.ActivatedProcedures[i]}！");
                 }
             }
             _defaultProcedure = manager.DefaultProcedure;
@@ -80,14 +80,14 @@ namespace HT.Framework
             //进入默认流程
             if (!string.IsNullOrEmpty(_defaultProcedure))
             {
-                Type type = ReflectionToolkit.GetTypeInRunTimeAssemblies(_defaultProcedure);
+                Type type = ReflectionToolkit.GetTypeInRunTimeAssemblies(_defaultProcedure, false);
                 if (type != null)
                 {
                     SwitchProcedure(type);
                 }
                 else
                 {
-                    throw new HTFrameworkException(HTFrameworkModule.Procedure, "进入流程失败：丢失流程 " + _defaultProcedure + " ！");
+                    throw new HTFrameworkException(HTFrameworkModule.Procedure, $"进入流程失败：丢失流程 {_defaultProcedure} ！");
                 }
             }
         }
@@ -147,7 +147,7 @@ namespace HT.Framework
             }
             else
             {
-                throw new HTFrameworkException(HTFrameworkModule.Procedure, "获取流程失败：不存在流程 " + type.Name + " 或者流程未激活！");
+                throw new HTFrameworkException(HTFrameworkModule.Procedure, $"获取流程失败：不存在流程 {type.Name} 或者流程未激活！");
             }
         }
         /// <summary>
@@ -179,9 +179,7 @@ namespace HT.Framework
             if (Procedures.ContainsKey(type))
             {
                 if (CurrentProcedure == Procedures[type])
-                {
                     return;
-                }
 
                 ProcedureBase lastProcedure = CurrentProcedure;
                 ProcedureBase nextProcedure = Procedures[type];
@@ -196,7 +194,7 @@ namespace HT.Framework
             }
             else
             {
-                throw new HTFrameworkException(HTFrameworkModule.Procedure, "切换流程失败：不存在流程 " + type.Name + " 或者流程未激活！");
+                throw new HTFrameworkException(HTFrameworkModule.Procedure, $"切换流程失败：不存在流程 {type.Name} 或者流程未激活！");
             }
         }
         /// <summary>
@@ -242,7 +240,7 @@ namespace HT.Framework
             }
             else
             {
-                throw new HTFrameworkException(HTFrameworkModule.Procedure, "切换流程失败：不存在序号为 " + (index + 1).ToString() + " 的流程或者流程未激活！");
+                throw new HTFrameworkException(HTFrameworkModule.Procedure, $"切换流程失败：不存在序号为 {index + 1} 的流程或者流程未激活！");
             }
         }
     }

@@ -9,7 +9,7 @@ namespace HT.Framework
     /// <summary>
     /// 默认的实体管理器助手
     /// </summary>
-    public sealed class DefaultEntityHelper : IEntityHelper
+    internal sealed class DefaultEntityHelper : IEntityHelper
     {
         /// <summary>
         /// 当前定义的实体与对象对应关系
@@ -27,9 +27,10 @@ namespace HT.Framework
         /// 实体根节点
         /// </summary>
         private Transform _entityRoot;
+        private bool _terminated;
 
         /// <summary>
-        /// 实体管理器
+        /// 所属的内置模块
         /// </summary>
         public IModuleManager Module { get; set; }
         /// <summary>
@@ -54,7 +55,7 @@ namespace HT.Framework
                 return !_entityRoot.gameObject.activeSelf;
             }
         }
-
+        
         /// <summary>
         /// 初始化助手
         /// </summary>
@@ -66,7 +67,7 @@ namespace HT.Framework
             List<Type> types = ReflectionToolkit.GetTypesInRunTimeAssemblies(type =>
             {
                 return type.IsSubclassOf(typeof(EntityLogicBase)) && !type.IsAbstract;
-            });
+            }, false);
             for (int i = 0; i < types.Count; i++)
             {
                 EntityResourceAttribute attribute = types[i].GetCustomAttribute<EntityResourceAttribute>();
@@ -86,7 +87,7 @@ namespace HT.Framework
                 }
                 else
                 {
-                    throw new HTFrameworkException(HTFrameworkModule.Entity, "创建实体逻辑对象失败：实体逻辑类 " + types[i].Name + " 丢失 EntityResourceAttribute 标记！");
+                    throw new HTFrameworkException(HTFrameworkModule.Entity, $"创建实体逻辑对象失败：实体逻辑类 {types[i].Name} 丢失 EntityResourceAttribute 标记！");
                 }
             }
         }
@@ -95,7 +96,7 @@ namespace HT.Framework
         /// </summary>
         public void OnReady()
         {
-
+            
         }
         /// <summary>
         /// 刷新助手
@@ -118,6 +119,21 @@ namespace HT.Framework
         /// </summary>
         public void OnTerminate()
         {
+            _terminated = true;
+            foreach (var entities in Entities.Values)
+            {
+                foreach (var entity in entities)
+                {
+                    Main.m_Resource.UnLoadAsset(entity.Entity);
+                }
+            }
+            foreach (var pool in ObjectPools.Values)
+            {
+                foreach (var entity in pool)
+                {
+                    Main.m_Resource.UnLoadAsset(entity);
+                }
+            }
             _defineEntities.Clear();
 
             foreach (var group in _entitiesGroup)
@@ -150,12 +166,29 @@ namespace HT.Framework
         /// <param name="defineEntityTargets">预定义的实体对象</param>
         public void SetDefine(List<string> defineEntityNames, List<GameObject> defineEntityTargets)
         {
+            _defineEntities.Clear();
             for (int i = 0; i < defineEntityNames.Count; i++)
             {
                 if (!_defineEntities.ContainsKey(defineEntityNames[i]))
                 {
                     _defineEntities.Add(defineEntityNames[i], defineEntityTargets[i]);
                 }
+            }
+        }
+        /// <summary>
+        /// 添加预定义（如果已存在则覆盖，已创建的实体不受影响，销毁后再次创建生效）
+        /// </summary>
+        /// <param name="defineEntityName">预定义的实体名称</param>
+        /// <param name="defineEntityTarget">预定义的实体对象</param>
+        public void AddDefine(string defineEntityName, GameObject defineEntityTarget)
+        {
+            if (_defineEntities.ContainsKey(defineEntityName))
+            {
+                _defineEntities[defineEntityName] = defineEntityTarget;
+            }
+            else
+            {
+                _defineEntities.Add(defineEntityName, defineEntityTarget);
             }
         }
 
@@ -167,28 +200,53 @@ namespace HT.Framework
         /// <param name="onLoading">创建实体过程进度回调</param>
         /// <param name="onLoadDone">创建实体完成回调</param>
         /// <returns>加载协程</returns>
-        public async UniTask<T> CreateEntity<T>(Type type, string entityName) where T : EntityLogicBase
+        public async UniTask<EntityLogicBase> CreateEntity(Type type, string entityName, HTFAction<float> onLoading, HTFAction<EntityLogicBase> onLoadDone)
         {
-            var attribute = type.GetCustomAttribute<EntityResourceAttribute>();
-            if (attribute == null) return null;
-            if (!Entities.ContainsKey(type))
-                throw new HTFrameworkException(HTFrameworkModule.Entity, "创建实体失败：实体对象 " + type.Name + " 并未存在！");
-
-            if (attribute.IsUseObjectPool && ObjectPools[type].Count > 0)
+            EntityResourceAttribute attribute = type.GetCustomAttribute<EntityResourceAttribute>();
+            if (attribute != null)
             {
-                var entityLogic = GenerateEntity(type, ObjectPools[type].Dequeue(), entityName == "<None>" ? type.Name : entityName);
-                return entityLogic.Cast<T>();
+                if (Entities.ContainsKey(type))
+                {
+                    if (attribute.IsUseObjectPool && ObjectPools[type].Count > 0)
+                    {
+                        EntityLogicBase entityLogic = GenerateEntity(type, ObjectPools[type].Dequeue(), entityName == "<None>" ? type.Name : entityName);
+
+                        onLoading?.Invoke(1);
+                        onLoadDone?.Invoke(entityLogic);
+                        return entityLogic;
+                    }
+                    else
+                    {
+                        if (_defineEntities.ContainsKey(type.FullName) && _defineEntities[type.FullName] != null)
+                        {
+                            EntityLogicBase entityLogic = GenerateEntity(type, Main.Clone(_defineEntities[type.FullName], _entitiesGroup[type].transform), entityName == "<None>" ? type.Name : entityName);
+
+                            onLoading?.Invoke(1);
+                            onLoadDone?.Invoke(entityLogic);
+                            return entityLogic;
+                        }
+                        else
+                        {
+                            GameObject obj = await Main.m_Resource.LoadPrefabAsync(new PrefabInfo(attribute), _entitiesGroup[type].transform);
+                            if (_terminated)
+                            {
+                                Main.m_Resource.UnLoadAsset(obj);
+                                Main.Kill(obj);
+                                throw new OperationCanceledException("Entity module terminated during loading.");
+                            }
+                            EntityLogicBase entityLogic = GenerateEntity(type, obj, entityName == "<None>" ? type.Name : entityName);
+                            onLoading?.Invoke(1);
+                            onLoadDone?.Invoke(entityLogic);
+                            return entityLogic;
+                        }
+                    }
+                }
+                else
+                {
+                    throw new HTFrameworkException(HTFrameworkModule.Entity, $"创建实体失败：实体对象 {type.Name} 并未存在！");
+                }
             }
-
-            if (_defineEntities.ContainsKey(type.FullName) && _defineEntities[type.FullName] != null)
-            {
-                var entityLogic = GenerateEntity(type, Main.Clone(_defineEntities[type.FullName], _entitiesGroup[type].transform), entityName == "<None>" ? type.Name : entityName);
-                return entityLogic.Cast<T>();
-            }
-
-            var obj = await Main.m_Resource.LoadPrefab(attribute.Location, _entitiesGroup[type].transform);
-            return GenerateEntity(type, obj, entityName == "<None>" ? type.Name : entityName).Cast<T>();
-
+            return null;
         }
         /// <summary>
         /// 销毁实体
@@ -222,7 +280,7 @@ namespace HT.Framework
             }
             else
             {
-                throw new HTFrameworkException(HTFrameworkModule.Entity, "获取实体失败：实体对象 " + type.Name + " 并未存在！");
+                throw new HTFrameworkException(HTFrameworkModule.Entity, $"获取实体失败：实体对象 {type.Name} 并未存在！");
             }
         }
         /// <summary>
@@ -238,8 +296,30 @@ namespace HT.Framework
             }
             else
             {
-                throw new HTFrameworkException(HTFrameworkModule.Entity, "获取实体组失败：实体对象 " + type.Name + " 并未存在！");
+                throw new HTFrameworkException(HTFrameworkModule.Entity, $"获取实体组失败：实体对象 {type.Name} 并未存在！");
             }
+        }
+        /// <summary>
+        /// 获取 transform 的最顶层父级所属的实体
+        /// </summary>
+        /// <param name="transform">目标 transform</param>
+        /// <returns>实体</returns>
+        public EntityLogicBase GetEntityByTransform(Transform transform)
+        {
+            if (transform == null)
+                return null;
+
+            foreach (var item in Entities)
+            {
+                for (int i = 0; i < item.Value.Count; i++)
+                {
+                    if (item.Value[i].Entity != null && transform.IsChildOf(item.Value[i].Entity.transform))
+                    {
+                        return item.Value[i];
+                    }
+                }
+            }
+            return null;
         }
 
         /// <summary>
@@ -277,9 +357,7 @@ namespace HT.Framework
                 for (int i = 0; i < Entities[type].Count; i++)
                 {
                     if (Entities[type][i].IsShowed)
-                    {
                         continue;
-                    }
 
                     Entities[type][i].Entity.SetActive(true);
                     Entities[type][i].OnShow();
@@ -287,7 +365,7 @@ namespace HT.Framework
             }
             else
             {
-                throw new HTFrameworkException(HTFrameworkModule.Entity, "显示实体失败：实体对象 " + type.Name + " 并未存在！");
+                throw new HTFrameworkException(HTFrameworkModule.Entity, $"显示实体失败：实体对象 {type.Name} 并未存在！");
             }
         }
         /// <summary>
@@ -301,9 +379,7 @@ namespace HT.Framework
                 for (int i = 0; i < Entities[type].Count; i++)
                 {
                     if (!Entities[type][i].IsShowed)
-                    {
                         continue;
-                    }
 
                     Entities[type][i].Entity.SetActive(false);
                     Entities[type][i].OnHide();
@@ -311,7 +387,7 @@ namespace HT.Framework
             }
             else
             {
-                throw new HTFrameworkException(HTFrameworkModule.Entity, "隐藏实体失败：实体对象 " + type.Name + " 并未存在！");
+                throw new HTFrameworkException(HTFrameworkModule.Entity, $"隐藏实体失败：实体对象 {type.Name} 并未存在！");
             }
         }
 
@@ -327,12 +403,28 @@ namespace HT.Framework
             EntityLogicBase entityLogic = Main.m_ReferencePool.Spawn(type) as EntityLogicBase;
             Entities[type].Add(entityLogic);
             entityLogic.Entity = entity;
-            entityLogic.Entity.name = entityLogic.Name = entityName;
-            entityLogic.Entity.SetActive(true);
-            entityLogic.OnInit();
-            entityLogic.OnShow();
-            Main.m_Event.Throw(Main.m_ReferencePool.Spawn<EventCreateEntitySucceed>().Fill(entityLogic));
-            return entityLogic;
+            try
+            {
+                entityLogic.Entity.name = entityLogic.Name = entityName;
+                entityLogic.Entity.SetActive(true);
+                entityLogic.OnInit();
+                entityLogic.OnShow();
+                Main.m_Event.Throw(Main.m_ReferencePool.Spawn<EventCreateEntitySucceed>().Fill(entityLogic));
+                return entityLogic;
+            }
+            catch
+            {
+                Entities[type].Remove(entityLogic);
+                try { entityLogic.OnDestroy(); }
+                finally
+                {
+                    Main.m_Resource.UnLoadAsset(entity);
+                    Main.Kill(entity);
+                    entityLogic.Entity = null;
+                    Main.m_ReferencePool.Despawn(entityLogic);
+                }
+                throw;
+            }
         }
         /// <summary>
         /// 回收实体
@@ -353,25 +445,26 @@ namespace HT.Framework
                     {
                         Entities[type].Remove(entityLogic);
                         entityLogic.OnDestroy();
-                        Main.m_ReferencePool.Despawn(entityLogic);
                         ObjectPools[type].Enqueue(entityLogic.Entity);
                         entityLogic.Entity.SetActive(false);
                         entityLogic.Entity = null;
+                        Main.m_ReferencePool.Despawn(entityLogic);
                         entityLogic = null;
                     }
                     else
                     {
                         Entities[type].Remove(entityLogic);
                         entityLogic.OnDestroy();
-                        Main.m_ReferencePool.Despawn(entityLogic);
+                        Main.m_Resource.UnLoadAsset(entityLogic.Entity);
                         Main.Kill(entityLogic.Entity);
                         entityLogic.Entity = null;
+                        Main.m_ReferencePool.Despawn(entityLogic);
                         entityLogic = null;
                     }
                 }
                 else
                 {
-                    throw new HTFrameworkException(HTFrameworkModule.Entity, "销毁实体失败：实体对象 " + type.Name + " 并未存在！");
+                    throw new HTFrameworkException(HTFrameworkModule.Entity, $"销毁实体失败：实体对象 {type.Name} 并未存在！");
                 }
             }
         }
@@ -392,10 +485,10 @@ namespace HT.Framework
                         {
                             EntityLogicBase entityLogic = Entities[type][i];
                             entityLogic.OnDestroy();
-                            Main.m_ReferencePool.Despawn(entityLogic);
                             ObjectPools[type].Enqueue(entityLogic.Entity);
                             entityLogic.Entity.SetActive(false);
                             entityLogic.Entity = null;
+                            Main.m_ReferencePool.Despawn(entityLogic);
                         }
                         Entities[type].Clear();
                     }
@@ -405,16 +498,17 @@ namespace HT.Framework
                         {
                             EntityLogicBase entityLogic = Entities[type][i];
                             entityLogic.OnDestroy();
-                            Main.m_ReferencePool.Despawn(entityLogic);
+                            Main.m_Resource.UnLoadAsset(entityLogic.Entity);
                             Main.Kill(entityLogic.Entity);
                             entityLogic.Entity = null;
+                            Main.m_ReferencePool.Despawn(entityLogic);
                         }
                         Entities[type].Clear();
                     }
                 }
                 else
                 {
-                    throw new HTFrameworkException(HTFrameworkModule.Entity, "销毁实体失败：实体对象 " + type.Name + " 并未存在！");
+                    throw new HTFrameworkException(HTFrameworkModule.Entity, $"销毁实体失败：实体对象 {type.Name} 并未存在！");
                 }
             }
         }

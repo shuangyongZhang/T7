@@ -10,6 +10,30 @@ namespace HT.Framework
     internal sealed class TransformInspector : HTFEditor<Transform>
     {
         private static bool _copyQuaternion = false;
+        [MenuItem("CONTEXT/Transform/Copy/Location")]
+        public static void CopyLocation(MenuCommand cmd)
+        {
+            if (cmd.context is Transform)
+            {
+                Transform trans = cmd.context as Transform;
+                GUIUtility.systemCopyBuffer = trans.GetLocation().LocationToJson();
+            }
+        }
+        [MenuItem("CONTEXT/Transform/Paste/Location")]
+        public static void PasteLocation(MenuCommand cmd)
+        {
+            if (cmd.context is Transform && !string.IsNullOrEmpty(GUIUtility.systemCopyBuffer))
+            {
+                Transform trans = cmd.context as Transform;
+                Location location = GUIUtility.systemCopyBuffer.JsonToLocation();
+                if (location != null)
+                {
+                    Undo.RecordObject(trans, "Paste Location");
+                    trans.SetLocation(location);
+                    EditorUtility.SetDirty(trans);
+                }
+            }
+        }
 
         private PagePainter _pagePainter;
         private object _rotationGUI;
@@ -21,6 +45,9 @@ namespace HT.Framework
         private bool _isLockPosition = false;
         private bool _isLockRotation = false;
         private bool _isLockScale = false;
+        private GUIContent _lpGC;
+        private GUIContent _lrGC;
+        private GUIContent _lsGC;
 
         protected override bool IsEnableRuntimeData => false;
 
@@ -41,6 +68,15 @@ namespace HT.Framework
             }
             _onEnable.Invoke(_rotationGUI, new object[] { serializedObject.FindProperty("m_LocalRotation"), new GUIContent() });
             _onlyShowLocal = EditorPrefs.GetBool(EditorPrefsTable.Transform_OnlyShowLocal, false);
+            _lpGC = new GUIContent();
+            _lpGC.text = "LP";
+            _lpGC.tooltip = "Local Position";
+            _lrGC = new GUIContent();
+            _lrGC.text = "LR";
+            _lrGC.tooltip = "Local Rotation";
+            _lsGC = new GUIContent();
+            _lsGC.text = "LS";
+            _lsGC.tooltip = "Local Scale";
 
             SetLockState();
         }
@@ -68,11 +104,11 @@ namespace HT.Framework
             if (!_onlyShowLocal && Targets.Length == 1)
             {
                 GUILayout.BeginHorizontal();
-                GUILayout.Label("P", GUILayout.Width(20));
+                EditorGUILayout.LabelField("P", GUILayout.Width(20));
                 GUI.enabled = false;
                 EditorGUILayout.Vector3Field("", Target.position);
                 GUI.enabled = true;
-                if (GUILayout.Button(CopyPasteGC, "InvisibleButton", GUILayout.Width(20), GUILayout.Height(20)))
+                if (GUILayout.Button(CopyPasteGC, EditorGlobalTools.Styles.InvisibleButton, GUILayout.Width(20), GUILayout.Height(20)))
                 {
                     GenericMenu gm = new GenericMenu();
                     gm.AddItem(new GUIContent("Copy"), false, () =>
@@ -85,11 +121,11 @@ namespace HT.Framework
                 GUILayout.EndHorizontal();
                 
                 GUILayout.BeginHorizontal();
-                GUILayout.Label("R", GUILayout.Width(20));
+                EditorGUILayout.LabelField("R", GUILayout.Width(20));
                 GUI.enabled = false;
                 EditorGUILayout.Vector3Field("", Target.rotation.eulerAngles);
                 GUI.enabled = true;
-                if (GUILayout.Button(CopyPasteGC, "InvisibleButton", GUILayout.Width(20), GUILayout.Height(20)))
+                if (GUILayout.Button(CopyPasteGC, EditorGlobalTools.Styles.InvisibleButton, GUILayout.Width(20), GUILayout.Height(20)))
                 {
                     GenericMenu gm = new GenericMenu();
                     gm.AddItem(new GUIContent("Copy"), false, () =>
@@ -113,11 +149,11 @@ namespace HT.Framework
                 GUILayout.EndHorizontal();
                 
                 GUILayout.BeginHorizontal();
-                GUILayout.Label("S", GUILayout.Width(20));
+                EditorGUILayout.LabelField("S", GUILayout.Width(20));
                 GUI.enabled = false;
                 EditorGUILayout.Vector3Field("", Target.lossyScale);
                 GUI.enabled = true;
-                if (GUILayout.Button(CopyPasteGC, "InvisibleButton", GUILayout.Width(20), GUILayout.Height(20)))
+                if (GUILayout.Button(CopyPasteGC, EditorGlobalTools.Styles.InvisibleButton, GUILayout.Width(20), GUILayout.Height(20)))
                 {
                     GenericMenu gm = new GenericMenu();
                     gm.AddItem(new GUIContent("Copy"), false, () =>
@@ -133,16 +169,68 @@ namespace HT.Framework
             GUI.enabled = !_isLockPosition;
             
             GUILayout.BeginHorizontal();
-            GUILayout.Label("LP", GUILayout.Width(20));
+            if (GUILayout.Button(_lpGC, EditorStyles.label, GUILayout.Width(20)))
+            {
+                if (Targets.Length == 1)
+                {
+                    GenericMenu gm = new GenericMenu();
+                    gm.AddItem(new GUIContent("Reset LocalPosition But Ignore Child"), false, () =>
+                    {
+                        Undo.RecordObject(Target, "Reset LocalPosition But Ignore Child");
+                        Vector3 dir = Vector3.zero - Target.localPosition;
+                        Target.localPosition = Vector3.zero;
+                        HasChanged();
+
+                        for (int i = 0; i < Target.childCount; i++)
+                        {
+                            Transform child = Target.GetChild(i);
+                            Undo.RecordObject(child, "Reset LocalPosition But Ignore Child");
+                            child.position -= dir;
+                            EditorUtility.SetDirty(child);
+                        }
+                    });
+                    gm.ShowAsContext();
+                }
+            }
             PropertyField("m_LocalPosition", "");
             GUILayout.EndHorizontal();
 
             GUI.enabled = !_isLockRotation;
 
             GUILayout.BeginHorizontal();
-            GUILayout.Label("LR", GUILayout.Width(20));
+            if (GUILayout.Button(_lrGC, EditorStyles.label, GUILayout.Width(20)))
+            {
+                if (Targets.Length == 1)
+                {
+                    GenericMenu gm = new GenericMenu();
+                    gm.AddItem(new GUIContent("Reset LocalRotation But Ignore Child"), false, () =>
+                    {
+                        Vector3[] pos = new Vector3[Target.childCount];
+                        Quaternion[] rot = new Quaternion[Target.childCount];
+                        for (int i = 0; i < Target.childCount; i++)
+                        {
+                            pos[i] = Target.GetChild(i).position;
+                            rot[i] = Target.GetChild(i).rotation;
+                        }
+
+                        Undo.RecordObject(Target, "Reset LocalRotation But Ignore Child");
+                        Target.localRotation = Quaternion.identity;
+                        HasChanged();
+
+                        for (int i = 0; i < Target.childCount; i++)
+                        {
+                            Transform child = Target.GetChild(i);
+                            Undo.RecordObject(child, "Reset LocalRotation But Ignore Child");
+                            child.position = pos[i];
+                            child.rotation = rot[i];
+                            EditorUtility.SetDirty(child);
+                        }
+                    });
+                    gm.ShowAsContext();
+                }
+            }
             _rotationField.Invoke(_rotationGUI, null);
-            if (GUILayout.Button(CopyPasteGC, "InvisibleButton", GUILayout.Width(20), GUILayout.Height(20)))
+            if (GUILayout.Button(CopyPasteGC, EditorGlobalTools.Styles.InvisibleButton, GUILayout.Width(20), GUILayout.Height(20)))
             {
                 GenericMenu gm = new GenericMenu();
                 if (Targets.Length == 1)
@@ -193,7 +281,37 @@ namespace HT.Framework
             GUI.enabled = !_isLockScale;
             
             GUILayout.BeginHorizontal();
-            GUILayout.Label("LS", GUILayout.Width(20));
+            if (GUILayout.Button(_lsGC, EditorStyles.label, GUILayout.Width(20)))
+            {
+                if (Targets.Length == 1)
+                {
+                    GenericMenu gm = new GenericMenu();
+                    gm.AddItem(new GUIContent("Reset LocalScale But Ignore Child"), false, () =>
+                    {
+                        Vector3[] pos = new Vector3[Target.childCount];
+                        Vector3[] scale = new Vector3[Target.childCount];
+                        for (int i = 0; i < Target.childCount; i++)
+                        {
+                            pos[i] = Target.GetChild(i).position;
+                            scale[i] = Target.GetChild(i).lossyScale;
+                        }
+
+                        Undo.RecordObject(Target, "Reset LocalScale But Ignore Child");
+                        Target.localScale = Vector3.one;
+                        HasChanged();
+
+                        for (int i = 0; i < Target.childCount; i++)
+                        {
+                            Transform child = Target.GetChild(i);
+                            Undo.RecordObject(child, "Reset LocalScale But Ignore Child");
+                            child.position = pos[i];
+                            child.localScale = scale[i];
+                            EditorUtility.SetDirty(child);
+                        }
+                    });
+                    gm.ShowAsContext();
+                }
+            }
             PropertyField("m_LocalScale", "");
             GUILayout.EndHorizontal();
             
@@ -215,12 +333,12 @@ namespace HT.Framework
             GUI.enabled = !_isLock;
 
             GUILayout.BeginHorizontal();
-            GUILayout.Label("Root", GUILayout.Width(LabelWidth));
+            EditorGUILayout.LabelField("Root", GUILayout.Width(LabelWidth));
             EditorGUILayout.ObjectField(Target.root, typeof(Transform), true);
             GUILayout.EndHorizontal();
 
             GUILayout.BeginHorizontal();
-            GUILayout.Label("Parent", GUILayout.Width(LabelWidth));
+            EditorGUILayout.LabelField("Parent", GUILayout.Width(LabelWidth));
             GUI.color = Target.parent ? Color.white : Color.gray;
             Transform parent = EditorGUILayout.ObjectField(Target.parent, typeof(Transform), true) as Transform;
             if (parent != Target.parent)
@@ -235,11 +353,11 @@ namespace HT.Framework
             GUI.enabled = !_isLock && Target.childCount > 0;
 
             GUILayout.BeginHorizontal();
-            GUILayout.Label("Child Count", GUILayout.Width(LabelWidth));
+            EditorGUILayout.LabelField("Child Count", GUILayout.Width(LabelWidth));
             GUILayout.Label(Target.childCount.ToString());
             GUILayout.FlexibleSpace();
             GUI.backgroundColor = Color.red;
-            if (GUILayout.Button("Detach", EditorStyles.miniButton))
+            if (GUILayout.Button("Detach"))
             {
                 if (EditorUtility.DisplayDialog("Prompt", "Are you sure you want to detach all children?", "Yes", "No"))
                 {
@@ -256,7 +374,7 @@ namespace HT.Framework
             GUI.enabled = !_isLock;
 
             GUILayout.BeginHorizontal();
-            if (GUILayout.Button("Create Empty Parent", EditorStyles.miniButton))
+            if (GUILayout.Button("Create Empty Parent"))
             {
                 CreateEmptyParent();
             }
@@ -277,11 +395,11 @@ namespace HT.Framework
             GUI.backgroundColor = Color.yellow;
 
             GUILayout.BeginHorizontal();
-            if (GUILayout.Button("Copy Name", EditorStyles.miniButtonLeft))
+            if (GUILayout.Button("Copy Name", EditorGlobalTools.Styles.ButtonLeft))
             {
                 GUIUtility.systemCopyBuffer = Target.name;
             }
-            if (GUILayout.Button("Copy FullName", EditorStyles.miniButtonRight))
+            if (GUILayout.Button("Copy FullName", EditorGlobalTools.Styles.ButtonRight))
             {
                 GUIUtility.systemCopyBuffer = Target.FullName();
             }
@@ -290,14 +408,14 @@ namespace HT.Framework
             GUI.backgroundColor = Color.green;
 
             GUILayout.BeginHorizontal();
-            if (GUILayout.Button("Copy To C# Public Field", EditorStyles.miniButton))
+            if (GUILayout.Button("Copy To C# Public Field"))
             {
                 GUIUtility.systemCopyBuffer = ToCSPublicField();
             }
             GUILayout.EndHorizontal();
 
             GUILayout.BeginHorizontal();
-            if (GUILayout.Button("Copy To C# Private Field", EditorStyles.miniButton))
+            if (GUILayout.Button("Copy To C# Private Field"))
             {
                 GUIUtility.systemCopyBuffer = ToCSPrivateField();
             }
@@ -321,7 +439,7 @@ namespace HT.Framework
                     LockTransformAttribute attribute = type.GetCustomAttribute<LockTransformAttribute>();
                     if (attribute != null)
                     {
-                        _lockSource = "Some values locking by " + type.Name + ".";
+                        _lockSource = $"Some values locking by {type.Name}.";
                         _isLock = true;
                         _isLockPosition = attribute.IsLockPosition;
                         _isLockRotation = attribute.IsLockRotation;
@@ -360,7 +478,7 @@ namespace HT.Framework
         private string ToCSPublicField()
         {
             string fieldName = Target.name.Trim().Replace(" ", "");
-            string field = string.Format("[Label(\"{0}\")] public GameObject {1};", Target.name, fieldName);
+            string field = $"[Label(\"{Target.name}\")] public GameObject {fieldName};";
             return field;
         }
         private string ToCSPrivateField()
@@ -368,7 +486,10 @@ namespace HT.Framework
             string fieldName = Target.name.Trim().Replace(" ", "");
             char[] fieldNames = fieldName.ToCharArray();
             fieldNames[0] = char.ToLower(fieldNames[0]);
-            string field = string.Format("[InjectPath(\"{0}\")] private GameObject _{1};", Target.FullName(), new string(fieldNames));
+            bool copyInjectPath = EditorPrefs.GetBool(EditorPrefsTable.Transform_CopyInjectPath, false);
+            string field = null;
+            if (copyInjectPath) field = $"[InjectPath(\"{Target.FullName()}\")] private GameObject _{new string(fieldNames)};";
+            else field = $"private GameObject _{new string(fieldNames)};";
             return field;
         }
     }

@@ -8,10 +8,12 @@
         public override void OnInit()
         {
             base.OnInit();
-
+            
             LicenseInit();
             DataModelInit();
             ModuleInit();
+
+            IsInitCompleted = true;
         }
         public override void OnReady()
         {
@@ -20,13 +22,16 @@
             LicenseReady();
             DataModelReady();
             ModuleReady();
+
+            IsReadyCompleted = true;
         }
         public override void OnUpdate()
         {
             base.OnUpdate();
 
-            UtilityUpdate();
             ModuleUpdate();
+            BehaviourUpdate();
+            UtilityUpdate();
         }
         public override void OnTerminate()
         {

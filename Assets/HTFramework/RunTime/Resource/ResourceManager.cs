@@ -1,8 +1,4 @@
-﻿using System.Collections.Generic;
-using Cysharp.Threading.Tasks;
-using UnityEngine;
-using UnityEngine.SceneManagement;
-using YooAsset;
+﻿using UnityEngine;
 
 namespace HT.Framework
 {
@@ -10,194 +6,245 @@ namespace HT.Framework
     /// 资源管理器
     /// </summary>
     [InternalModule(HTFrameworkModule.Resource)]
-    public sealed class ResourceManager : InternalModuleBase<IResourceHelper>
+    public sealed partial class ResourceManager : InternalModuleBase<IResourceHelper>
     {
+        /// <summary>
+        /// 资源加载模式【请勿在代码中修改】
+        /// </summary>
+        [SerializeField] internal ResourceLoadMode Mode = ResourceLoadMode.Resource;
         /// <summary>
         /// 是否是编辑器模式【请勿在代码中修改】
         /// </summary>
         [SerializeField] internal bool IsEditorMode = true;
-
-
         /// <summary>
         /// 所有AssetBundle资源包清单的名称【请勿在代码中修改】
         /// </summary>
-        [SerializeField] internal string PackageName;
-
-
+        [SerializeField] internal string AssetBundleManifestName;
         /// <summary>
-        /// 是否手动初始化【请勿在代码中修改】
+        /// 是否打印资源加载细节日志【请勿在代码中修改】
         /// </summary>
-        [SerializeField] internal bool Manually;
+        [SerializeField] internal bool IsLogDetail = false;
 
         /// <summary>
-        /// 是否手动初始化
+        /// 当前的资源加载模式
         /// </summary>
-        public bool IsManually => Manually;
-        /// <summary>
-        /// 是否初始化完成
-        /// </summary>
-        public bool IsInitialized => _helper.IsInitialized;
-        /// <summary>
-        /// 初始化完成
-        /// </summary>
-        public event HTFAction<bool> InitializationCompleted;
+        public ResourceLoadMode LoadMode
+        {
+            get
+            {
+                return _helper.LoadMode;
+            }
+        }
 
         public override void OnInit()
         {
             base.OnInit();
-            _helper.InitializationCompleted += (result) =>
+
+            if (_helper is IYooAssetResourceHelper yoo)
             {
-                InitializationCompleted?.Invoke(result);
-            };
+                Mode = ResourceLoadMode.YooAsset;
+                yoo.InitializationCompleted += OnYooAssetInitialized;
+            }
+            _helper.SetLoader(Mode, IsEditorMode, AssetBundleManifestName, IsLogDetail);
         }
 
         /// <summary>
-        /// 初始化
+        /// 设置AssetBundle资源根路径（必须以 / 结尾，仅限 AssetBundle 模式）
         /// </summary>
-        public void Initialize(string packageName, bool isEditorMode)
+        /// <param name="path">AssetBundle资源根路径</param>
+        public void SetAssetBundlePath(string path)
         {
-            _helper.Initialize(packageName, isEditorMode);
+            _helper.SetAssetBundlePath(path);
         }
-
-
+        /// <summary>
+        /// 通过名称获取指定的AssetBundle（仅限 AssetBundle 模式）
+        /// </summary>
+        /// <param name="assetBundleName">名称</param>
+        /// <returns>AssetBundle</returns>
+        public AssetBundle GetAssetBundle(string assetBundleName)
+        {
+            return _helper.GetAssetBundle(assetBundleName);
+        }
 
         /// <summary>
         /// 加载资源（异步）
         /// </summary>
-        /// <param name="location"></param>
-        /// <typeparam name="T"></typeparam>
-        /// <returns></returns>
-        public async UniTask<T> LoadAsset<T>(string location) where T : Object
+        /// <typeparam name="T">资源类型</typeparam>
+        /// <param name="info">资源配置信息</param>
+        /// <param name="onLoading">资源加载中回调</param>
+        /// <param name="onLoadDone">资源加载完成回调</param>
+        /// <returns>加载协程</returns>
+        public Coroutine LoadAsset<T>(AssetInfo info, HTFAction<float> onLoading = null, HTFAction<T> onLoadDone = null) where T : Object
         {
-            return await _helper.LoadAssetAsync<T>(location, false, null, false);
+            return Main.Current.StartCoroutine(_helper.LoadAssetAsync(info, onLoading, onLoadDone, false, null, false));
         }
-
+        /// <summary>
+        /// 加载数据集（异步）
+        /// </summary>
+        /// <typeparam name="T">数据集类型</typeparam>
+        /// <param name="info">数据集配置信息</param>
+        /// <param name="onLoading">数据集加载中回调</param>
+        /// <param name="onLoadDone">数据集加载完成回调</param>
+        /// <returns>加载协程</returns>
+        public Coroutine LoadDataSet<T>(DataSetInfo info, HTFAction<float> onLoading = null, HTFAction<T> onLoadDone = null) where T : DataSetBase
+        {
+            return Main.Current.StartCoroutine(_helper.LoadAssetAsync(info, onLoading, onLoadDone, false, null, false));
+        }
         /// <summary>
         /// 加载预制体（异步）
         /// </summary>
-        /// <param name="location"></param>
+        /// <param name="info">预制体配置信息</param>
         /// <param name="parent">预制体的预设父物体</param>
-        /// <param name="isUI">预制体是否是U</param>
-        /// <returns></returns>
-        public async UniTask<GameObject> LoadPrefab(string location, Transform parent, bool isUI = false)
+        /// <param name="onLoading">预制体加载中回调</param>
+        /// <param name="onLoadDone">预制体加载完成回调</param>
+        /// <param name="isUI">预制体是否是UI</param>
+        /// <returns>加载协程</returns>
+        public Coroutine LoadPrefab(PrefabInfo info, Transform parent, HTFAction<float> onLoading = null, HTFAction<GameObject> onLoadDone = null, bool isUI = false)
         {
-            return await _helper.LoadAssetAsync<GameObject>(location, true, parent, isUI);
+            return Main.Current.StartCoroutine(_helper.LoadAssetAsync(info, onLoading, onLoadDone, true, parent, isUI));
+        }
+        /// <summary>
+        /// 加载场景（异步）
+        /// </summary>
+        /// <param name="info">场景配置信息</param>
+        /// <param name="onLoading">场景加载中回调</param>
+        /// <param name="onLoadDone">场景加载完成回调</param>
+        /// <returns>加载协程</returns>
+        public Coroutine LoadScene(SceneInfo info, HTFAction<float> onLoading = null, HTFAction onLoadDone = null)
+        {
+            return Main.Current.StartCoroutine(_helper.LoadSceneAsync(info, onLoading, onLoadDone));
+        }
+        /// <summary>
+        /// 加载资源（异步）
+        /// </summary>
+        /// <typeparam name="T">资源类型</typeparam>
+        /// <param name="location">资源定位Key，可以为资源路径、或资源名称</param>
+        /// <param name="onLoading">资源加载中回调</param>
+        /// <param name="onLoadDone">资源加载完成回调</param>
+        /// <returns>加载协程</returns>
+        public Coroutine LoadAsset<T>(string location, HTFAction<float> onLoading, HTFAction<T> onLoadDone = null) where T : Object
+        {
+            return Main.Current.StartCoroutine(_helper.LoadAssetAsync(location, typeof(AssetInfo), onLoading, onLoadDone, false, null, false));
+        }
+        /// <summary>
+        /// 加载数据集（异步）
+        /// </summary>
+        /// <typeparam name="T">数据集类型</typeparam>
+        /// <param name="location">资源定位Key，可以为资源路径、或资源名称</param>
+        /// <param name="onLoading">数据集加载中回调</param>
+        /// <param name="onLoadDone">数据集加载完成回调</param>
+        /// <returns>加载协程</returns>
+        public Coroutine LoadDataSet<T>(string location, HTFAction<float> onLoading = null, HTFAction<T> onLoadDone = null) where T : DataSetBase
+        {
+            return Main.Current.StartCoroutine(_helper.LoadAssetAsync(location, typeof(DataSetInfo), onLoading, onLoadDone, false, null, false));
+        }
+        /// <summary>
+        /// 加载预制体（异步）
+        /// </summary>
+        /// <param name="location">资源定位Key，可以为资源路径、或资源名称</param>
+        /// <param name="parent">预制体的预设父物体</param>
+        /// <param name="onLoading">预制体加载中回调</param>
+        /// <param name="onLoadDone">预制体加载完成回调</param>
+        /// <param name="isUI">预制体是否是UI</param>
+        /// <returns>加载协程</returns>
+        public Coroutine LoadPrefab(string location, Transform parent, HTFAction<float> onLoading, HTFAction<GameObject> onLoadDone = null, bool isUI = false)
+        {
+            return Main.Current.StartCoroutine(_helper.LoadAssetAsync(location, typeof(PrefabInfo), onLoading, onLoadDone, true, parent, isUI));
+        }
+        /// <summary>
+        /// 加载场景（异步）
+        /// </summary>
+        /// <param name="location">资源定位Key，可以为资源路径、或资源名称</param>
+        /// <param name="onLoading">场景加载中回调</param>
+        /// <param name="onLoadDone">场景加载完成回调</param>
+        /// <returns>加载协程</returns>
+        public Coroutine LoadScene(string location, HTFAction<float> onLoading = null, HTFAction onLoadDone = null)
+        {
+            return Main.Current.StartCoroutine(_helper.LoadSceneAsync(location, onLoading, onLoadDone));
         }
 
         /// <summary>
-        /// 加载原生文件文本（异步）
+        /// 卸载资源（仅限 Addressables 模式）
         /// </summary>
-        /// <param name="location"></param>
-        /// <returns></returns>
-        public async UniTask<string> LoadRawFileText(string location)
+        /// <param name="location">资源定位Key，可以为资源路径、或资源名称</param>
+        public void UnLoadAsset(string location)
         {
-            return await _helper.LoadRawFileTextAsync(location);
+            _helper.UnLoadAsset(location);
+        }
+        /// <summary>
+        /// 卸载AB包（异步，仅限 AssetBundle 模式）
+        /// </summary>
+        /// <param name="assetBundleName">AB包名称</param>
+        /// <param name="unloadAllLoadedObjects">是否同时卸载所有实体对象</param>
+        /// <returns>卸载协程</returns>
+        public Coroutine UnLoadAssetBundle(string assetBundleName, bool unloadAllLoadedObjects = true)
+        {
+            return Main.Current.StartCoroutine(_helper.UnLoadAssetBundleAsync(assetBundleName, unloadAllLoadedObjects));
+        }
+        /// <summary>
+        /// 卸载所有AB包（异步，仅限 AssetBundle 模式）
+        /// </summary>
+        /// <param name="unloadAllLoadedObjects">是否同时卸载所有实体对象</param>
+        /// <returns>卸载协程</returns>
+        public Coroutine UnLoadAllAssetBundle(bool unloadAllLoadedObjects = true)
+        {
+            return Main.Current.StartCoroutine(_helper.UnLoadAllAssetBundleAsync(unloadAllLoadedObjects));
+        }
+        /// <summary>
+        /// 卸载场景（异步）
+        /// </summary>
+        /// <param name="info">场景配置信息</param>
+        /// <returns>卸载协程</returns>
+        public Coroutine UnLoadScene(SceneInfo info)
+        {
+            return Main.Current.StartCoroutine(_helper.UnLoadSceneAsync(info));
+        }
+        /// <summary>
+        /// 卸载场景（异步）
+        /// </summary>
+        /// <param name="location">资源定位Key，可以为资源路径、或资源名称</param>
+        /// <returns>卸载协程</returns>
+        public Cysharp.Threading.Tasks.UniTask UnLoadScene(string location)
+        {
+            return CoroutineTask.Run(_helper.UnLoadSceneAsync(location), Main.Current);
+        }
+        /// <summary>
+        /// 卸载所有场景（异步）
+        /// </summary>
+        /// <returns>卸载协程</returns>
+        public Coroutine UnLoadAllScene()
+        {
+            return Main.Current.StartCoroutine(_helper.UnLoadAllSceneAsync());
         }
 
         /// <summary>
-        /// 获取原生文件二进制数据
+        /// 清理内存，释放空闲内存（异步）
         /// </summary>
-        /// <param name="location"></param>
-        /// <returns></returns>
-        public async UniTask<byte[]> LoadRawFileData(string location)
+        /// <returns>协程</returns>
+        public Cysharp.Threading.Tasks.UniTask ClearMemory()
         {
-            return await _helper.LoadRawFileDataAsync(location);
+            return CoroutineTask.Run(_helper.ClearMemory(), Main.Current);
         }
+    }
 
+    /// <summary>
+    /// 资源加载模式
+    /// </summary>
+    public enum ResourceLoadMode
+    {
         /// <summary>
-        /// 加载资源 （异步）
+        /// 使用Resource加载
         /// </summary>
-        /// <param name="tag">标签</param>
-        /// <param name="isAddress">是否为可寻址路径</param>
-        /// <typeparam name="T">类型</typeparam>
-        /// <returns></returns>
-        public async UniTask<Dictionary<string, T>> LoadAssetByTag<T>(string tag, bool isAddress = true) where T : Object
-        {
-            var entities = new Dictionary<string, T>();
-            var paths = _helper.GetAssetPath(tag, isAddress);
-            foreach (var location in paths)
-            {
-                var obj = await _helper.LoadAssetAsync<T>(location, false, null, false);
-                entities.Add(location, obj);
-            }
-            return entities;
-        }
-
+        Resource,
         /// <summary>
-        ///  加载原生文件文本（异步）
+        /// 使用AssetBundle加载
         /// </summary>
-        /// <param name="tag">标签</param>
-        /// <param name="isAddress">是否为可寻址路径</param>
-        /// <returns></returns>
-        public async UniTask<Dictionary<string, string>> LoadRawFileTextByTag<T>(string tag, bool isAddress = true)
-        {
-            var entities = new Dictionary<string, string>();
-            var paths = _helper.GetAssetPath(tag, isAddress);
-            foreach (var location in paths)
-            {
-                var rawFileText = await _helper.LoadRawFileTextAsync(location);
-                entities.Add(location, rawFileText);
-            }
-            return entities;
-        }
-
+        AssetBundle,
         /// <summary>
-        /// 获取原生文件二进制数据（异步）
+        /// 使用Addressables加载
         /// </summary>
-        /// <param name="tag">标签</param>
-        /// <param name="isAddress">是否为可寻址路径</param>
-        /// <returns></returns>
-        public async UniTask<Dictionary<string, byte[]>> LoadRawFileDataByTag(string tag, bool isAddress = true)
-        {
-            var entities = new Dictionary<string, byte[]>();
-            var paths = _helper.GetAssetPath(tag, isAddress);
-            foreach (var location in paths)
-            {
-                var rawFileData = await _helper.LoadRawFileDataAsync(location);
-                entities.Add(location, rawFileData);
-            }
-
-            return entities;
-        }
-
-        /// <summary>
-        /// 加载场景
-        /// </summary>
-        /// <param name="location">场景的定位地址</param>
-        /// <param name="onLoading">加载进度</param>
-        /// <param name="sceneMode">场景加载模式</param>
-        /// <param name="suspendLoad">景加载到90%自动挂起</param>
-        /// <returns></returns>
-        public async UniTask<Scene> LoadSceneAsync(string location, HTFAction<float> onLoading = null,
-            LoadSceneMode sceneMode = LoadSceneMode.Single, LocalPhysicsMode physicsMode = LocalPhysicsMode.None, bool suspendLoad = false)
-        {
-            return await _helper.LoadSceneAsync(location, onLoading, sceneMode, physicsMode, suspendLoad);
-        }
-
-        /// <summary>
-        /// 卸载场景
-        /// </summary>
-        /// <param name="sceneName">场景名称</param>
-        public async UniTask UnLoadScene(string sceneName)
-        {
-            await _helper.UnLoadScene(sceneName);
-        }
-
-        /// <summary>
-        ///  卸载资源
-        /// </summary>
-        /// <param name="obj"></param>
-        public void UnLoadAsset(Object obj)
-        {
-            _helper.UnLoadAsset(obj);
-        }
-
-        /// <summary>
-        ///  清理内存，释放空闲内存（异步）
-        /// </summary>
-        public async UniTask ClearMemory()
-        {
-            await _helper.ClearMemory();
-        }
+        Addressables,
+        /// <summary>使用项目集成的 YooAsset 资源包。</summary>
+        YooAsset
     }
 }

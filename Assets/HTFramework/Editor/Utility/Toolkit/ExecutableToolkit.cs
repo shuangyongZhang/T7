@@ -27,8 +27,8 @@ namespace HT.Framework
 
             if (!File.Exists(fullPath))
                 return false;
-            
-            Process process = new Process();
+
+            using Process process = new Process();
             process.StartInfo = new ProcessStartInfo(fullPath, args);
             process.Start();
             return true;
@@ -48,8 +48,28 @@ namespace HT.Framework
                 return false;
             }
 
-            Process process = new Process();
+            using Process process = new Process();
             process.StartInfo = new ProcessStartInfo("Explorer.exe", args);
+            process.Start();
+            return true;
+        }
+        /// <summary>
+        /// 使用记事本打开一个文件
+        /// </summary>
+        /// <param name="filePath">文件路径</param>
+        /// <returns>是否成功打开</returns>
+        public static bool ExecuteNotepad(string filePath)
+        {
+            if (Environment.OSVersion.Platform == PlatformID.Unix
+               || Environment.OSVersion.Platform == PlatformID.Xbox
+               || Environment.OSVersion.Platform == PlatformID.MacOSX)
+            {
+                Log.Error("当前平台不支持使用记事本打开一个文件！");
+                return false;
+            }
+
+            using Process process = new Process();
+            process.StartInfo = new ProcessStartInfo("notepad.exe", filePath);
             process.Start();
             return true;
         }

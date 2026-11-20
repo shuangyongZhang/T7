@@ -6,7 +6,7 @@ namespace HT.Framework
     /// 摄像机注视目标旋转控制
     /// </summary>
     [DisallowMultipleComponent]
-    internal sealed class MouseRotation : HTBehaviour
+    public sealed class MouseRotation : HTBehaviour
     {
         /// <summary>
         /// 是否可以控制
@@ -20,6 +20,10 @@ namespace HT.Framework
         /// 允许在输入滚轮超越距离限制时，启用摄像机移动
         /// </summary>
         public bool AllowOverstepDistance = true;
+        /// <summary>
+        /// 控制旋转的按键
+        /// </summary>
+        public string RotateKey = "MouseRight";
         /// <summary>
         /// x轴旋转速度，y轴旋转速度，滚轮缩放速度
         /// </summary>
@@ -67,11 +71,11 @@ namespace HT.Framework
         /// <summary>
         /// 注视目标
         /// </summary>
-        public CameraTarget Target { get; set; }
+        public CameraTarget Target { get; internal set; }
         /// <summary>
         /// 操作控制器
         /// </summary>
-        public ControllerManager Manager { get; set; }
+        public ControllerManager Controller { get; internal set; }
         
         /// <summary>
         /// 旋转注视视野
@@ -80,7 +84,7 @@ namespace HT.Framework
         /// <param name="y">视角y值</param>
         /// <param name="distance">视角距离</param>
         /// <param name="damping">阻尼缓动模式</param>
-        public void SetAngle(float x, float y, float distance, bool damping = true)
+        public void SetAngle(float x, float y, float distance, bool damping)
         {
             X = x;
             Y = y;
@@ -92,26 +96,26 @@ namespace HT.Framework
                 SwitchAngle(damping);
             }
         }
+
         /// <summary>
         /// 更新
         /// </summary>
-        public void OnUpdate()
+        internal void OnUpdate()
         {
             //控制
             Control();
             //应用
             ApplyRotation();
         }
-        
         private void Control()
         {
             if (!CanControl)
                 return;
 
-            if (!IsCanOnUGUI && GlobalTools.IsPointerOverUGUI())
+            if (!IsCanOnUGUI && UIToolkit.IsStayUINotWorld)
                 return;
 
-            if (Main.m_Input.GetButton(InputButtonType.MouseRight))
+            if (Main.m_Input.GetButton(RotateKey))
             {
                 X += Main.m_Input.GetAxis(InputAxisType.MouseX) * XSpeed * Time.deltaTime;
                 Y -= Main.m_Input.GetAxis(InputAxisType.MouseY) * YSpeed * Time.deltaTime;
@@ -169,8 +173,17 @@ namespace HT.Framework
                 transform.position = _position;
             }
 
-            //摄像机位置限制
-            if (Manager.IsEnableBounds)
+            //排斥盒检测
+            if (Controller.IsEnableRepelBox)
+            {
+                foreach (var box in Controller.FreeControlRepelBoxs)
+                {
+                    transform.position = box.Repel(transform.position);
+                }
+            }
+
+            //边界盒检测
+            if (Controller.IsEnableBounds)
             {
                 //应用边界盒
                 transform.position = ApplyBounds(transform.position);
@@ -198,15 +211,15 @@ namespace HT.Framework
         }
         private bool InTheBounds(Vector3 position)
         {
-            if (Manager.FreeControlBounds.Count == 0)
+            if (Controller.FreeControlBounds.Count == 0)
             {
                 return true;
             }
             else
             {
-                for (int i = 0; i < Manager.FreeControlBounds.Count; i++)
+                for (int i = 0; i < Controller.FreeControlBounds.Count; i++)
                 {
-                    if (Manager.FreeControlBounds[i].Contains(position))
+                    if (Controller.FreeControlBounds[i].Contains(position))
                     {
                         return true;
                     }
@@ -216,20 +229,20 @@ namespace HT.Framework
         }
         private Vector3 ClosestPoint(Vector3 position)
         {
-            if (Manager.FreeControlBounds.Count == 1)
+            if (Controller.FreeControlBounds.Count == 1)
             {
-                return Manager.FreeControlBounds[0].ClosestPoint(position);
+                return Controller.FreeControlBounds[0].ClosestPoint(position);
             }
             else
             {
-                Bounds bounds = Manager.FreeControlBounds[0];
+                Bounds bounds = Controller.FreeControlBounds[0];
                 float dis = Vector3.Distance(bounds.center, position);
-                for (int i = 1; i < Manager.FreeControlBounds.Count; i++)
+                for (int i = 1; i < Controller.FreeControlBounds.Count; i++)
                 {
-                    float newdis = Vector3.Distance(Manager.FreeControlBounds[i].center, position);
+                    float newdis = Vector3.Distance(Controller.FreeControlBounds[i].center, position);
                     if (newdis < dis)
                     {
-                        bounds = Manager.FreeControlBounds[i];
+                        bounds = Controller.FreeControlBounds[i];
                         dis = newdis;
                     }
                 }

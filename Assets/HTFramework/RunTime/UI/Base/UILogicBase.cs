@@ -1,13 +1,14 @@
-﻿using System.Reflection;
+﻿using System.Collections;
+using System.Reflection;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
 
 namespace HT.Framework
 {
     /// <summary>
-    /// UI逻辑基类
+    /// UI逻辑类
     /// </summary>
-    public abstract class UILogicBase
+    public abstract class UILogicBase : ISafetyCheckTarget
     {
         /// <summary>
         /// UI实体
@@ -49,46 +50,68 @@ namespace HT.Framework
         protected virtual bool IsAutomate => true;
 
         /// <summary>
-        /// 初始化
+        /// 当UI初始化时
         /// </summary>
         public virtual void OnInit()
         {
+            int injectCount = 0;
+            int bindCount = 0;
+
             if (IsAutomate)
             {
                 FieldInfo[] fieldInfos = AutomaticTask.GetAutomaticFields(GetType());
-                AutomaticTask.ApplyInject(this, fieldInfos);
+                injectCount = AutomaticTask.ApplyInject(this, fieldInfos);
 
                 if (IsSupportedDataDriver)
                 {
-                    AutomaticTask.ApplyDataBinding(this, fieldInfos);
+                    bindCount = AutomaticTask.ApplyDataBinding(this, fieldInfos);
                 }
             }
+
+#if UNITY_EDITOR
+            SafetyChecker.DoSafetyCheck(this, injectCount, bindCount);
+#endif
         }
         /// <summary>
-        /// 打开UI
+        /// 当UI打开时
         /// </summary>
-        /// <param name="args">可选参数</param>
+        /// <param name="args">打开UI时传入的可选参数</param>
         public virtual void OnOpen(params object[] args)
         {
             Main.m_Event.Throw(Main.m_ReferencePool.Spawn<EventUIOpened>().Fill(this));
-
         }
         /// <summary>
-        /// 关闭UI
+        /// 当UI打开时的淡入动画（在 OnOpen 回调之后）
+        /// </summary>
+        /// <returns>动画协程</returns>
+        public virtual IEnumerator OnFadeIn()
+        {
+            yield break;
+        }
+        /// <summary>
+        /// 当UI关闭时的淡出动画（在 OnClose 回调之前）
+        /// </summary>
+        /// <returns>动画协程</returns>
+        public virtual IEnumerator OnFadeOut()
+        {
+            yield break;
+        }
+        /// <summary>
+        /// 当UI关闭时
         /// </summary>
         public virtual void OnClose()
         {
             Main.m_Event.Throw(Main.m_ReferencePool.Spawn<EventUIClosed>().Fill(this));
         }
         /// <summary>
-        /// 销毁UI
+        /// 当UI销毁时（UI实体被销毁）
         /// </summary>
         public virtual void OnDestroy()
         {
-
+            
         }
         /// <summary>
-        /// UI逻辑更新
+        /// 当UI逻辑帧更新
         /// </summary>
         public virtual void OnUpdate()
         {
@@ -107,6 +130,41 @@ namespace HT.Framework
         protected void Close()
         {
             Main.m_UI.CloseUI(GetType());
+        }
+
+        /// <summary>
+        /// 性能及安全性检查
+        /// </summary>
+        /// <param name="args">参数</param>
+        /// <returns>检查是否通过</returns>
+        public virtual bool OnSafetyCheck(params object[] args)
+        {
+            if (args.Length < 2)
+                return true;
+
+            int injectCount = (int)args[0];
+            int bindCount = (int)args[1];
+
+            if (IsAutomate)
+            {
+                if (injectCount <= 0 && bindCount <= 0)
+                {
+                    string content = $"【{GetType().FullName}】启用了自动化任务，但不存在任何依赖注入字段[Inject]，和数据绑定字段[DataBind]，请考虑关闭自动化任务（IsAutomate = false）！";
+                    SafetyChecker.DoSafetyWarning(content);
+                    return false;
+                }
+
+                if (IsSupportedDataDriver)
+                {
+                    if (bindCount <= 0)
+                    {
+                        string content = $"【{GetType().FullName}】实现了数据驱动接口（IDataDriver），但不存在任何数据绑定字段[DataBind]，请考虑移除数据驱动接口！";
+                        SafetyChecker.DoSafetyWarning(content);
+                        return false;
+                    }
+                }
+            }
+            return true;
         }
     }
 }

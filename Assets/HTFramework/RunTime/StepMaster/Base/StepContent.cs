@@ -56,6 +56,10 @@ namespace HT.Framework
         /// </summary>
         [SerializeField] internal string Prompt = "Step Prompt";
         /// <summary>
+        /// 是否展示步骤详述信息
+        /// </summary>
+        [SerializeField] internal bool IsDisplayPrompt = false;
+        /// <summary>
         /// 步骤其他信息
         /// </summary>
         [SerializeField] internal string Ancillary = "";
@@ -134,6 +138,16 @@ namespace HT.Framework
             get
             {
                 return Prompt;
+            }
+        }
+        /// <summary>
+        /// 获取是否展示步骤详述信息
+        /// </summary>
+        public bool GetIsDisplayPrompt
+        {
+            get
+            {
+                return IsDisplayPrompt;
             }
         }
         /// <summary>
@@ -324,7 +338,7 @@ namespace HT.Framework
                 if (Wireds[i].Left == lastIndex)
                 {
                     int nextIndex = Wireds[i].Right;
-                    Operations[nextIndex].TimePoint = Operations[lastIndex].TimePoint + Operations[lastIndex].ElapseTime;
+                    Operations[nextIndex].TimePoint = Operations[lastIndex].TimePoint + Operations[lastIndex].ElapseTime + 1;
                     operations.Add(Operations[nextIndex]);
                     GenerateTimeline(operations, i);
                 }
@@ -405,6 +419,7 @@ namespace HT.Framework
             content.Name = Name;
             content.Trigger = Trigger;
             content.Prompt = Prompt;
+            content.IsDisplayPrompt = IsDisplayPrompt;
             content.Ancillary = Ancillary;
             content.BestView = BestView;
             content.ViewOffset = ViewOffset;
@@ -588,7 +603,7 @@ namespace HT.Framework
             }
             else
             {
-                Type type = ReflectionToolkit.GetTypeInRunTimeAssemblies(Helper);
+                Type type = ReflectionToolkit.GetTypeInAllAssemblies(Helper, false);
                 if (type == null)
                 {
                     HelperName = "无效的助手";
@@ -598,7 +613,7 @@ namespace HT.Framework
                     CustomHelperAttribute helper = type.GetCustomAttribute<CustomHelperAttribute>();
                     if (helper != null)
                     {
-                        HelperName = helper.Name;
+                        HelperName = $"{type.FullName} 【{helper.Name}】";
                     }
                     else
                     {
@@ -606,6 +621,17 @@ namespace HT.Framework
                     }
                 }
             }
+        }
+        /// <summary>
+        /// 当前是否存在步骤目标实例，且步骤目标的ID匹配
+        /// </summary>
+        internal bool IsTargetMatched()
+        {
+            if (Target == null)
+                return false;
+
+            StepTarget target = Target.GetComponent<StepTarget>();
+            return target && TargetGUID == target.GUID;
         }
 #endif
         #endregion

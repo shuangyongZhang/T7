@@ -17,20 +17,24 @@ namespace HT.Framework
         protected H _helper;
         private InternalModuleBase<H> _module;
         private List<Type> _types;
-        private HTFAction _changeHelper;
 
-        protected virtual string Intro => null;
+        protected override bool IsEnableRuntimeData
+        {
+            get
+            {
+                return Main.Current != null && Main.Current.IsInitCompleted && Main.Current.IsReadyCompleted;
+            }
+        }
 
         protected override void OnDefaultEnable()
         {
             base.OnDefaultEnable();
 
             _module = Target as InternalModuleBase<H>;
-            _types = ReflectionToolkit.GetTypesInRunTimeAssemblies(type =>
+            _types = ReflectionToolkit.GetTypesInAllAssemblies(type =>
             {
                 return typeof(H).IsAssignableFrom(type) && typeof(H) != type;
-            });
-            _changeHelper = ChangeHelper;
+            }, false);
         }
         protected override void OnRuntimeEnable()
         {
@@ -43,29 +47,26 @@ namespace HT.Framework
         {
             base.OnInspectorDefaultGUI();
 
-            GUILayout.BeginHorizontal();
-            EditorGUILayout.HelpBox(Intro, MessageType.Info);
-            GUILayout.EndHorizontal();
-
-            GUILayout.BeginHorizontal();
+            EditorGUILayout.BeginHorizontal();
             GUI.enabled = !EditorApplication.isPlaying && _types.Count > 0;
-            GUILayout.Label("Helper", GUILayout.Width(LabelWidth));
-            Button(_changeHelper, _module.HelperType, EditorStyles.popup, GUILayout.Width(EditorGUIUtility.currentViewWidth - LabelWidth - 25));
-            GUI.enabled = true;
-            GUILayout.EndHorizontal();
-        }
-        private void ChangeHelper()
-        {
-            GenericMenu gm = new GenericMenu();
-            for (int i = 0; i < _types.Count; i++)
+            EditorGUILayout.LabelField("Helper", GUILayout.Width(LabelWidth));
+            if (GUILayout.Button(_module.HelperType, EditorStyles.popup, GUILayout.Width(EditorGUIUtility.currentViewWidth - LabelWidth - 25)))
             {
-                int j = i;
-                gm.AddItem(new GUIContent(_types[j].FullName), _module.HelperType == _types[j].FullName, () =>
+                GenericMenu gm = new GenericMenu();
+                for (int i = 0; i < _types.Count; i++)
                 {
-                    _module.HelperType = _types[j].FullName;
-                });
+                    int j = i;
+                    gm.AddItem(new GUIContent(_types[j].FullName), _module.HelperType == _types[j].FullName, () =>
+                    {
+                        Undo.RecordObject(target, "Change Helper");
+                        _module.HelperType = _types[j].FullName;
+                        HasChanged();
+                    });
+                }
+                gm.ShowAsContext();
             }
-            gm.ShowAsContext();
+            GUI.enabled = true;
+            EditorGUILayout.EndHorizontal();
         }
     }
 }

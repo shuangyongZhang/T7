@@ -12,18 +12,29 @@ namespace HT.Framework
         /// <summary>
         /// 当前的热更新程序集
         /// </summary>
-        private static HashSet<string> HotfixAssemblies = new HashSet<string>() { "Hotfix", "ILHotfix" };
+        private static HashSet<string> HotfixAssemblies = new HashSet<string>() { "Hotfix" };
         /// <summary>
         /// 当前的编辑器程序集
         /// </summary>
         private static HashSet<string> EditorAssemblies = new HashSet<string>() {
-            "Assembly-CSharp-Editor", "HTFramework.Editor", "HTFramework.AI.Editor", "HTFramework.ILHotfix.Editor", "HTFramework.GC.Editor",
+            "Assembly-CSharp-Editor", "HTFramework.Editor", "HTFramework.AI.Editor", "HTFramework.Deployment.Editor", "HTFramework.GC.Editor",
             "UnityEditor", "UnityEditorInternal" };
 
         /// <summary>
-        /// 从当前程序域的热更新程序集中获取所有类型
+        /// 添加自定义程序集到编辑器程序域（建议调用时机：标记了[InitializeOnLoad]类的【静态构造方法】中，标记了[InitializeOnLoadMethod]的静态方法中）
         /// </summary>
-        /// <returns>所有类型集合</returns>
+        /// <param name="assembly">编辑器程序集</param>
+        public static void AddEditorAssembly(string assembly)
+        {
+            if (!string.IsNullOrEmpty(assembly))
+            {
+                EditorAssemblies.Add(assembly);
+            }
+        }
+        /// <summary>
+        /// 从当前【程序域】的【热更新程序集】中获取所有类型
+        /// </summary>
+        /// <returns>所有类型</returns>
         public static List<Type> GetTypesInHotfixAssemblies()
         {
             List<Type> types = new List<Type>();
@@ -38,10 +49,10 @@ namespace HT.Framework
             return types;
         }
         /// <summary>
-        /// 从当前程序域的热更新程序集中获取所有类型
+        /// 从当前【程序域】的【热更新程序集】中获取所有类型
         /// </summary>
         /// <param name="filter">类型筛选器</param>
-        /// <returns>所有类型集合</returns>
+        /// <returns>所有类型</returns>
         public static List<Type> GetTypesInHotfixAssemblies(HTFFunc<Type, bool> filter)
         {
             List<Type> types = new List<Type>();
@@ -63,7 +74,7 @@ namespace HT.Framework
             return types;
         }
         /// <summary>
-        /// 从当前程序域的热更新程序集中获取指定类型
+        /// 从当前【程序域】的【热更新程序集】中获取指定类型
         /// </summary>
         /// <param name="typeName">类型名称</param>
         /// <returns>类型</returns>
@@ -72,26 +83,28 @@ namespace HT.Framework
             Type type = null;
             foreach (string assembly in HotfixAssemblies)
             {
-                type = Type.GetType(typeName + "," + assembly);
+                type = Type.GetType($"{typeName},{assembly}");
                 if (type != null)
                 {
                     return type;
                 }
             }
-            Log.Error("获取类型 " + typeName + " 失败！当前热更新程序集中不存在此类型！");
+            Log.Error($"获取类型 {typeName} 失败！当前热更新程序集中不存在此类型！");
             return null;
         }
         /// <summary>
-        /// 从当前程序域的编辑器程序集中获取所有类型
+        /// 从当前【程序域】的【编辑器程序集】中获取所有类型
         /// </summary>
-        /// <returns>所有类型集合</returns>
-        public static List<Type> GetTypesInEditorAssemblies()
+        /// <param name="isIncludeUnity">是否包含Unity系列的程序集</param>
+        /// <returns>所有类型</returns>
+        public static List<Type> GetTypesInEditorAssemblies(bool isIncludeUnity = true)
         {
             List<Type> types = new List<Type>();
             Assembly[] assemblys = AppDomain.CurrentDomain.GetAssemblies();
             for (int i = 0; i < assemblys.Length; i++)
             {
-                if (EditorAssemblies.Contains(assemblys[i].GetName().Name))
+                string name = assemblys[i].GetName().Name;
+                if (EditorAssemblies.Contains(name) && (isIncludeUnity || !name.StartsWith("UnityEditor")))
                 {
                     types.AddRange(assemblys[i].GetTypes());
                 }
@@ -99,17 +112,19 @@ namespace HT.Framework
             return types;
         }
         /// <summary>
-        /// 从当前程序域的编辑器程序集中获取所有类型
+        /// 从当前【程序域】的【编辑器程序集】中获取所有类型
         /// </summary>
         /// <param name="filter">类型筛选器</param>
-        /// <returns>所有类型集合</returns>
-        public static List<Type> GetTypesInEditorAssemblies(HTFFunc<Type, bool> filter)
+        /// <param name="isIncludeUnity">是否包含Unity系列的程序集</param>
+        /// <returns>所有类型</returns>
+        public static List<Type> GetTypesInEditorAssemblies(HTFFunc<Type, bool> filter, bool isIncludeUnity = true)
         {
             List<Type> types = new List<Type>();
             Assembly[] assemblys = AppDomain.CurrentDomain.GetAssemblies();
             for (int i = 0; i < assemblys.Length; i++)
             {
-                if (EditorAssemblies.Contains(assemblys[i].GetName().Name))
+                string name = assemblys[i].GetName().Name;
+                if (EditorAssemblies.Contains(name) && (isIncludeUnity || !name.StartsWith("UnityEditor")))
                 {
                     Type[] ts = assemblys[i].GetTypes();
                     foreach (var t in ts)
@@ -124,22 +139,26 @@ namespace HT.Framework
             return types;
         }
         /// <summary>
-        /// 从当前程序域的编辑器程序集中获取指定类型
+        /// 从当前【程序域】的【编辑器程序集】中获取指定类型
         /// </summary>
         /// <param name="typeName">类型名称</param>
+        /// <param name="isIncludeUnity">是否包含Unity系列的程序集</param>
         /// <returns>类型</returns>
-        public static Type GetTypeInEditorAssemblies(string typeName)
+        public static Type GetTypeInEditorAssemblies(string typeName, bool isIncludeUnity = true)
         {
             Type type = null;
             foreach (string assembly in EditorAssemblies)
             {
-                type = Type.GetType(typeName + "," + assembly);
-                if (type != null)
+                if (isIncludeUnity || !assembly.StartsWith("UnityEditor"))
                 {
-                    return type;
+                    type = Type.GetType($"{typeName},{assembly}");
+                    if (type != null)
+                    {
+                        return type;
+                    }
                 }
             }
-            Log.Error("获取类型 " + typeName + " 失败！当前编辑器程序集中不存在此类型！");
+            Log.Error($"获取类型 {typeName} 失败！当前编辑器程序集中不存在此类型！");
             return null;
         }
     }

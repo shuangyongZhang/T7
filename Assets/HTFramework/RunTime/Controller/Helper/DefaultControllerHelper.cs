@@ -7,9 +7,8 @@ namespace HT.Framework
     /// <summary>
     /// 默认的操作控制器助手
     /// </summary>
-    public sealed class DefaultControllerHelper : IControllerHelper
+    internal sealed class DefaultControllerHelper : IControllerHelper
     {
-        private ControllerManager _module;
         private CameraTarget _cameraTarget;
         private MousePosition _mousePosition;
         private MouseRotation _mouseRotation;
@@ -17,7 +16,7 @@ namespace HT.Framework
         private HighlightingEffect _highlightingEffect;
 
         /// <summary>
-        /// 操作控制器
+        /// 所属的内置模块
         /// </summary>
         public IModuleManager Module { get; set; }
         /// <summary>
@@ -201,23 +200,7 @@ namespace HT.Framework
         /// </summary>
         public void OnInit()
         {
-            _module = Module as ControllerManager;
-            MainCamera = _module.GetComponentByChild<Camera>("MainCamera");
-            _cameraTarget = _module.GetComponentByChild<CameraTarget>("CameraTarget");
-            _mousePosition = MainCamera.GetComponent<MousePosition>();
-            _mouseRotation = MainCamera.GetComponent<MouseRotation>();
-            _mouseRay = MainCamera.GetComponent<MouseRay>();
-            _highlightingEffect = MainCamera.GetComponent<HighlightingEffect>();
-
-            _mousePosition.Target = _cameraTarget;
-            _mousePosition.Manager = Module as ControllerManager;
-            _mouseRotation.Target = _cameraTarget;
-            _mouseRotation.Manager = Module as ControllerManager;
-            _mouseRay.RayCamera = MainCamera;
-            _mouseRay.RayEvent += (target, point, point2D) =>
-            {
-                RayEvent?.Invoke(target, point, point2D);
-            };
+            
         }
         /// <summary>
         /// 助手准备工作
@@ -242,7 +225,8 @@ namespace HT.Framework
             {
                 if (RayTarget != null)
                 {
-                    RayTarget.OnMouseClick.Invoke();
+                    RayTarget.OnMouseClick?.Invoke();
+                    Main.m_Audio.PlayOneShoot(RayTarget.OnMouseClickSound);
                 }
             }
             if (Main.m_Input.GetButtonDown(InputButtonType.MouseLeftDoubleClick))
@@ -252,7 +236,11 @@ namespace HT.Framework
                     MouseRayTarget target = RayTarget as MouseRayTarget;
                     if (target && target.IsDoubleClickFocus)
                     {
-                        SetLookPoint(target.transform.position);
+                        SetLookPoint(target.transform.position, false, 1);
+                        if (!target.LookAtAngle.Approximately(Vector3.zero))
+                        {
+                            SetLookAngle(target.LookAtAngle.x, target.LookAtAngle.y, target.LookAtAngle.z, true);
+                        }
                     }
                 }
             }
@@ -278,15 +266,41 @@ namespace HT.Framework
         {
             
         }
-        
+
+        /// <summary>
+        /// 设置主摄像机和注视目标
+        /// </summary>
+        /// <param name="camera">主摄像机</param>
+        /// <param name="cameraTarget">注视目标</param>
+        public void SetMainCameraAndTarget(Camera camera, CameraTarget cameraTarget)
+        {
+            MainCamera = camera;
+            _cameraTarget = cameraTarget;
+            _mousePosition = MainCamera.GetComponent<MousePosition>();
+            _mouseRotation = MainCamera.GetComponent<MouseRotation>();
+            _mouseRay = MainCamera.GetComponent<MouseRay>();
+            _highlightingEffect = MainCamera.GetComponent<HighlightingEffect>();
+
+            _mousePosition.Target = _cameraTarget;
+            _mousePosition.Controller = Main.m_Controller;
+            _mouseRotation.Target = _cameraTarget;
+            _mouseRotation.Controller = Main.m_Controller;
+            _mouseRay.RayCamera = MainCamera;
+            _mouseRay.RayEvent += (target, point, point2D) =>
+            {
+                RayEvent?.Invoke(target, point, point2D);
+            };
+        }
+
         /// <summary>
         /// 自由控制：设置摄像机注视点
         /// </summary>
         /// <param name="point">目标位置</param>
         /// <param name="damping">阻尼缓动模式</param>
-        public void SetLookPoint(Vector3 point, bool damping = true)
+        /// <param name="dampingTime">阻尼缓动时长</param>
+        public void SetLookPoint(Vector3 point, bool damping, float dampingTime)
         {
-            _mousePosition.SetPosition(point, damping);
+            _mousePosition.SetPosition(point, damping, dampingTime);
         }
         /// <summary>
         /// 自由控制：设置摄像机注视角度
@@ -295,7 +309,7 @@ namespace HT.Framework
         /// <param name="y">视角y值</param>
         /// <param name="distance">视角距离</param>
         /// <param name="damping">阻尼缓动模式</param>
-        public void SetLookAngle(float x, float y, float distance, bool damping = true)
+        public void SetLookAngle(float x, float y, float distance, bool damping)
         {
             _mouseRotation.SetAngle(x, y, distance, damping);
         }
@@ -398,7 +412,7 @@ namespace HT.Framework
             MouseRayTargetBase mouseRayTargetBase = target.GetComponent<MouseRayTargetBase>();
             if (mouseRayTargetBase)
             {
-                mouseRayTargetBase.OnMouseClick.AddListener(callback);
+                mouseRayTargetBase.OnMouseClick?.AddListener(callback);
             }
         }
         /// <summary>
@@ -414,7 +428,7 @@ namespace HT.Framework
             MouseRayTargetBase mouseRayTargetBase = target.GetComponent<MouseRayTargetBase>();
             if (mouseRayTargetBase)
             {
-                mouseRayTargetBase.OnMouseClick.RemoveListener(callback);
+                mouseRayTargetBase.OnMouseClick?.RemoveListener(callback);
             }
         }
         /// <summary>
@@ -429,7 +443,7 @@ namespace HT.Framework
             MouseRayTargetBase mouseRayTargetBase = target.GetComponent<MouseRayTargetBase>();
             if (mouseRayTargetBase)
             {
-                mouseRayTargetBase.OnMouseClick.RemoveAllListeners();
+                mouseRayTargetBase.OnMouseClick?.RemoveAllListeners();
             }
         }
     }

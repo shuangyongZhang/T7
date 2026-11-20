@@ -11,8 +11,6 @@ namespace HT.Framework
     [CSDNBlogURL("https://wanderer.blog.csdn.net/article/details/89001848")]
     internal sealed class InputManagerInspector : InternalModuleInspector<InputManager, IInputHelper>
     {
-        protected override string Intro => "Input manager, this is a cross platform input solution!";
-
         protected override void OnInspectorDefaultGUI()
         {
             base.OnInspectorDefaultGUI();
@@ -20,14 +18,14 @@ namespace HT.Framework
             GUI.enabled = !EditorApplication.isPlaying;
 
             GUILayout.BeginHorizontal();
-            GUILayout.Label("InputDevice ", GUILayout.Width(LabelWidth));
+            EditorGUILayout.LabelField("InputDevice ", GUILayout.Width(LabelWidth));
             if (GUILayout.Button(Target.InputDeviceType, EditorStyles.popup, GUILayout.Width(EditorGUIUtility.currentViewWidth - LabelWidth - 25)))
             {
                 GenericMenu gm = new GenericMenu();
-                List<Type> types = ReflectionToolkit.GetTypesInRunTimeAssemblies(type =>
+                List<Type> types = ReflectionToolkit.GetTypesInAllAssemblies(type =>
                 {
                     return type.IsSubclassOf(typeof(InputDeviceBase)) && !type.IsAbstract;
-                });
+                }, false);
                 for (int i = 0; i < types.Count; i++)
                 {
                     int j = i;

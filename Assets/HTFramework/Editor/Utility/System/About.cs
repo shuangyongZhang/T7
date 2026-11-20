@@ -68,7 +68,7 @@ namespace HT.Framework
             _giteeGUIContent.text = "Gitee";
             _pcGUIContent = new GUIContent();
             _pcGUIContent.image = EditorGUIUtility.IconContent("BuildSettings.Standalone.Small").image;
-            _pcGUIContent.text = "PC,Mac & Linux Standalone";
+            _pcGUIContent.text = "Windows, Mac, Linux";
             _androidGUIContent = new GUIContent();
             _androidGUIContent.image = EditorGUIUtility.IconContent("BuildSettings.Android.Small").image;
             _androidGUIContent.text = "Android";
@@ -101,7 +101,7 @@ namespace HT.Framework
         {
             if (_colorPos <= 1)
             {
-                _colorPos += 0.005f;
+                _colorPos += 0.001f;
             }
             else
             {
@@ -151,7 +151,7 @@ namespace HT.Framework
             EditorGUIUtility.AddCursorRect(GUILayoutUtility.GetLastRect(), MouseCursor.Link);
             if (GUILayout.Button(_csdnGUIContent, EditorGlobalTools.Styles.Label))
             {
-                Application.OpenURL("https://blog.csdn.net/qq992817263/category_9283445.html");
+                Application.OpenURL("https://wanderer.blog.csdn.net/category_9283445.html");
             }
             EditorGUIUtility.AddCursorRect(GUILayoutUtility.GetLastRect(), MouseCursor.Link);
             GUILayout.EndHorizontal();
@@ -159,10 +159,10 @@ namespace HT.Framework
             GUILayout.FlexibleSpace();
 
             GUILayout.BeginHorizontal();
-            GUILayout.Label("Release Notes: [Date " + _versionInfo.CurrentVersion.ReleaseDate + "]");
+            GUILayout.Label($"Release Notes: [Date {_versionInfo.CurrentVersion.ReleaseDate}]");
             GUILayout.EndHorizontal();
 
-            GUILayout.BeginVertical(GUILayout.Height(100));
+            GUILayout.BeginVertical(GUILayout.Height(120));
             _scroll = GUILayout.BeginScrollView(_scroll);
             EditorGUILayout.TextArea(_versionInfo.CurrentVersion.ReleaseNotes);
             GUILayout.EndScrollView();
@@ -177,17 +177,12 @@ namespace HT.Framework
             GUILayout.EndHorizontal();
 
             GUILayout.BeginHorizontal();
-            GUILayout.Label("Supported Unity Versions: " + _versionInfo.CurrentVersion.UnityVersions);
+            GUILayout.Label($"Supported Unity Versions: {_versionInfo.CurrentVersion.UnityVersions}");
             GUILayout.FlexibleSpace();
             GUILayout.EndHorizontal();
 
             GUILayout.BeginHorizontal();
-            GUILayout.Label("Scripting Runtime Versions: " + _versionInfo.CurrentVersion.ScriptingVersions);
-            GUILayout.FlexibleSpace();
-            GUILayout.EndHorizontal();
-
-            GUILayout.BeginHorizontal();
-            GUILayout.Label("Api Compatibility Level: " + _versionInfo.CurrentVersion.APIVersions);
+            GUILayout.Label($"Api Compatibility Level: {_versionInfo.CurrentVersion.APIVersions}");
             GUILayout.FlexibleSpace();
             GUILayout.EndHorizontal();
 

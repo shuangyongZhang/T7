@@ -1,12 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Runtime.CompilerServices;
+using System.Text;
 using UnityEditor;
 using UnityEditorInternal;
 using UnityEngine;
 
+[assembly: InternalsVisibleTo("Assembly-CSharp-Editor")]
 [assembly: InternalsVisibleTo("HTFramework.AI.Editor")]
-[assembly: InternalsVisibleTo("HTFramework.ILHotfix.Editor")]
+[assembly: InternalsVisibleTo("HTFramework.Deployment.Editor")]
 [assembly: InternalsVisibleTo("HTFramework.GC.Editor")]
 
 namespace HT.Framework
@@ -17,8 +20,6 @@ namespace HT.Framework
     [CSDNBlogURL("https://wanderer.blog.csdn.net/article/details/102956756")]
     internal sealed class MainInspector : InternalModuleInspector<Main, IMainHelper>
     {
-        protected override string Intro => "HTFramework Main Module!";
-
         protected override void OnDefaultEnable()
         {
             base.OnDefaultEnable();
@@ -27,6 +28,9 @@ namespace HT.Framework
             ScriptingDefineEnable();
             DataModelEnable();
             ParameterEnable();
+#if HOTFIX_HybridCLR
+            HybridCLREnable();
+#endif
         }
         protected override void OnInspectorDefaultGUI()
         {
@@ -54,6 +58,9 @@ namespace HT.Framework
             _pagePainter.AddPage("License", EditorGUIUtility.IconContent("UnityEditor.AnimationWindow").image, LicenseGUI);
             _pagePainter.AddPage("Parameter", EditorGUIUtility.IconContent("UnityEditor.HierarchyWindow").image, ParameterGUI);
             _pagePainter.AddPage("Setting", EditorGUIUtility.IconContent("SettingsIcon").image, SettingGUI);
+#if HOTFIX_HybridCLR
+            _pagePainter.AddPage("HybridCLR", EditorGUIUtility.IconContent("Update-Available").image, HybridCLRGUI);
+#endif
         }
         private void PageGUI()
         {
@@ -65,37 +72,53 @@ namespace HT.Framework
         private ScriptingDefine _currentScriptingDefine;
         private bool _isNewDefine = false;
         private string _newDefine = "";
+        private GUIContent _predefinedGC;
 
         private void ScriptingDefineEnable()
         {
             _currentScriptingDefine = new ScriptingDefine();
+            _predefinedGC = new GUIContent();
         }
         private void ScriptingDefineGUI()
         {
             GUILayout.BeginHorizontal();
-            GUILayout.Label("Defined");
+            EditorGUILayout.LabelField("Defined");
             GUILayout.FlexibleSpace();
             GUILayout.EndHorizontal();
 
             GUILayout.BeginHorizontal();
+            GUI.enabled = false;
             EditorGUILayout.TextField(_currentScriptingDefine.Defined);
+            GUI.enabled = true;
             GUILayout.EndHorizontal();
 
             GUILayout.BeginHorizontal();
             GUI.enabled = _currentScriptingDefine.IsAnyDefined;
             GUI.backgroundColor = Color.red;
-            if (GUILayout.Button("Clear", EditorStyles.miniButtonLeft))
+            if (GUILayout.Button("Remove", EditorGlobalTools.Styles.ButtonLeft))
+            {
+                GenericMenu gm = new GenericMenu();
+                foreach (var item in _currentScriptingDefine.Defineds)
+                {
+                    gm.AddItem(new GUIContent(item), false, () =>
+                    {
+                        _currentScriptingDefine.RemoveDefine(item);
+                    });
+                }
+                gm.ShowAsContext();
+            }
+            if (GUILayout.Button("Clear", EditorGlobalTools.Styles.ButtonMid))
             {
                 _currentScriptingDefine.ClearDefines();
             }
             GUI.enabled = true;
             GUI.backgroundColor = Color.yellow;
-            if (GUILayout.Button("New", EditorStyles.miniButtonMid))
+            if (GUILayout.Button("New", EditorGlobalTools.Styles.ButtonMid))
             {
                 _isNewDefine = !_isNewDefine;
                 _newDefine = "";
             }
-            if (GUILayout.Button("Apply", EditorStyles.miniButtonRight))
+            if (GUILayout.Button("Apply", EditorGlobalTools.Styles.ButtonRight))
             {
                 _currentScriptingDefine.Apply();
             }
@@ -116,7 +139,7 @@ namespace HT.Framework
                     }
                     else
                     {
-                        Log.Error("输入的宏定义不能为空！");
+                        Log.Error("输入的脚本定义不能为空！");
                     }
                 }
                 if (GUILayout.Button("NO", EditorStyles.miniButtonRight, GUILayout.Width(30)))
@@ -126,10 +149,22 @@ namespace HT.Framework
                 }
                 GUILayout.EndHorizontal();
 
+                GUILayout.Space(5);
+
                 GUILayout.BeginHorizontal();
-                GUILayout.Label("Historical record");
+                EditorGUILayout.LabelField("Predefined:");
+                GUILayout.EndHorizontal();
+
+                DrawPredefined("DISABLE_ASPECTTRACK", "禁用 AspectTrack 模块");
+                DrawPredefined("DISABLE_BUILDER", "禁用框架构建器");
+                DrawPredefined("HOTFIX_HybridCLR", "启用 HybridCLR 热更新");
+
+                GUILayout.Space(5);
+
+                GUILayout.BeginHorizontal();
+                EditorGUILayout.LabelField("Historical Record:");
                 GUILayout.FlexibleSpace();
-                if (GUILayout.Button("Clear record", EditorStyles.miniButton, GUILayout.Width(90)))
+                if (GUILayout.Button("Clear Record", GUILayout.Width(90)))
                 {
                     _currentScriptingDefine.ClearDefinesRecord();
                 }
@@ -139,17 +174,35 @@ namespace HT.Framework
                 {
                     GUILayout.BeginHorizontal();
                     GUILayout.Space(10);
+                    GUI.enabled = !_currentScriptingDefine.Defined.Contains(_currentScriptingDefine.DefinedsRecord[i]);
                     GUILayout.Label(_currentScriptingDefine.DefinedsRecord[i], "PR PrefabLabel");
                     GUILayout.FlexibleSpace();
-                    if (GUILayout.Button("Use", EditorStyles.miniButton, GUILayout.Width(40)))
+                    if (GUILayout.Button("Use", GUILayout.Width(40)))
                     {
-                        _newDefine += _currentScriptingDefine.DefinedsRecord[i] + ";";
+                        _newDefine += $"{_currentScriptingDefine.DefinedsRecord[i]};";
                     }
+                    GUI.enabled = true;
                     GUILayout.EndHorizontal();
                 }
             }
         }
-        
+        private void DrawPredefined(string define, string tooltip)
+        {
+            GUILayout.BeginHorizontal();
+            GUILayout.Space(10);
+            _predefinedGC.text = define;
+            _predefinedGC.tooltip = tooltip;
+            GUI.enabled = !_currentScriptingDefine.Defined.Contains(define);
+            GUILayout.Label(_predefinedGC, "PR PrefabLabel");
+            GUILayout.FlexibleSpace();
+            if (GUILayout.Button("Use", GUILayout.Width(40)))
+            {
+                _newDefine += $"{define};";
+            }
+            GUI.enabled = true;
+            GUILayout.EndHorizontal();
+        }
+
         private sealed class ScriptingDefine
         {
             /// <summary>
@@ -159,7 +212,7 @@ namespace HT.Framework
             /// <summary>
             /// 宏定义
             /// </summary>
-            public List<string> Defineds { get; } = new List<string>();
+            public HashSet<string> Defineds { get; } = new HashSet<string>();
             /// <summary>
             /// 宏定义记录
             /// </summary>
@@ -198,13 +251,27 @@ namespace HT.Framework
                 string[] defines = define.Split(';');
                 for (int i = 0; i < defines.Length; i++)
                 {
-                    if (defines[i] != "" && !Defineds.Contains(defines[i]))
+                    if (!string.IsNullOrEmpty(defines[i]) && !Defineds.Contains(defines[i]))
                     {
-                        Defined += defines[i] + ";";
+                        Defined += $"{defines[i]};";
                         Defineds.Add(defines[i]);
                     }
                 }
                 AddDefineRecord(define);
+            }
+            /// <summary>
+            /// 移除宏定义
+            /// </summary>
+            public void RemoveDefine(string define)
+            {
+                if (string.IsNullOrEmpty(define))
+                    return;
+
+                if (Defineds.Contains(define))
+                {
+                    Defined = Defined.Replace($"{define};", "");
+                    Defineds.Remove(define);
+                }
             }
             /// <summary>
             /// 清空所有宏定义
@@ -240,9 +307,9 @@ namespace HT.Framework
                 string[] defines = define.Split(';');
                 for (int i = 0; i < defines.Length; i++)
                 {
-                    if (defines[i] != "" && !DefinedsRecord.Contains(defines[i]))
+                    if (!string.IsNullOrEmpty(defines[i]) && !DefinedsRecord.Contains(defines[i]))
                     {
-                        DefinedRecord += defines[i] + ";";
+                        DefinedRecord += $"{defines[i]};";
                         DefinedsRecord.Add(defines[i]);
                     }
                 }
@@ -282,13 +349,13 @@ namespace HT.Framework
                 if (!EditorApplication.isPlaying)
                 {
                     sub.Set(rect.x + rect.width - 40, rect.y - 2, 20, 20);
-                    if (GUI.Button(sub, _addGC, "InvisibleButton"))
+                    if (GUI.Button(sub, _addGC, EditorGlobalTools.Styles.InvisibleButton))
                     {
                         GenericMenu gm = new GenericMenu();
-                        List<Type> types = ReflectionToolkit.GetTypesInRunTimeAssemblies(type =>
+                        List<Type> types = ReflectionToolkit.GetTypesInAllAssemblies(type =>
                         {
                             return type.IsSubclassOf(typeof(DataModelBase));
-                        });
+                        }, false);
                         for (int i = 0; i < types.Count; i++)
                         {
                             int j = i;
@@ -311,7 +378,7 @@ namespace HT.Framework
 
                     sub.Set(rect.x + rect.width - 20, rect.y - 2, 20, 20);
                     GUI.enabled = _dataModelList.index >= 0 && _dataModelList.index < Target.DataModelTypes.Count;
-                    if (GUI.Button(sub, _removeGC, "InvisibleButton"))
+                    if (GUI.Button(sub, _removeGC, EditorGlobalTools.Styles.InvisibleButton))
                     {
                         Undo.RecordObject(target, "Remove Data Model");
                         Target.DataModelTypes.RemoveAt(_dataModelList.index);
@@ -331,9 +398,9 @@ namespace HT.Framework
                     if (isActive && isFocused)
                     {
                         subrect.Set(rect.x + rect.width - 20, rect.y, 20, 20);
-                        if (GUI.Button(subrect, _editGC, "InvisibleButton"))
+                        if (GUI.Button(subrect, _editGC, EditorGlobalTools.Styles.InvisibleButton))
                         {
-                            MonoScriptToolkit.OpenMonoScript(Target.DataModelTypes[index]);
+                            CSharpScriptToolkit.OpenScript(Target.DataModelTypes[index]);
                         }
                     }
                 }
@@ -364,14 +431,14 @@ namespace HT.Framework
             if (!Target.IsPermanentLicense)
             {
                 GUILayout.BeginHorizontal();
-                GUILayout.Label("Licenser", GUILayout.Width(LabelWidth));
+                EditorGUILayout.LabelField("Licenser", GUILayout.Width(LabelWidth));
                 if (GUILayout.Button(Target.LicenserType, EditorGlobalTools.Styles.MiniPopup))
                 {
                     GenericMenu gm = new GenericMenu();
-                    List<Type> types = ReflectionToolkit.GetTypesInRunTimeAssemblies(type =>
+                    List<Type> types = ReflectionToolkit.GetTypesInAllAssemblies(type =>
                     {
                         return type.IsSubclassOf(typeof(LicenserBase)) && !type.IsAbstract;
-                    });
+                    }, false);
                     gm.AddItem(new GUIContent("<None>"), Target.LicenserType == "<None>", () =>
                     {
                         Undo.RecordObject(target, "Set Licenser");
@@ -475,7 +542,7 @@ namespace HT.Framework
                         break;
                     case MainParameter.ParameterType.Prefab:
                         valueProperty = mainParameter.FindPropertyRelative("PrefabValue");
-                        valueProperty.objectReferenceValue = EditorGUI.ObjectField(subrect, valueProperty.objectReferenceValue, typeof(GameObject), true);
+                        valueProperty.objectReferenceValue = EditorGUI.ObjectField(subrect, valueProperty.objectReferenceValue, typeof(GameObject), false);
                         break;
                     case MainParameter.ParameterType.Texture:
                         valueProperty = mainParameter.FindPropertyRelative("TextureValue");
@@ -513,7 +580,13 @@ namespace HT.Framework
         private void SettingGUI()
         {
             GUILayout.BeginHorizontal();
-            GUILayout.Label("Log", EditorStyles.boldLabel);
+            EditorGUILayout.LabelField("GUI", EditorStyles.boldLabel);
+            GUILayout.EndHorizontal();
+
+            PropertyField(nameof(Main.DefaultSkin), "Default Skin");
+
+            GUILayout.BeginHorizontal();
+            EditorGUILayout.LabelField("Log", EditorStyles.boldLabel);
             GUILayout.EndHorizontal();
 
             PropertyField(nameof(Main.IsEnabledLogInfo), "Enabled Log Info");
@@ -521,11 +594,52 @@ namespace HT.Framework
             PropertyField(nameof(Main.IsEnabledLogError), "Enabled Log Error");
 
             GUILayout.BeginHorizontal();
-            GUILayout.Label("Build", EditorStyles.boldLabel);
+            EditorGUILayout.LabelField("Build", EditorStyles.boldLabel);
             GUILayout.EndHorizontal();
 
             PropertyField(nameof(Main.IsAllowSceneAddBuild), "Allow Scene Add Build");
         }
+        #endregion
+
+        #region HybridCLR
+#if HOTFIX_HybridCLR
+        private bool _isInstalled;
+        private string _localVersion;
+
+        private void HybridCLREnable()
+        {
+            string localIl2CppDir = $"{PathToolkit.ProjectPath}HybridCLRData/LocalIl2CppData-{Application.platform}/il2cpp";
+            string hybridclrDir = $"{localIl2CppDir}/libil2cpp/hybridclr";
+            string localVersionFile = $"{localIl2CppDir}/libil2cpp/hybridclr/generated/libil2cpp-version.txt";
+            _isInstalled = Directory.Exists(hybridclrDir);
+            _localVersion = File.Exists(localVersionFile) ? ("v" + File.ReadAllText(localVersionFile, Encoding.UTF8)) : "Unknown";
+        }
+        private void HybridCLRGUI()
+        {
+            GUILayout.BeginHorizontal();
+            EditorGUILayout.LabelField("Installed", _isInstalled.ToString(), EditorStyles.boldLabel);
+            GUILayout.EndHorizontal();
+
+            GUILayout.BeginHorizontal();
+            EditorGUILayout.LabelField("Installed Version", _localVersion, EditorStyles.boldLabel);
+            GUILayout.EndHorizontal();
+
+            EditorGUI.indentLevel = 1;
+
+            PropertyField(nameof(Main.MetadataNames), "Metadata Names");
+            PropertyField(nameof(Main.HotfixAssemblyNames), "Hotfix Assembly Names");
+
+            EditorGUI.indentLevel = 0;
+
+            EditorGUILayout.BeginHorizontal();
+            GUILayout.FlexibleSpace();
+            if (EditorGUILayout.LinkButton("Quick Start"))
+            {
+                Application.OpenURL("https://hybridclr.doc.code-philosophy.com/docs/beginner/quickstart");
+            }
+            EditorGUILayout.EndHorizontal();
+        }
+#endif
         #endregion
     }
 }

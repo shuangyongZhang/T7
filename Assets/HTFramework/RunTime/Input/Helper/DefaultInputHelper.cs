@@ -7,14 +7,14 @@ namespace HT.Framework
     /// <summary>
     /// 默认的输入管理器助手
     /// </summary>
-    public sealed class DefaultInputHelper : IInputHelper
+    internal sealed class DefaultInputHelper : IInputHelper
     {
         private bool _isEnableInputDevice = true;
         private Dictionary<string, VirtualAxis> _virtualAxes = new Dictionary<string, VirtualAxis>();
         private Dictionary<string, VirtualButton> _virtualButtons = new Dictionary<string, VirtualButton>();
 
         /// <summary>
-        /// 输入管理器
+        /// 所属的内置模块
         /// </summary>
         public IModuleManager Module { get; set; }
         /// <summary>
@@ -141,7 +141,7 @@ namespace HT.Framework
         {
             if (_virtualAxes.ContainsKey(name))
             {
-                Log.Error(string.Format("注册虚拟轴线失败：已经存在名为 {0} 的虚拟轴线！", name));
+                Log.Error($"注册虚拟轴线失败：已经存在名为 {name} 的虚拟轴线！");
             }
             else
             {
@@ -156,7 +156,7 @@ namespace HT.Framework
         {
             if (_virtualButtons.ContainsKey(name))
             {
-                Log.Error(string.Format("注册虚拟按钮失败：已经存在名为 {0} 的虚拟按钮！", name));
+                Log.Error($"注册虚拟按钮失败：已经存在名为 {name} 的虚拟按钮！");
             }
             else
             {
@@ -447,7 +447,7 @@ namespace HT.Framework
         /// <param name="deviceType">输入设备类型</param>
         public void LoadDevice(string deviceType)
         {
-            Type type = ReflectionToolkit.GetTypeInRunTimeAssemblies(deviceType);
+            Type type = ReflectionToolkit.GetTypeInRunTimeAssemblies(deviceType, false);
             if (type != null)
             {
                 if (type.IsSubclassOf(typeof(InputDeviceBase)))
@@ -456,12 +456,12 @@ namespace HT.Framework
                 }
                 else
                 {
-                    throw new HTFrameworkException(HTFrameworkModule.Input, "加载输入设备失败：输入设备类 " + deviceType + " 必须继承至输入设备基类：InputDeviceBase！");
+                    throw new HTFrameworkException(HTFrameworkModule.Input, $"加载输入设备失败：输入设备类 {deviceType} 必须继承至输入设备基类：InputDeviceBase！");
                 }
             }
             else
             {
-                throw new HTFrameworkException(HTFrameworkModule.Input, "加载输入设备失败：丢失输入设备类 " + deviceType + "！");
+                throw new HTFrameworkException(HTFrameworkModule.Input, $"加载输入设备失败：丢失输入设备类 {deviceType}！");
             }
         }
         /// <summary>
@@ -486,7 +486,7 @@ namespace HT.Framework
         {
             public string Name { get; private set; }
 
-            private int _lastPressedFrame = -5;
+            private int _pressedFrame = -5;
             private int _releasedFrame = -5;
             private bool _pressed = false;
 
@@ -498,15 +498,17 @@ namespace HT.Framework
             public void Pressed()
             {
                 if (_pressed)
-                {
                     return;
-                }
+
                 _pressed = true;
-                _lastPressedFrame = Time.frameCount;
+                _pressedFrame = Time.frameCount;
             }
             
             public void Released()
             {
+                if (!_pressed)
+                    return;
+
                 _pressed = false;
                 _releasedFrame = Time.frameCount;
             }
@@ -523,7 +525,7 @@ namespace HT.Framework
             {
                 get
                 {
-                    return _lastPressedFrame - Time.frameCount == -1;
+                    return _pressedFrame == Time.frameCount;
                 }
             }
 
@@ -531,7 +533,7 @@ namespace HT.Framework
             {
                 get
                 {
-                    return _releasedFrame == Time.frameCount - 1;
+                    return _releasedFrame == Time.frameCount;
                 }
             }
         }

@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Text;
 using UnityEngine;
 using UnityEngine.Networking;
 
@@ -10,12 +9,12 @@ namespace HT.Framework
     /// <summary>
     /// 默认的Web请求管理器助手
     /// </summary>
-    public sealed class DefaultWebRequestHelper : IWebRequestHelper
+    internal sealed class DefaultWebRequestHelper : IWebRequestHelper
     {
         private WebRequestManager _module;
 
         /// <summary>
-        /// Web请求管理器
+        /// 所属的内置模块
         /// </summary>
         public IModuleManager Module { get; set; }
         /// <summary>
@@ -83,7 +82,8 @@ namespace HT.Framework
         /// <param name="interfaceUrl">接口url</param>
         /// <param name="handler">获取 string 之后的处理者</param>
         /// <param name="offlineHandle">离线模式处理者</param>
-        public void RegisterInterface(string interfaceName, string interfaceUrl, HTFAction<string> handler, HTFAction offlineHandle)
+        /// <param name="errorHandle">出现错误时的处理者</param>
+        public void RegisterInterface(string interfaceName, string interfaceUrl, HTFAction<string> handler, HTFAction offlineHandle, HTFAction<long, string> errorHandle)
         {
             if (!WebInterfaces.ContainsKey(interfaceName))
             {
@@ -91,12 +91,13 @@ namespace HT.Framework
                 wi.Name = interfaceName;
                 wi.Url = interfaceUrl;
                 wi.OfflineHandler = offlineHandle;
+                wi.ErrorHandler = errorHandle;
                 wi.Handler = handler;
                 WebInterfaces.Add(interfaceName, wi);
             }
             else
             {
-                Log.Error(string.Format("注册接口失败：已存在名为 {0} 的网络接口！", interfaceName));
+                Log.Error($"注册接口失败：已存在名为 {interfaceName} 的网络接口！");
             }
         }
         /// <summary>
@@ -106,7 +107,8 @@ namespace HT.Framework
         /// <param name="interfaceUrl">接口url</param>
         /// <param name="handler">获取 Texture2D 之后的处理者</param>
         /// <param name="offlineHandle">离线模式处理者</param>
-        public void RegisterInterface(string interfaceName, string interfaceUrl, HTFAction<Texture2D> handler, HTFAction offlineHandle)
+        /// <param name="errorHandle">出现错误时的处理者</param>
+        public void RegisterInterface(string interfaceName, string interfaceUrl, HTFAction<Texture2D> handler, HTFAction offlineHandle, HTFAction<long, string> errorHandle)
         {
             if (!WebInterfaces.ContainsKey(interfaceName))
             {
@@ -114,12 +116,13 @@ namespace HT.Framework
                 wi.Name = interfaceName;
                 wi.Url = interfaceUrl;
                 wi.OfflineHandler = offlineHandle;
+                wi.ErrorHandler = errorHandle;
                 wi.Handler = handler;
                 WebInterfaces.Add(interfaceName, wi);
             }
             else
             {
-                Log.Error(string.Format("注册接口失败：已存在名为 {0} 的网络接口！", interfaceName));
+                Log.Error($"注册接口失败：已存在名为 {interfaceName} 的网络接口！");
             }
         }
         /// <summary>
@@ -129,7 +132,8 @@ namespace HT.Framework
         /// <param name="interfaceUrl">接口url</param>
         /// <param name="handler">获取 AudioClip 之后的处理者</param>
         /// <param name="offlineHandle">离线模式处理者</param>
-        public void RegisterInterface(string interfaceName, string interfaceUrl, HTFAction<AudioClip> handler, HTFAction offlineHandle)
+        /// <param name="errorHandle">出现错误时的处理者</param>
+        public void RegisterInterface(string interfaceName, string interfaceUrl, HTFAction<AudioClip> handler, HTFAction offlineHandle, HTFAction<long, string> errorHandle)
         {
             if (!WebInterfaces.ContainsKey(interfaceName))
             {
@@ -137,12 +141,13 @@ namespace HT.Framework
                 wi.Name = interfaceName;
                 wi.Url = interfaceUrl;
                 wi.OfflineHandler = offlineHandle;
+                wi.ErrorHandler = errorHandle;
                 wi.Handler = handler;
                 WebInterfaces.Add(interfaceName, wi);
             }
             else
             {
-                Log.Error(string.Format("注册接口失败：已存在名为 {0} 的网络接口！", interfaceName));
+                Log.Error($"注册接口失败：已存在名为 {interfaceName} 的网络接口！");
             }
         }
         /// <summary>
@@ -154,7 +159,8 @@ namespace HT.Framework
         /// <param name="loadingHandler">下载过程中回调</param>
         /// <param name="finishedHandler">下载完成回调</param>
         /// <param name="offlineHandle">离线模式处理者</param>
-        public void RegisterInterface(string interfaceName, string interfaceUrl, string savePath, HTFAction<float> loadingHandler, HTFAction<bool> finishedHandler, HTFAction offlineHandle)
+        /// <param name="errorHandle">出现错误时的处理者</param>
+        public void RegisterInterface(string interfaceName, string interfaceUrl, string savePath, HTFAction<float> loadingHandler, HTFAction<bool> finishedHandler, HTFAction offlineHandle, HTFAction<long, string> errorHandle)
         {
             if (!WebInterfaces.ContainsKey(interfaceName))
             {
@@ -162,6 +168,7 @@ namespace HT.Framework
                 wi.Name = interfaceName;
                 wi.Url = interfaceUrl;
                 wi.OfflineHandler = offlineHandle;
+                wi.ErrorHandler = errorHandle;
                 wi.LoadingHandler = loadingHandler;
                 wi.FinishedHandler = finishedHandler;
                 wi.Path = savePath;
@@ -169,7 +176,7 @@ namespace HT.Framework
             }
             else
             {
-                Log.Error(string.Format("注册接口失败：已存在名为 {0} 的网络接口！", interfaceName));
+                Log.Error($"注册接口失败：已存在名为 {interfaceName} 的网络接口！");
             }
         }
         /// <summary>
@@ -177,18 +184,20 @@ namespace HT.Framework
         /// </summary>
         /// <param name="interfaceName">接口名称</param>
         /// <param name="interfaceUrl">接口url</param>
-        public void RegisterInterface(string interfaceName, string interfaceUrl)
+        /// <param name="errorHandle">出现错误时的处理者</param>
+        public void RegisterInterface(string interfaceName, string interfaceUrl, HTFAction<long, string> errorHandle)
         {
             if (!WebInterfaces.ContainsKey(interfaceName))
             {
                 WebInterfacePost wi = Main.m_ReferencePool.Spawn<WebInterfacePost>();
                 wi.Name = interfaceName;
                 wi.Url = interfaceUrl;
+                wi.ErrorHandler = errorHandle;
                 WebInterfaces.Add(interfaceName, wi);
             }
             else
             {
-                Log.Error(string.Format("注册接口失败：已存在名为 {0} 的网络接口！", interfaceName));
+                Log.Error($"注册接口失败：已存在名为 {interfaceName} 的网络接口！");
             }
         }
         /// <summary>
@@ -261,47 +270,54 @@ namespace HT.Framework
             }
             else
             {
-                throw new HTFrameworkException(HTFrameworkModule.WebRequest, string.Format("发起网络请求失败：不存在名为 {0} 的网络接口！", interfaceName));
+                throw new HTFrameworkException(HTFrameworkModule.WebRequest, $"发起网络请求失败：不存在名为 {interfaceName} 的网络接口！");
             }
             return null;
         }
         private IEnumerator SendRequestCoroutine(WebInterfaceBase wif, params string[] parameter)
         {
-            StringBuilder builder = new StringBuilder();
-            builder.Append(wif.Url);
+            StringToolkit.BeginConcat();
+            StringToolkit.Concat(wif.Url);
             if (parameter.Length > 0)
             {
-                builder.Append("?");
-                builder.Append(parameter[0]);
+                StringToolkit.Concat("?");
+                StringToolkit.Concat(parameter[0]);
             }
             for (int i = 1; i < parameter.Length; i++)
             {
-                builder.Append("&");
-                builder.Append(parameter[i]);
+                StringToolkit.Concat("&");
+                StringToolkit.Concat(parameter[i]);
             }
-            string url = builder.ToString();
+            string url = StringToolkit.EndConcat();
 
             using (UnityWebRequest request = UnityWebRequest.Get(url))
             {
                 DateTime begin = DateTime.Now;
 
+                if (wif.RequestHeaders != null)
+                {
+                    foreach (var header in wif.RequestHeaders)
+                    {
+                        request.SetRequestHeader(header.Key, header.Value);
+                    }
+                }
                 wif.OnSetDownloadHandler(request);
                 yield return request.SendWebRequest();
 
                 DateTime end = DateTime.Now;
 
-                if (!request.isNetworkError && !request.isHttpError)
+                if (request.result == UnityWebRequest.Result.Success)
                 {
-                    Log.Info(string.Format("[{0}] 发起网络请求：[{1}] {2}\r\n[{3}] 收到回复：{4}字节  string:{5}"
-                        , begin.ToString("mm:ss:fff"), wif.Name, url, end.ToString("mm:ss:fff"), request.downloadHandler.data.Length, wif.OnGetDownloadString(request.downloadHandler)));
+                    LogSuccessDetail(wif, request.downloadHandler, url, begin, end);
 
                     wif.OnRequestFinished(request.downloadHandler);
                 }
                 else
                 {
-                    Log.Error(string.Format("[{0}] 发起网络请求：[{1}] {2}\r\n[{3}] 网络请求出错：{4}", begin.ToString("mm:ss:fff"), wif, url, end.ToString("mm:ss:fff"), request.error));
+                    LogFailDetail(wif, request.error, url, begin, end);
 
-                    wif.OnRequestFinished(null);
+                    wif.OnRequestFinished(request.downloadHandler);
+                    wif.ErrorHandler?.Invoke(request.responseCode, request.error);
                 }
             }
         }
@@ -326,7 +342,7 @@ namespace HT.Framework
             }
             else
             {
-                throw new HTFrameworkException(HTFrameworkModule.WebRequest, string.Format("发起网络请求失败：不存在名为 {0} 的网络接口！", interfaceName));
+                throw new HTFrameworkException(HTFrameworkModule.WebRequest, $"发起网络请求失败：不存在名为 {interfaceName} 的网络接口！");
             }
             return null;
         }
@@ -338,23 +354,89 @@ namespace HT.Framework
             {
                 DateTime begin = DateTime.Now;
 
+                if (wif.RequestHeaders != null)
+                {
+                    foreach (var header in wif.RequestHeaders)
+                    {
+                        request.SetRequestHeader(header.Key, header.Value);
+                    }
+                }
                 wif.OnSetDownloadHandler(request);
                 yield return request.SendWebRequest();
 
                 DateTime end = DateTime.Now;
 
-                if (!request.isNetworkError && !request.isHttpError)
+                if (request.result == UnityWebRequest.Result.Success)
                 {
-                    Log.Info(string.Format("[{0}] 发起网络请求：[{1}] {2}\r\n[{3}] 收到回复：{4}字节  string:{5}"
-                        , begin.ToString("mm:ss:fff"), wif.Name, url, end.ToString("mm:ss:fff"), request.downloadHandler.data.Length, wif.OnGetDownloadString(request.downloadHandler)));
+                    LogSuccessDetail(wif, request.downloadHandler, url, begin, end);
 
                     wif.OnRequestFinished(request.downloadHandler);
                 }
                 else
                 {
-                    Log.Error(string.Format("[{0}] 发起网络请求：[{1}] {2}\r\n[{3}] 网络请求出错：{4}", begin.ToString("mm:ss:fff"), wif, url, end.ToString("mm:ss:fff"), request.error));
+                    LogFailDetail(wif, request.error, url, begin, end);
 
-                    wif.OnRequestFinished(null);
+                    wif.OnRequestFinished(request.downloadHandler);
+                    wif.ErrorHandler?.Invoke(request.responseCode, request.error);
+                }
+            }
+        }
+        /// <summary>
+        /// 发起提交Json数据请求
+        /// </summary>
+        /// <param name="interfaceName">接口名称</param>
+        /// <param name="jsonData">json数据</param>
+        /// <returns>请求的协程</returns>
+        public Coroutine SendPostJson(string interfaceName, string jsonData)
+        {
+            if (WebInterfaces.ContainsKey(interfaceName))
+            {
+                if (_module.IsOfflineState || WebInterfaces[interfaceName].IsOffline || !IsConnectedInternet)
+                {
+                    WebInterfaces[interfaceName].OfflineHandler?.Invoke();
+                }
+                else
+                {
+                    return Main.Current.StartCoroutine(SendPostJsonCoroutine(WebInterfaces[interfaceName], jsonData));
+                }
+            }
+            else
+            {
+                throw new HTFrameworkException(HTFrameworkModule.WebRequest, $"发起提交Json数据请求失败：不存在名为 {interfaceName} 的网络接口！");
+            }
+            return null;
+        }
+        private IEnumerator SendPostJsonCoroutine(WebInterfaceBase wif, string jsonData)
+        {
+            string url = wif.Url;
+            using (UnityWebRequest request = UnityWebRequest.Post(url, jsonData, "application/json"))
+            {
+                DateTime begin = DateTime.Now;
+
+                if (wif.RequestHeaders != null)
+                {
+                    foreach (var header in wif.RequestHeaders)
+                    {
+                        request.SetRequestHeader(header.Key, header.Value);
+                    }
+                }
+                wif.OnSetDownloadHandler(request);
+                yield return request.SendWebRequest();
+
+                DateTime end = DateTime.Now;
+
+                if (request.result == UnityWebRequest.Result.Success)
+                {
+                    LogSuccessDetail(wif, request.downloadHandler, url, begin, end);
+
+                    wif.OnRequestFinished(request.downloadHandler);
+                }
+                else
+                {
+                    LogFailDetail(wif, request.error, url, begin, end);
+
+                    wif.OnRequestFinished(request.downloadHandler);
+                    wif.ErrorHandler?.Invoke(request.responseCode, request.error);
                 }
             }
         }
@@ -379,30 +461,37 @@ namespace HT.Framework
             }
             else
             {
-                throw new HTFrameworkException(HTFrameworkModule.WebRequest, string.Format("发起下载文件请求失败：不存在名为 {0} 的文件请求接口！", interfaceName));
+                throw new HTFrameworkException(HTFrameworkModule.WebRequest, $"发起下载文件请求失败：不存在名为 {interfaceName} 的文件请求接口！");
             }
             return null;
         }
         private IEnumerator SendDownloadFileCoroutine(WebInterfaceDownloadFile wif, params string[] parameter)
         {
-            StringBuilder builder = new StringBuilder();
-            builder.Append(wif.Url);
+            StringToolkit.BeginConcat();
+            StringToolkit.Concat(wif.Url);
             if (parameter.Length > 0)
             {
-                builder.Append("?");
-                builder.Append(parameter[0]);
+                StringToolkit.Concat("?");
+                StringToolkit.Concat(parameter[0]);
             }
             for (int i = 1; i < parameter.Length; i++)
             {
-                builder.Append("&");
-                builder.Append(parameter[i]);
+                StringToolkit.Concat("&");
+                StringToolkit.Concat(parameter[i]);
             }
-            string url = builder.ToString();
+            string url = StringToolkit.EndConcat();
             
             using (UnityWebRequest request = UnityWebRequest.Get(url))
             {
                 DateTime begin = DateTime.Now;
 
+                if (wif.RequestHeaders != null)
+                {
+                    foreach (var header in wif.RequestHeaders)
+                    {
+                        request.SetRequestHeader(header.Key, header.Value);
+                    }
+                }
                 wif.OnSetDownloadHandler(request);
                 request.SendWebRequest();
                 while (!request.isDone)
@@ -411,25 +500,142 @@ namespace HT.Framework
                     yield return null;
                 }
                 wif.OnLoading(1f);
-                yield return null;
 
                 DateTime end = DateTime.Now;
 
-                if (!request.isNetworkError && !request.isHttpError)
+                if (request.result == UnityWebRequest.Result.Success)
                 {
-                    Log.Info(string.Format("[{0}] 发起下载文件请求：[{1}] {2}\r\n[{3}] 成功下载至：{4}"
-                        , begin.ToString("mm:ss:fff"), wif.Name, url, end.ToString("mm:ss:fff"), wif.Path));
+                    LogLoadFileSuccessDetail(wif, url, begin, end);
 
                     wif.OnFinished(true);
                 }
                 else
                 {
-                    Log.Error(string.Format("[{0}] 发起下载文件请求：[{1}] {2}\r\n[{3}] 下载失败：{4}"
-                        , begin.ToString("mm:ss:fff"), wif.Name, url, end.ToString("mm:ss:fff"), request.error));
+                    LogLoadFileFailDetail(wif, request.error, url, begin, end);
 
                     wif.OnFinished(false);
+                    wif.ErrorHandler?.Invoke(request.responseCode, request.error);
                 }
             }
+        }
+
+        /// <summary>
+        /// 打印Web网络请求细节（请求成功）
+        /// </summary>
+        /// <param name="wif">网络接口</param>
+        /// <param name="handler">请求下载处理器</param>
+        /// <param name="url">请求链接</param>
+        /// <param name="beginTime">开始时间</param>
+        /// <param name="endTime">结束时间</param>
+        private void LogSuccessDetail(WebInterfaceBase wif, DownloadHandler handler, string url, DateTime beginTime, DateTime endTime)
+        {
+            if (!_module.IsLogDetail)
+                return;
+
+#if UNITY_EDITOR
+            string apiStr = $"<color=cyan>{wif.Name}</color>";
+            string urlStr = $"<color=cyan>{url}</color>";
+            string dataStr = $"<color=cyan>{handler.data.Length}</color>";
+            string begin = $"<color=cyan>{beginTime:mm:ss:fff}</color>";
+            string end = $"<color=cyan>{endTime:mm:ss:fff}</color>";
+            string content = wif.OnGetDownloadString(handler);
+            string contentName = Log.CustomLogClick("回复内容（点击可复制）：", () =>
+            {
+                GUIUtility.systemCopyBuffer = content;
+            });
+#else
+            string apiStr = wif.Name;
+            string urlStr = url;
+            string dataStr = handler.data.Length.ToString();
+            string begin = beginTime.ToString("mm:ss:fff");
+            string end = endTime.ToString("mm:ss:fff");
+            string content = wif.OnGetDownloadString(handler);
+            string contentName = "回复内容：";
+#endif
+            Log.Info($"【发起Web网络请求】接口：{apiStr}，URL：{urlStr}，收到回复：{dataStr}字节，开始时间：{begin}，结束时间：{end}，{contentName}{content}。");
+        }
+        /// <summary>
+        /// 打印Web网络请求细节（请求失败）
+        /// </summary>
+        /// <param name="wif">网络接口</param>
+        /// <param name="error">错误信息</param>
+        /// <param name="url">请求链接</param>
+        /// <param name="beginTime">开始时间</param>
+        /// <param name="endTime">结束时间</param>
+        private void LogFailDetail(WebInterfaceBase wif, string error, string url, DateTime beginTime, DateTime endTime)
+        {
+            if (!_module.IsLogDetail)
+                return;
+
+#if UNITY_EDITOR
+            string apiStr = $"<color=cyan>{wif.Name}</color>";
+            string urlStr = $"<color=cyan>{url}</color>";
+            string errorStr = $"<color=cyan>{error}</color>";
+            string begin = $"<color=cyan>{beginTime:mm:ss:fff}</color>";
+            string end = $"<color=cyan>{endTime:mm:ss:fff}</color>";
+#else
+            string apiStr = wif.Name;
+            string urlStr = url;
+            string errorStr = error;
+            string begin = beginTime.ToString("mm:ss:fff");
+            string end = endTime.ToString("mm:ss:fff");
+#endif
+            Log.Error($"【发起Web网络请求】接口：{apiStr}，URL：{urlStr}，请求失败：{errorStr}，开始时间：{begin}，结束时间：{end}。");
+        }
+        /// <summary>
+        /// 打印下载文件细节（请求成功）
+        /// </summary>
+        /// <param name="wif">网络接口</param>
+        /// <param name="url">请求链接</param>
+        /// <param name="beginTime">开始时间</param>
+        /// <param name="endTime">结束时间</param>
+        private void LogLoadFileSuccessDetail(WebInterfaceDownloadFile wif, string url, DateTime beginTime, DateTime endTime)
+        {
+            if (!_module.IsLogDetail)
+                return;
+
+#if UNITY_EDITOR
+            string apiStr = $"<color=cyan>{wif.Name}</color>";
+            string urlStr = $"<color=cyan>{url}</color>";
+            string path = $"<color=cyan>{wif.Path}</color>";
+            string begin = $"<color=cyan>{beginTime:mm:ss:fff}</color>";
+            string end = $"<color=cyan>{endTime:mm:ss:fff}</color>";
+#else
+            string apiStr = wif.Name;
+            string urlStr = url;
+            string path = wif.Path;
+            string begin = beginTime.ToString("mm:ss:fff");
+            string end = endTime.ToString("mm:ss:fff");
+#endif
+            Log.Info($"【发起下载文件请求】接口：{apiStr}，URL：{urlStr}，保存路径：{path}，开始时间：{begin}，结束时间：{end}。");
+        }
+        /// <summary>
+        /// 打印下载文件细节（请求失败）
+        /// </summary>
+        /// <param name="wif">网络接口</param>
+        /// <param name="error">错误信息</param>
+        /// <param name="url">请求链接</param>
+        /// <param name="beginTime">开始时间</param>
+        /// <param name="endTime">结束时间</param>
+        private void LogLoadFileFailDetail(WebInterfaceDownloadFile wif, string error, string url, DateTime beginTime, DateTime endTime)
+        {
+            if (!_module.IsLogDetail)
+                return;
+
+#if UNITY_EDITOR
+            string apiStr = $"<color=cyan>{wif.Name}</color>";
+            string urlStr = $"<color=cyan>{url}</color>";
+            string errorStr = $"<color=cyan>{error}</color>";
+            string begin = $"<color=cyan>{beginTime:mm:ss:fff}</color>";
+            string end = $"<color=cyan>{endTime:mm:ss:fff}</color>";
+#else
+            string apiStr = wif.Name;
+            string urlStr = url;
+            string errorStr = error;
+            string begin = beginTime.ToString("mm:ss:fff");
+            string end = endTime.ToString("mm:ss:fff");
+#endif
+            Log.Error($"【发起下载文件请求】接口：{apiStr}，URL：{urlStr}，下载失败：{errorStr}，开始时间：{begin}，结束时间：{end}。");
         }
     }
 }

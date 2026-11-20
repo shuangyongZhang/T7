@@ -44,10 +44,10 @@ namespace HT.Framework
 
             _components.Clear();
             _componentInfos.Clear();
-            List<Type> types = ReflectionToolkit.GetTypesInRunTimeAssemblies((type) =>
+            List<Type> types = ReflectionToolkit.GetTypesInAllAssemblies((type) =>
             {
                 return type.IsSubclassOf(typeof(ECS_Component)) && !type.IsAbstract;
-            });
+            }, false);
             for (int i = 0; i < types.Count; i++)
             {
                 _components.Add(types[i]);
@@ -56,10 +56,10 @@ namespace HT.Framework
 
             _systems.Clear();
             _systemInfos.Clear();
-            types = ReflectionToolkit.GetTypesInRunTimeAssemblies((type) =>
+            types = ReflectionToolkit.GetTypesInAllAssemblies((type) =>
             {
                 return type.IsSubclassOf(typeof(ECS_System)) && !type.IsAbstract;
-            });
+            }, false);
             for (int i = 0; i < types.Count; i++)
             {
                 _systems.Add(types[i]);
@@ -95,7 +95,7 @@ namespace HT.Framework
             GUILayout.BeginVertical(EditorGlobalTools.Styles.Box);
 
             GUILayout.BeginHorizontal();
-            GUILayout.Label("Components", EditorStyles.boldLabel);
+            EditorGUILayout.LabelField("Components", EditorStyles.boldLabel);
             GUILayout.EndHorizontal();
 
             _scrollComponent = GUILayout.BeginScrollView(_scrollComponent);
@@ -107,7 +107,7 @@ namespace HT.Framework
                 GUILayout.BeginHorizontal();
                 GUI.color = info.IsExist ? Color.white : Color.gray;
                 GUILayout.Space(20);
-                GUILayout.Label((i + 1) + ".", GUILayout.Width(30));
+                GUILayout.Label($"{i + 1}.", GUILayout.Width(30));
                 GUILayout.Toggle(info.IsExist, "", GUILayout.Width(20));
                 GUILayout.Label(info.Name);
                 GUI.color = Color.white;
@@ -143,7 +143,7 @@ namespace HT.Framework
             GUILayout.BeginVertical(EditorGlobalTools.Styles.Box);
 
             GUILayout.BeginHorizontal();
-            GUILayout.Label("Systems", EditorStyles.boldLabel);
+            EditorGUILayout.LabelField("Systems", EditorStyles.boldLabel);
             GUILayout.EndHorizontal();
 
             _scrollSystem = GUILayout.BeginScrollView(_scrollSystem);
@@ -155,7 +155,7 @@ namespace HT.Framework
                 GUILayout.BeginHorizontal();
                 GUI.color = info.IsStar ? Color.white : Color.gray;
                 GUILayout.Space(20);
-                GUILayout.Label((i + 1) + ".", GUILayout.Width(30));
+                GUILayout.Label($"{i + 1}.", GUILayout.Width(30));
                 GUILayout.Toggle(info.IsStar, "", GUILayout.Width(20));
                 GUILayout.Label(info.Name);
                 GUI.color = Color.white;
@@ -272,7 +272,8 @@ namespace HT.Framework
             public ECS_ComponentInfo(Type type)
             {
                 ComponentNameAttribute cna = type.GetCustomAttribute<ComponentNameAttribute>();
-                Name = string.Format("{0} ({1})", cna != null ? cna.Name : "未命名", type.FullName);
+                string name = cna != null ? cna.Name : "未命名";
+                Name = $"{name} ({type.FullName})";
                 ComponentType = type;
                 IsExist = false;
             }
@@ -287,7 +288,8 @@ namespace HT.Framework
             public ECS_SystemInfo(Type type, Dictionary<Type, ECS_ComponentInfo> components)
             {
                 SystemNameAttribute mna = type.GetCustomAttribute<SystemNameAttribute>();
-                Name = string.Format("{0} ({1})", mna != null ? mna.Name : "未命名", type.FullName);
+                string name = mna != null ? mna.Name : "未命名";
+                Name = $"{name} ({type.FullName})";
                 SystemType = type;
                 StarComponents = new List<ECS_ComponentInfo>();
                 StarComponentAttribute sca = type.GetCustomAttribute<StarComponentAttribute>();

@@ -9,7 +9,7 @@ using UObject = UnityEngine.Object;
 namespace HT.Framework
 {
     /// <summary>
-    /// 自定义编辑器行为基类
+    /// 自定义检视器基类
     /// </summary>
     /// <typeparam name="E">自定义的组件</typeparam>
     public abstract class HTFEditor<E> : Editor where E : UObject
@@ -50,11 +50,11 @@ namespace HT.Framework
         /// <summary>
         /// 控件标签的标准宽度
         /// </summary>
-        protected float LabelWidth
+        protected virtual float LabelWidth
         {
             get
             {
-                return EditorGUIUtility.labelWidth - 5;
+                return EditorGUIUtility.labelWidth;
             }
         }
 
@@ -85,7 +85,7 @@ namespace HT.Framework
             {
                 _CSDNGC = new GUIContent();
                 _CSDNGC.image = AssetDatabase.LoadAssetAtPath<Texture>("Assets/HTFramework/Editor/Main/Texture/CSDN.png");
-                _CSDNGC.tooltip = "CSDN";
+                _CSDNGC.tooltip = "CSDN Blog";
             }
             _serializedPropertys.Clear();
             
@@ -116,9 +116,11 @@ namespace HT.Framework
 
             if (_GithubURL != null || _GiteeURL != null || _CSDNURL != null)
             {
-                GUILayout.BeginHorizontal();
+                EditorGUILayout.BeginHorizontal();
+                GUI.enabled = false;
+                EditorGUILayout.LabelField("Document", GUILayout.Width(LabelWidth));
+                GUI.enabled = true;
                 GUILayout.FlexibleSpace();
-
                 if (_GiteeURL != null)
                 {
                     GUI.enabled = !string.IsNullOrEmpty(_GiteeURL.URL);
@@ -129,7 +131,6 @@ namespace HT.Framework
                     EditorGUIUtility.AddCursorRect(GUILayoutUtility.GetLastRect(), MouseCursor.Link);
                     GUI.enabled = true;
                 }
-
                 if (_GithubURL != null)
                 {
                     GUI.enabled = !string.IsNullOrEmpty(_GithubURL.URL);
@@ -140,7 +141,6 @@ namespace HT.Framework
                     EditorGUIUtility.AddCursorRect(GUILayoutUtility.GetLastRect(), MouseCursor.Link);
                     GUI.enabled = true;
                 }
-
                 if (_CSDNURL != null)
                 {
                     GUI.enabled = !string.IsNullOrEmpty(_CSDNURL.URL);
@@ -151,8 +151,7 @@ namespace HT.Framework
                     EditorGUIUtility.AddCursorRect(GUILayoutUtility.GetLastRect(), MouseCursor.Link);
                     GUI.enabled = true;
                 }
-
-                GUILayout.EndHorizontal();
+                EditorGUILayout.EndHorizontal();
             }
 
             serializedObject.Update();
@@ -169,15 +168,15 @@ namespace HT.Framework
                 GUI.backgroundColor = Color.cyan;
                 GUI.color = Color.white;
 
-                GUILayout.BeginVertical(EditorStyles.helpBox);
+                EditorGUILayout.BeginVertical(EditorStyles.helpBox);
 
-                GUILayout.BeginHorizontal();
-                GUILayout.Label("Runtime Data", EditorStyles.boldLabel);
-                GUILayout.EndHorizontal();
+                EditorGUILayout.BeginHorizontal();
+                EditorGUILayout.LabelField("Runtime Data", EditorStyles.boldLabel);
+                EditorGUILayout.EndHorizontal();
 
                 OnInspectorRuntimeGUI();
 
-                GUILayout.EndVertical();
+                EditorGUILayout.EndVertical();
             }
 
             serializedObject.ApplyModifiedProperties();
@@ -290,235 +289,183 @@ namespace HT.Framework
         /// <summary>
         /// 制作一个Toggle
         /// </summary>
-        protected void Toggle(bool value, out bool outValue, string name, params GUILayoutOption[] options)
+        protected void Toggle(ref bool value, string name, params GUILayoutOption[] options)
         {
             EditorGUI.BeginChangeCheck();
             bool newValue = EditorGUILayout.Toggle(name, value, options);
             if (EditorGUI.EndChangeCheck())
             {
                 Undo.RecordObject(target, "Set bool value");
-                outValue = newValue;
+                value = newValue;
                 HasChanged();
-            }
-            else
-            {
-                outValue = value;
             }
         }
         /// <summary>
         /// 制作一个Toggle
         /// </summary>
-        protected void Toggle(bool value, out bool outValue, string name, GUIStyle style, params GUILayoutOption[] options)
+        protected void Toggle(ref bool value, string name, GUIStyle style, params GUILayoutOption[] options)
         {
             EditorGUI.BeginChangeCheck();
             bool newValue = EditorGUILayout.Toggle(name, value, style, options);
             if (EditorGUI.EndChangeCheck())
             {
                 Undo.RecordObject(target, "Set bool value");
-                outValue = newValue;
+                value = newValue;
                 HasChanged();
-            }
-            else
-            {
-                outValue = value;
             }
         }
         /// <summary>
         /// 制作一个IntSlider
         /// </summary>
-        protected void IntSlider(int value, out int outValue, int leftValue, int rightValue, string name, params GUILayoutOption[] options)
+        protected void IntSlider(ref int value, int leftValue, int rightValue, string name, params GUILayoutOption[] options)
         {
             EditorGUI.BeginChangeCheck();
             int newValue = EditorGUILayout.IntSlider(name, value, leftValue, rightValue, options);
             if (EditorGUI.EndChangeCheck())
             {
                 Undo.RecordObject(target, "Set int value");
-                outValue = newValue;
+                value = newValue;
                 HasChanged();
-            }
-            else
-            {
-                outValue = value;
             }
         }
         /// <summary>
         /// 制作一个FloatSlider
         /// </summary>
-        protected void FloatSlider(float value, out float outValue, float leftValue, float rightValue, string name, params GUILayoutOption[] options)
+        protected void FloatSlider(ref float value, float leftValue, float rightValue, string name, params GUILayoutOption[] options)
         {
             EditorGUI.BeginChangeCheck();
             float newValue = EditorGUILayout.Slider(name, value, leftValue, rightValue, options);
             if (EditorGUI.EndChangeCheck())
             {
                 Undo.RecordObject(target, "Set float value");
-                outValue = newValue;
+                value = newValue;
                 HasChanged();
-            }
-            else
-            {
-                outValue = value;
             }
         }
         /// <summary>
         /// 制作一个IntField
         /// </summary>
-        protected void IntField(int value, out int outValue, string name, params GUILayoutOption[] options)
+        protected void IntField(ref int value, string name, params GUILayoutOption[] options)
         {
             EditorGUI.BeginChangeCheck();
             int newValue = EditorGUILayout.IntField(name, value, options);
             if (EditorGUI.EndChangeCheck())
             {
                 Undo.RecordObject(target, "Set int value");
-                outValue = newValue;
+                value = newValue;
                 HasChanged();
-            }
-            else
-            {
-                outValue = value;
             }
         }
         /// <summary>
         /// 制作一个FloatField
         /// </summary>
-        protected void FloatField(float value, out float outValue, string name, params GUILayoutOption[] options)
+        protected void FloatField(ref float value, string name, params GUILayoutOption[] options)
         {
             EditorGUI.BeginChangeCheck();
             float newValue = EditorGUILayout.FloatField(name, value, options);
             if (EditorGUI.EndChangeCheck())
             {
                 Undo.RecordObject(target, "Set float value");
-                outValue = newValue;
+                value = newValue;
                 HasChanged();
-            }
-            else
-            {
-                outValue = value;
             }
         }
         /// <summary>
         /// 制作一个TextField
         /// </summary>
-        protected void TextField(string value, out string outValue, string name, params GUILayoutOption[] options)
+        protected void TextField(ref string value, string name, params GUILayoutOption[] options)
         {
             EditorGUI.BeginChangeCheck();
             string newValue = EditorGUILayout.TextField(name, value, options);
             if (EditorGUI.EndChangeCheck())
             {
                 Undo.RecordObject(target, "Set string value");
-                outValue = newValue;
+                value = newValue;
                 HasChanged();
-            }
-            else
-            {
-                outValue = value;
             }
         }
         /// <summary>
         /// 制作一个PasswordField
         /// </summary>
-        protected void PasswordField(string value, out string outValue, string name, params GUILayoutOption[] options)
+        protected void PasswordField(ref string value, string name, params GUILayoutOption[] options)
         {
             EditorGUI.BeginChangeCheck();
             string newValue = EditorGUILayout.PasswordField(name, value, options);
             if (EditorGUI.EndChangeCheck())
             {
                 Undo.RecordObject(target, "Set string value");
-                outValue = newValue;
+                value = newValue;
                 HasChanged();
-            }
-            else
-            {
-                outValue = value;
             }
         }
         /// <summary>
         /// 制作一个ObjectField
         /// </summary>
-        protected void ObjectField<T>(T value, out T outValue, bool allowSceneObjects, string name, params GUILayoutOption[] options) where T : UnityEngine.Object
+        protected void ObjectField<T>(ref T value, bool allowSceneObjects, string name, params GUILayoutOption[] options) where T : UObject
         {
             EditorGUI.BeginChangeCheck();
             T newValue = EditorGUILayout.ObjectField(name, value, typeof(T), allowSceneObjects, options) as T;
             if (EditorGUI.EndChangeCheck())
             {
                 Undo.RecordObject(target, "Set object value");
-                outValue = newValue;
+                value = newValue;
                 HasChanged();
-            }
-            else
-            {
-                outValue = value;
             }
         }
         /// <summary>
         /// 制作一个Vector2Field
         /// </summary>
-        protected void Vector2Field(Vector2 value, out Vector2 outValue, string name, params GUILayoutOption[] options)
+        protected void Vector2Field(ref Vector2 value, string name, params GUILayoutOption[] options)
         {
             EditorGUI.BeginChangeCheck();
             Vector2 newValue = EditorGUILayout.Vector2Field(name, value, options);
             if (EditorGUI.EndChangeCheck())
             {
                 Undo.RecordObject(target, "Set vector2 value");
-                outValue = newValue;
+                value = newValue;
                 HasChanged();
-            }
-            else
-            {
-                outValue = value;
             }
         }
         /// <summary>
         /// 制作一个Vector3Field
         /// </summary>
-        protected void Vector3Field(Vector3 value, out Vector3 outValue, string name, params GUILayoutOption[] options)
+        protected void Vector3Field(ref Vector3 value, string name, params GUILayoutOption[] options)
         {
             EditorGUI.BeginChangeCheck();
             Vector3 newValue = EditorGUILayout.Vector3Field(name, value, options);
             if (EditorGUI.EndChangeCheck())
             {
                 Undo.RecordObject(target, "Set vector3 value");
-                outValue = newValue;
+                value = newValue;
                 HasChanged();
-            }
-            else
-            {
-                outValue = value;
             }
         }
         /// <summary>
         /// 制作一个枚举下拉按钮
         /// </summary>
-        protected void EnumPopup<T>(Enum value, out T outValue, string name, params GUILayoutOption[] options) where T : Enum
+        protected void EnumPopup(ref Enum value, string name, params GUILayoutOption[] options)
         {
             EditorGUI.BeginChangeCheck();
             Enum newValue = EditorGUILayout.EnumPopup(name, value, options);
             if (EditorGUI.EndChangeCheck())
             {
                 Undo.RecordObject(target, "Set enum value");
-                outValue = (T)newValue;
+                value = newValue;
                 HasChanged();
-            }
-            else
-            {
-                outValue = (T)value;
             }
         }
         /// <summary>
         /// 制作一个ColorField
         /// </summary>
-        protected void ColorField(Color value, out Color outValue, string name, params GUILayoutOption[] options)
+        protected void ColorField(ref Color value, string name, params GUILayoutOption[] options)
         {
             EditorGUI.BeginChangeCheck();
             Color newValue = EditorGUILayout.ColorField(name, value, options);
             if (EditorGUI.EndChangeCheck())
             {
                 Undo.RecordObject(target, "Set color value");
-                outValue = newValue;
+                value = newValue;
                 HasChanged();
-            }
-            else
-            {
-                outValue = value;
             }
         }
 
@@ -530,7 +477,7 @@ namespace HT.Framework
         /// <param name="options">布局操作</param>
         protected void PropertyField(string propertyName, bool isLine = true, params GUILayoutOption[] options)
         {
-            if (isLine) GUILayout.BeginHorizontal();
+            if (isLine) EditorGUILayout.BeginHorizontal();
 
             SerializedProperty serializedProperty = GetProperty(propertyName);
             if (serializedProperty != null)
@@ -540,10 +487,10 @@ namespace HT.Framework
             }
             else
             {
-                EditorGUILayout.HelpBox("Property [" + propertyName + "] not found!", MessageType.Error);
+                EditorGUILayout.HelpBox($"Property [{propertyName}] not found!", MessageType.Error);
             }
 
-            if (isLine) GUILayout.EndHorizontal();
+            if (isLine) EditorGUILayout.EndHorizontal();
         }
         /// <summary>
         /// 制作一个序列化属性字段
@@ -554,7 +501,7 @@ namespace HT.Framework
         /// <param name="options">布局操作</param>
         protected void PropertyField(string propertyName, string name, bool isLine = true, params GUILayoutOption[] options)
         {
-            if (isLine) GUILayout.BeginHorizontal();
+            if (isLine) EditorGUILayout.BeginHorizontal();
 
             SerializedProperty serializedProperty = GetProperty(propertyName);
             if (serializedProperty != null)
@@ -564,10 +511,10 @@ namespace HT.Framework
             }
             else
             {
-                EditorGUILayout.HelpBox("Property [" + propertyName + "] not found!", MessageType.Error);
+                EditorGUILayout.HelpBox($"Property [{propertyName}] not found!", MessageType.Error);
             }
 
-            if (isLine) GUILayout.EndHorizontal();
+            if (isLine) EditorGUILayout.EndHorizontal();
         }
         /// <summary>
         /// 制作一个序列化属性字段
@@ -578,7 +525,7 @@ namespace HT.Framework
         /// <param name="options">布局操作</param>
         protected void PropertyField(string propertyName, bool includeChildren, bool isLine = true, params GUILayoutOption[] options)
         {
-            if (isLine) GUILayout.BeginHorizontal();
+            if (isLine) EditorGUILayout.BeginHorizontal();
 
             SerializedProperty serializedProperty = GetProperty(propertyName);
             if (serializedProperty != null)
@@ -588,10 +535,10 @@ namespace HT.Framework
             }
             else
             {
-                EditorGUILayout.HelpBox("Property [" + propertyName + "] not found!", MessageType.Error);
+                EditorGUILayout.HelpBox($"Property [{propertyName}] not found!", MessageType.Error);
             }
 
-            if (isLine) GUILayout.EndHorizontal();
+            if (isLine) EditorGUILayout.EndHorizontal();
         }
         /// <summary>
         /// 制作一个序列化属性字段
@@ -603,7 +550,7 @@ namespace HT.Framework
         /// <param name="options">布局操作</param>
         protected void PropertyField(string propertyName, string name, bool includeChildren, bool isLine = true, params GUILayoutOption[] options)
         {
-            if (isLine) GUILayout.BeginHorizontal();
+            if (isLine) EditorGUILayout.BeginHorizontal();
 
             SerializedProperty serializedProperty = GetProperty(propertyName);
             if (serializedProperty != null)
@@ -613,10 +560,10 @@ namespace HT.Framework
             }
             else
             {
-                EditorGUILayout.HelpBox("Property [" + propertyName + "] not found!", MessageType.Error);
+                EditorGUILayout.HelpBox($"Property [{propertyName}] not found!", MessageType.Error);
             }
 
-            if (isLine) GUILayout.EndHorizontal();
+            if (isLine) EditorGUILayout.EndHorizontal();
         }
 
         /// <summary>
@@ -628,19 +575,38 @@ namespace HT.Framework
             if (!IsSupportCopyPaste(property))
                 return;
 
-            if (GUILayout.Button(CopyPasteGC, "InvisibleButton", GUILayout.Width(20), GUILayout.Height(20)))
+            if (GUILayout.Button(CopyPasteGC, EditorGlobalTools.Styles.InvisibleButton, GUILayout.Width(20), GUILayout.Height(20)))
             {
                 GenericMenu gm = new GenericMenu();
                 if (Targets.Length == 1)
                 {
-                    gm.AddItem(new GUIContent("Copy"), false, () =>
+                    if (!property.isArray)
                     {
-                        CopyValue(property);
-                    });
-                    gm.AddItem(new GUIContent("Paste"), false, () =>
+                        gm.AddItem(new GUIContent("Copy"), false, () =>
+                        {
+                            CopyValue(property);
+                        });
+                        gm.AddItem(new GUIContent("Paste"), false, () =>
+                        {
+                            PasteValue(property);
+                        });
+                    }
+                    else
                     {
-                        PasteValue(property);
-                    });
+                        for (int i = 0; i < property.arraySize; i++)
+                        {
+                            int j = i;
+                            SerializedProperty sub = property.GetArrayElementAtIndex(j);
+                            gm.AddItem(new GUIContent("Copy/Index " + j), false, () =>
+                            {
+                                CopyValue(sub);
+                            });
+                            gm.AddItem(new GUIContent("Paste/Index " + j), false, () =>
+                            {
+                                PasteValue(sub);
+                            });
+                        }
+                    }
                 }
                 else
                 {
@@ -655,15 +621,26 @@ namespace HT.Framework
         /// </summary>
         private bool IsSupportCopyPaste(SerializedProperty property)
         {
-            if (property.propertyType == SerializedPropertyType.Vector2
-                || property.propertyType == SerializedPropertyType.Vector3
-                || property.propertyType == SerializedPropertyType.Vector4
-                || property.propertyType == SerializedPropertyType.Vector2Int
-                || property.propertyType == SerializedPropertyType.Vector3Int
-                || property.propertyType == SerializedPropertyType.Quaternion
-                || property.propertyType == SerializedPropertyType.Bounds
-                || property.propertyType == SerializedPropertyType.BoundsInt)
-                return true;
+            if (!property.isArray)
+            {
+                if (property.propertyType == SerializedPropertyType.Vector2
+                    || property.propertyType == SerializedPropertyType.Vector3
+                    || property.propertyType == SerializedPropertyType.Vector4
+                    || property.propertyType == SerializedPropertyType.Vector2Int
+                    || property.propertyType == SerializedPropertyType.Vector3Int
+                    || property.propertyType == SerializedPropertyType.Quaternion
+                    || property.propertyType == SerializedPropertyType.Bounds
+                    || property.propertyType == SerializedPropertyType.BoundsInt
+                    || (property.propertyType == SerializedPropertyType.Generic && property.hasVisibleChildren && property.type == "Location"))
+                    return true;
+            }
+            else
+            {
+                if ((property.propertyType == SerializedPropertyType.Generic && property.hasVisibleChildren && property.arrayElementType == "Vector2")
+                     || (property.propertyType == SerializedPropertyType.Generic && property.hasVisibleChildren && property.arrayElementType == "Vector3")
+                     || (property.propertyType == SerializedPropertyType.Generic && property.hasVisibleChildren && property.arrayElementType == "Location"))
+                    return true;
+            }
             return false;
         }
         /// <summary>
@@ -671,6 +648,9 @@ namespace HT.Framework
         /// </summary>
         private void CopyValue(SerializedProperty property)
         {
+            if (property.isArray)
+                return;
+
             if (property.propertyType == SerializedPropertyType.Vector2)
             {
                 GUIUtility.systemCopyBuffer = property.vector2Value.ToCopyString("F4");
@@ -703,12 +683,30 @@ namespace HT.Framework
             {
                 GUIUtility.systemCopyBuffer = property.boundsIntValue.ToCopyString();
             }
+            else if (property.propertyType == SerializedPropertyType.Generic && property.hasVisibleChildren && property.type == "Location")
+            {
+                SerializedProperty position = property.FindPropertyRelative("Position");
+                SerializedProperty rotation = property.FindPropertyRelative("Rotation");
+                SerializedProperty scale = property.FindPropertyRelative("Scale");
+
+                if (position != null && rotation != null && scale != null)
+                {
+                    Location location = new Location();
+                    location.Position = position.vector3Value;
+                    location.Rotation = rotation.vector3Value;
+                    location.Scale = scale.vector3Value;
+                    GUIUtility.systemCopyBuffer = location.LocationToJson();
+                }
+            }
         }
         /// <summary>
         /// 粘贴值到属性
         /// </summary>
         private void PasteValue(SerializedProperty property)
         {
+            if (property.isArray)
+                return;
+
             if (string.IsNullOrEmpty(GUIUtility.systemCopyBuffer))
                 return;
 
@@ -743,6 +741,23 @@ namespace HT.Framework
             else if (property.propertyType == SerializedPropertyType.BoundsInt)
             {
                 property.boundsIntValue = GUIUtility.systemCopyBuffer.ToPasteBoundsInt();
+            }
+            else if (property.propertyType == SerializedPropertyType.Generic && property.hasVisibleChildren && property.type == "Location")
+            {
+                SerializedProperty position = property.FindPropertyRelative("Position");
+                SerializedProperty rotation = property.FindPropertyRelative("Rotation");
+                SerializedProperty scale = property.FindPropertyRelative("Scale");
+
+                if (position != null && rotation != null && scale != null)
+                {
+                    Location location = GUIUtility.systemCopyBuffer.JsonToLocation();
+                    if (location != null)
+                    {
+                        position.vector3Value = location.Position;
+                        rotation.vector3Value = location.Rotation;
+                        scale.vector3Value = location.Scale;
+                    }
+                }
             }
             property.serializedObject.ApplyModifiedProperties();
         }

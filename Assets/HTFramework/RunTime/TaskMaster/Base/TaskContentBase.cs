@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using UnityEngine;
+using System;
 #if UNITY_EDITOR
 using UnityEditor;
 #endif
@@ -113,7 +114,7 @@ namespace HT.Framework
             
         }
         /// <summary>
-        /// 任务内容开始后，帧刷新
+        /// 任务内容开始后，帧更新
         /// </summary>
         protected virtual void OnUpdate()
         {
@@ -144,7 +145,14 @@ namespace HT.Framework
 
             IsStart = true;
 
-            OnStart();
+            try
+            {
+                OnStart();
+            }
+            catch (Exception e)
+            {
+                Log.Error($"任务控制器：开始任务内容【{Name}】时出错！错误描述：{e}", null, true);
+            }
 
             Main.m_Event.Throw(Main.m_ReferencePool.Spawn<EventTaskContentStart>().Fill(this));
         }
@@ -194,8 +202,15 @@ namespace HT.Framework
 
             IsComplete = true;
 
-            OnComplete();
-            
+            try
+            {
+                OnComplete();
+            }
+            catch (Exception e)
+            {
+                Log.Error($"任务控制器：完成任务内容【{Name}】时出错！错误描述：{e}", null, true);
+            }
+
             Main.m_Event.Throw(Main.m_ReferencePool.Spawn<EventTaskContentComplete>().Fill(this, false));
         }
         /// <summary>
@@ -215,7 +230,14 @@ namespace HT.Framework
 
             IsComplete = true;
 
-            OnComplete();
+            try
+            {
+                OnComplete();
+            }
+            catch (Exception e)
+            {
+                Log.Error($"任务控制器：完成任务内容【{Name}】时出错！错误描述：{e}", null, true);
+            }
 
             List<TaskPointBase> uncompletePoints = new List<TaskPointBase>();
             for (int i = 0; i < Points.Count; i++)
@@ -248,7 +270,14 @@ namespace HT.Framework
         {
             IsStart = false;
 
-            OnEnd();
+            try
+            {
+                OnEnd();
+            }
+            catch (Exception e)
+            {
+                Log.Error($"任务控制器：结束任务内容【{Name}】时出错！错误描述：{e}", null, true);
+            }
         }
 
         /// <summary>

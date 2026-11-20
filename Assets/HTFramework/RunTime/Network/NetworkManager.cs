@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Net;
+using System.Threading.Tasks;
 using UnityEngine;
 
 namespace HT.Framework
@@ -48,10 +49,6 @@ namespace HT.Framework
         /// 与服务器断开连接事件
         /// </summary>
         public event HTFAction<ProtocolChannelBase> DisconnectServerEvent;
-        /// <summary>
-        /// 发送消息成功事件
-        /// </summary>
-        public event HTFAction<ProtocolChannelBase> SendMessageEvent;
         /// <summary>
         /// 接收消息成功事件
         /// </summary>
@@ -110,10 +107,6 @@ namespace HT.Framework
             {
                 DisconnectServerEvent?.Invoke(cha);
             };
-            _helper.SendMessageEvent += (cha) =>
-            {
-                SendMessageEvent?.Invoke(cha);
-            };
             _helper.ReceiveMessageEvent += (cha, mes) =>
             {
                 ReceiveMessageEvent?.Invoke(cha, mes);
@@ -136,7 +129,7 @@ namespace HT.Framework
                 _serverEndPoint.Port = ServerPort;
             }
         }
-
+        
         /// <summary>
         /// 通道是否已连接
         /// </summary>
@@ -197,20 +190,41 @@ namespace HT.Framework
         /// </summary>
         /// <typeparam name="T">通信协议通道类型</typeparam>
         /// <param name="message">消息对象</param>
-        /// <returns>是否发送成功</returns>
-        public bool SendMessage<T>(INetworkMessage message) where T : ProtocolChannelBase
+        /// <returns>已发送字节</returns>
+        public async Task<int> SendMessage<T>(INetworkMessage message) where T : ProtocolChannelBase
         {
-            return _helper.SendMessage(typeof(T), message);
+            int count = await _helper.SendMessage(typeof(T), message);
+            return count;
         }
         /// <summary>
         /// 发送消息
         /// </summary>
         /// <param name="channelType">通信协议通道类型</param>
         /// <param name="message">消息对象</param>
-        /// <returns>是否发送成功</returns>
-        public bool SendMessage(Type channelType, INetworkMessage message)
+        /// <returns>已发送字节</returns>
+        public async Task<int> SendMessage(Type channelType, INetworkMessage message)
         {
-            return _helper.SendMessage(channelType, message);
+            int count = await _helper.SendMessage(channelType, message);
+            return count;
+        }
+
+        /// <summary>
+        /// 获取指定的通信管道
+        /// </summary>
+        /// <typeparam name="T">通信协议通道类型</typeparam>
+        /// <returns>通信协议通道实例</returns>
+        public T GetProtocolChannel<T>() where T : ProtocolChannelBase
+        {
+            return GetProtocolChannel(typeof(T)) as T;
+        }
+        /// <summary>
+        /// 获取指定的通信管道
+        /// </summary>
+        /// <param name="channelType">通信协议通道类型</param>
+        /// <returns>通信协议通道实例</returns>
+        public ProtocolChannelBase GetProtocolChannel(Type channelType)
+        {
+            return _helper.GetProtocolChannel(channelType);
         }
     }
 }

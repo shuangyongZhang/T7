@@ -1,6 +1,4 @@
-﻿using System.Collections.Generic;
-using UnityEngine;
-using UnityEngine.EventSystems;
+﻿using UnityEngine;
 using UnityEngine.UI;
 
 namespace HT.Framework
@@ -9,7 +7,7 @@ namespace HT.Framework
     /// 鼠标位置射线发射器
     /// </summary>
     [DisallowMultipleComponent]
-    internal sealed class MouseRay : HTBehaviour
+    public sealed class MouseRay : HTBehaviour
     {
         /// <summary>
         /// 是否开启射线投射
@@ -23,6 +21,14 @@ namespace HT.Framework
         /// 是否开启射中高亮
         /// </summary>
         public bool IsOpenHighlight = true;
+        /// <summary>
+        /// 是否为3D射线检测，否则为2D
+        /// </summary>
+        public bool Is3DRay = true;
+        /// <summary>
+        /// 射线检测的最大距离
+        /// </summary>
+        public int RayMaxDistance = 100;
         /// <summary>
         /// 射线投射的有效层
         /// </summary>
@@ -76,20 +82,17 @@ namespace HT.Framework
         /// </summary>
         public event HTFAction<MouseRayTargetBase, Vector3, Vector2> RayEvent;
 
-        private Ray _ray;
-        private RaycastHit _hit;
         private GameObject _rayTarget;
         private TargetType _rayTargetType;
         private Vector2 _rayHitBGPos;
         private Vector2 _rayHitBGSize;
         private ContentSizeFitter _rayHitTextFitter;
-        private PointerEventData _eventData;
-        private List<RaycastResult> _results = new List<RaycastResult>();
+        private RectTransform _rayHitBGParent;
 
         /// <summary>
         /// 射线发射摄像机
         /// </summary>
-        public Camera RayCamera { get; set; }
+        public Camera RayCamera { get; internal set; }
         /// <summary>
         /// 当前被射线捕获的目标
         /// </summary>
@@ -107,38 +110,77 @@ namespace HT.Framework
             {
                 if (_rayHitTextFitter == null)
                 {
-                    _rayHitTextFitter = RayHitText.GetComponent<ContentSizeFitter>();
+                    if (RayHitText) _rayHitTextFitter = RayHitText.GetComponent<ContentSizeFitter>();
                 }
                 return _rayHitTextFitter;
+            }
+        }
+        /// <summary>
+        /// 提示框背景父级
+        /// </summary>
+        private RectTransform RayHitBGParent
+        {
+            get
+            {
+                if (RayHitBG == null)
+                {
+                    _rayHitBGParent = null;
+                    return null;
+                }
+
+                if (_rayHitBGParent == null)
+                {
+                    _rayHitBGParent = RayHitBG.rectTransform.parent.rectTransform();
+                }
+                return _rayHitBGParent;
             }
         }
 
         /// <summary>
         /// 更新
         /// </summary>
-        public void OnUpdate()
+        internal void OnUpdate()
         {
             if (IsOpenRay)
             {
-                if (GlobalTools.IsPointerOverUGUI())
+                if (UIToolkit.IsStayUI)
                 {
-                    RaycastHiting(GetCurrentUGUI());
+                    UIToolkit.CalculateCurrentFocused(Main.m_Input.MousePosition);
+                    RaycastHiting(UIToolkit.CurrentFocused);
                 }
                 else
                 {
-                    _ray = RayCamera.ScreenPointToRay(Main.m_Input.MousePosition);
-                    if (Physics.Raycast(_ray, out _hit, 100, ActivatedLayer))
+                    if (Is3DRay)
                     {
-                        HitPoint = _hit.point;
-                        RaycastHiting(_hit.transform.gameObject);
+                        Ray ray = RayCamera.ScreenPointToRay(Main.m_Input.MousePosition);
+                        RaycastHit hit;
+                        if (Physics.Raycast(ray, out hit, RayMaxDistance, ActivatedLayer))
+                        {
+                            HitPoint = hit.point;
+                            RaycastHiting(hit.collider.gameObject);
+                        }
+                        else
+                        {
+                            RaycastHiting(null);
+                        }
                     }
                     else
                     {
-                        RaycastHiting(null);
+                        Vector2 origin = RayCamera.ScreenToWorldPoint(Main.m_Input.MousePosition);
+                        RaycastHit2D hit = Physics2D.Raycast(origin, Vector2.zero, RayMaxDistance, ActivatedLayer);
+                        if (hit.collider != null)
+                        {
+                            HitPoint = hit.point;
+                            RaycastHiting(hit.collider.gameObject);
+                        }
+                        else
+                        {
+                            RaycastHiting(null);
+                        }
                     }
                 }
 
-                Vector2 pos = Main.m_Input.MousePosition.ScreenToUGUIPosition(null, RayHitImageType);
+                Vector2 pos = Main.m_Input.MousePosition.ScreenToUGUIPosition(RayHitBGParent, RayHitImageType);
                 RaycastHitBGFlow(pos);
                 RayEvent?.Invoke(Target, HitPoint, pos);
             }
@@ -146,7 +188,7 @@ namespace HT.Framework
         /// <summary>
         /// 关闭射线投射
         /// </summary>
-        public void CloseRay()
+        internal void CloseRay()
         {
             IsOpenRay = false;
             RaycastHiting(null);
@@ -165,33 +207,44 @@ namespace HT.Framework
             if (_rayTarget == target)
                 return;
 
-            if (_rayTarget)
+            if (Target)
             {
-                if (_rayTargetType == TargetType.GameObject)
+                if (IsOpenHighlight && Target.IsOpenHighlight)
                 {
-                    switch (TriggerHighlighting)
+                    if (_rayTargetType == TargetType.GameObject)
                     {
-                        case HighlightingType.Normal:
-                            _rayTarget.CloseHighLight(IsAutoDie);
-                            break;
-                        case HighlightingType.Flash:
-                            _rayTarget.CloseFlashHighLight(IsAutoDie);
-                            break;
-                        case HighlightingType.Outline:
-                            _rayTarget.CloseMeshOutline(IsAutoDie);
-                            break;
+                        switch (TriggerHighlighting)
+                        {
+                            case HighlightingType.Normal:
+                                Target.gameObject.CloseHighLight(IsAutoDie);
+                                break;
+                            case HighlightingType.Flash:
+                                Target.gameObject.CloseFlashHighLight(IsAutoDie);
+                                break;
+                            case HighlightingType.Outline:
+                                Target.gameObject.CloseMeshOutline(IsAutoDie);
+                                break;
+                        }
                     }
                 }
                 Target = null;
-                _rayTarget = null;
             }
 
-            if (target && target.GetComponent<MouseRayTargetBase>())
+            _rayTarget = target;
+            MouseRayTargetBase rayTarget = null;
+            if (_rayTarget)
             {
-                Target = target.GetComponent<MouseRayTargetBase>();
-                _rayTarget = target;
                 _rayTargetType = _rayTarget.rectTransform() ? TargetType.UI : TargetType.GameObject;
+                rayTarget = _rayTarget.GetComponent<MouseRayTargetBase>();
+                if (rayTarget == null)
+                {
+                    rayTarget = _rayTarget.GetComponentInParent<MouseRayTargetBase>();
+                }
+            }
 
+            if (_rayTarget && rayTarget)
+            {
+                Target = rayTarget;
                 if (IsOpenPrompt && Target.IsOpenPrompt)
                 {
                     if (RayHitBG)
@@ -219,13 +272,13 @@ namespace HT.Framework
                         switch (TriggerHighlighting)
                         {
                             case HighlightingType.Normal:
-                                _rayTarget.OpenHighLight(NormalColor);
+                                Target.gameObject.OpenHighLight(NormalColor);
                                 break;
                             case HighlightingType.Flash:
-                                _rayTarget.OpenFlashHighLight(FlashColor1, FlashColor2);
+                                Target.gameObject.OpenFlashHighLight(FlashColor1, FlashColor2);
                                 break;
                             case HighlightingType.Outline:
-                                _rayTarget.OpenMeshOutline(NormalColor, OutlineIntensity);
+                                Target.gameObject.OpenMeshOutline(NormalColor, OutlineIntensity);
                                 break;
                         }
                     }
@@ -253,22 +306,6 @@ namespace HT.Framework
                 RayHitBG.rectTransform.sizeDelta = _rayHitBGSize;
             }
         }
-        /// <summary>
-        /// 获取当前鼠标位置的UGUI控件
-        /// </summary>
-        private GameObject GetCurrentUGUI()
-        {
-            if (_eventData == null) _eventData = new PointerEventData(EventSystem.current);
-
-            _eventData.position = Main.m_Input.MousePosition;
-            EventSystem.current.RaycastAll(_eventData, _results);
-
-            if (_results.Count > 0)
-            {
-                return _results[0].gameObject;
-            }
-            return null;
-        }
 
         /// <summary>
         /// 高光类型
@@ -288,7 +325,6 @@ namespace HT.Framework
             /// </summary>
             Outline
         }
-
         /// <summary>
         /// 射线捕获的目标类型
         /// </summary>

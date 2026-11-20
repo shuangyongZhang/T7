@@ -7,10 +7,10 @@ namespace HT.Framework
     /// <summary>
     /// 默认的数据集管理器助手
     /// </summary>
-    public sealed class DefaultDataSetHelper : IDataSetHelper
+    internal sealed class DefaultDataSetHelper : IDataSetHelper
     {
         /// <summary>
-        /// 数据集管理器
+        /// 所属的内置模块
         /// </summary>
         public IModuleManager Module { get; set; }
         /// <summary>
@@ -26,7 +26,7 @@ namespace HT.Framework
             List<Type> types = ReflectionToolkit.GetTypesInRunTimeAssemblies(type =>
             {
                 return type.IsSubclassOf(typeof(DataSetBase)) && !type.IsAbstract;
-            });
+            }, false);
             for (int i = 0; i < types.Count; i++)
             {
                 DataSets.Add(types[i], new List<DataSetBase>());
@@ -127,7 +127,7 @@ namespace HT.Framework
             }
             else
             {
-                throw new HTFrameworkException(HTFrameworkModule.DataSet, "新建数据集失败：" + type.Name + " 并不是有效的数据集类型！");
+                throw new HTFrameworkException(HTFrameworkModule.DataSet, $"新建数据集失败：{type.Name} 并不是有效的数据集类型！");
             }
         }
         
@@ -144,7 +144,7 @@ namespace HT.Framework
             }
             else
             {
-                throw new HTFrameworkException(HTFrameworkModule.DataSet, "获取所有数据集失败：" + type.Name + " 并不是有效的数据集类型！");
+                throw new HTFrameworkException(HTFrameworkModule.DataSet, $"获取所有数据集失败：{type.Name} 并不是有效的数据集类型！");
             }
         }
         /// <summary>
@@ -161,7 +161,7 @@ namespace HT.Framework
             }
             else
             {
-                throw new HTFrameworkException(HTFrameworkModule.DataSet, "获取所有数据集失败：" + type.Name + " 并不是有效的数据集类型！");
+                throw new HTFrameworkException(HTFrameworkModule.DataSet, $"获取所有数据集失败：{type.Name} 并不是有效的数据集类型！");
             }
         }
 
@@ -185,7 +185,7 @@ namespace HT.Framework
             }
             else
             {
-                throw new HTFrameworkException(HTFrameworkModule.DataSet, "获取数据集失败：" + type.Name + " 并不是有效的数据集类型！");
+                throw new HTFrameworkException(HTFrameworkModule.DataSet, $"获取数据集失败：{type.Name} 并不是有效的数据集类型！");
             }
         }
         /// <summary>
@@ -214,7 +214,7 @@ namespace HT.Framework
             }
             else
             {
-                throw new HTFrameworkException(HTFrameworkModule.DataSet, "获取数据集失败：" + type.Name + " 并不是有效的数据集类型！");
+                throw new HTFrameworkException(HTFrameworkModule.DataSet, $"获取数据集失败：{type.Name} 并不是有效的数据集类型！");
             }
         }
         /// <summary>
@@ -244,7 +244,7 @@ namespace HT.Framework
             }
             else
             {
-                throw new HTFrameworkException(HTFrameworkModule.DataSet, "获取数据集失败：" + type.Name + " 并不是有效的数据集类型！");
+                throw new HTFrameworkException(HTFrameworkModule.DataSet, $"获取数据集失败：{type.Name} 并不是有效的数据集类型！");
             }
         }
         
@@ -261,7 +261,7 @@ namespace HT.Framework
             }
             else
             {
-                throw new HTFrameworkException(HTFrameworkModule.DataSet, "获取数据集数量失败：" + type.Name + " 并不是有效的数据集类型！");
+                throw new HTFrameworkException(HTFrameworkModule.DataSet, $"获取数据集数量失败：{type.Name} 并不是有效的数据集类型！");
             }
         }
         /// <summary>
@@ -280,7 +280,7 @@ namespace HT.Framework
             }
             else
             {
-                throw new HTFrameworkException(HTFrameworkModule.DataSet, "清空数据集失败：" + type.Name + " 并不是有效的数据集类型！");
+                throw new HTFrameworkException(HTFrameworkModule.DataSet, $"清空数据集失败：{type.Name} 并不是有效的数据集类型！");
             }
         }
     }

@@ -136,11 +136,11 @@ namespace HT.Framework
                 GUILayout.BeginHorizontal();
                 GUILayout.FlexibleSpace();
                 ShowType lastType = _showType;
-                if (GUILayout.Toggle(_showType == ShowType.Hierarchy, "Hierarchy", "LargeButtonLeft", GUILayout.Width(100)))
+                if (GUILayout.Toggle(_showType == ShowType.Hierarchy, "Hierarchy", EditorGlobalTools.Styles.LargeButtonLeft, GUILayout.Width(100)))
                 {
                     _showType = ShowType.Hierarchy;
                 }
-                if (GUILayout.Toggle(_showType == ShowType.Project, "Project", "LargeButtonRight", GUILayout.Width(100)))
+                if (GUILayout.Toggle(_showType == ShowType.Project, "Project", EditorGlobalTools.Styles.LargeButtonRight, GUILayout.Width(100)))
                 {
                     _showType = ShowType.Project;
                 }
@@ -208,14 +208,14 @@ namespace HT.Framework
                 List<Type> types = null;
                 if (showType == ShowType.Hierarchy)
                 {
-                    types = ReflectionToolkit.GetTypesInRunTimeAssemblies(type =>
+                    types = ReflectionToolkit.GetTypesInAllAssemblies(type =>
                     {
                         return type.IsSubclassOf(typeof(Component)) && !type.IsAbstract;
                     });
                 }
                 else
                 {
-                    types = ReflectionToolkit.GetTypesInRunTimeAssemblies(type =>
+                    types = ReflectionToolkit.GetTypesInAllAssemblies(type =>
                     {
                         return type.IsSubclassOf(typeof(UnityEngine.Object)) && !type.IsSubclassOf(typeof(Component)) && !type.IsAbstract;
                     });
