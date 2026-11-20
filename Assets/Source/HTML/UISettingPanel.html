@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>设置界面（UI 原型预览 / Unity 数据文件）</title>
+<style>
+    /* ── 预览外壳：只为浏览器服务，Unity 完全忽略，请勿修改 ────── */
+    html, body { margin: 0; padding: 0; background: #0a0a0a; }
+    body {
+        font-family: "Microsoft YaHei", "PingFang SC", "Noto Sans CJK SC", "Source Han Sans SC", sans-serif;
+        -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── 约束堆叠：与 Unity 端求解规则一一对应 ─────────────────── */
+    [data-u-type] { box-sizing: border-box; }
+    [data-u-layout="v"] { display: flex; flex-direction: column; flex-wrap: nowrap; align-items: stretch; justify-content: flex-start; }
+    [data-u-layout="h"] { display: flex; flex-direction: row;    flex-wrap: nowrap; align-items: stretch; justify-content: flex-start; }
+    /* 缺省尺寸与 Unity 一致：纵向容器子节点默认高 40，横向容器子节点默认宽 100 */
+    [data-u-layout="v"] > * { flex: 0 0 auto; height: 40px; }
+    [data-u-layout="h"] > * { flex: 0 0 auto; width: 100px; }
+
+    /* ── 控件外观：Unity 端由 UGUI 组件渲染，此处用 CSS 模拟 ───── */
+    text, image { display: block; }
+    /* 垂直居中与 Unity 端 TMP 的默认 Middle 对齐保持一致 */
+    [data-u-type="text"]     { display: flex; align-items: center; white-space: pre-wrap; line-height: 1.2; overflow: hidden; }
+    [data-u-type="image"]    { background-image: repeating-linear-gradient(45deg, rgba(255,255,255,.07) 0 8px, rgba(0,0,0,0) 8px 16px); }
+    [data-u-type="button"]   { display: block; border: 0; padding: 0; font-family: inherit; cursor: pointer; }
+    [data-u-type="input"]    { display: block; border: 1px solid rgba(255,255,255,.18); padding: 0 12px; font-family: inherit; }
+    [data-u-type="dropdown"] { display: block; border: 1px solid rgba(255,255,255,.18); padding: 0 8px; font-family: inherit; }
+    [data-u-type="input"]::placeholder { color: rgba(255,255,255,.35); }
+
+    [data-u-type="toggle"]   { display: flex; align-items: center; }
+    [data-u-type="toggle"]::before {
+        content: ""; width: 1.05em; height: 1.05em; border-radius: 999px;
+        background: currentColor; margin-right: .5em; flex: 0 0 auto;
+    }
+    [data-u-type="toggle"][data-u-checked="false"]::before {
+        background: rgba(0,0,0,0); box-shadow: inset 0 0 0 2px currentColor;
+    }
+
+    [data-u-type="radio"]    { display: flex; align-items: center; }
+    [data-u-type="radio"]::before {
+        content: ""; width: .9em; height: .9em; border-radius: 999px;
+        box-shadow: inset 0 0 0 2px currentColor; margin-right: .5em; flex: 0 0 auto;
+    }
+    [data-u-type="radio"][data-u-checked="true"]::before { background: currentColor; }
+
+    [data-u-type="slider"]   { position: relative; border-radius: 999px; overflow: hidden; }
+    [data-u-type="slider"]::before {
+        content: ""; position: absolute; left: 0; top: 0; bottom: 0;
+        width: var(--u-val, 50%); background: currentColor;
+    }
+    [data-u-type="slider"]::after {
+        content: ""; position: absolute; top: 0; bottom: 0; left: var(--u-val, 50%);
+        width: 4px; margin-left: -2px; background: #fff; opacity: .9;
+    }
+
+    [data-u-type="scroll"]   { position: relative; overflow: auto; border: 1px dashed rgba(255,255,255,.22); }
+    [data-u-type="scroll"]::before {
+        content: "滚动区域 ScrollView"; position: absolute; inset: 0;
+        display: flex; align-items: center; justify-content: center;
+        color: rgba(255,255,255,.28); font-size: 20px;
+    }
+
+</style>
+</head>
+<body>
+
+<div id="u-stage">
+
+<div data-u-type="div" data-u-name="UISettingPanel" data-u-layout="v" style="width: 1920px; height: 1080px; background-color: rgba(0,0,0,0);">
+
+  <!-- ─── 左侧设置菜单（参考 V6 tree-menu-list：选中 #eff6ff / #1456f0） ─── -->
+  <div data-u-type="div" data-u-name="MenuPanel" style="left: 84px; top: 56px; width: 350px; height: 1024px; background-color: #ffffff;">
+    <div data-u-type="text" data-u-name="MenuTitleText" style="left: 20px; top: 16px; width: 310px; height: 30px; color: #222222; font-size: 16px; text-align: left;">设置导航</div>
+    <div data-u-type="image" data-u-name="MenuHeaderDivider" style="left: 20px; top: 62px; width: 310px; height: 1px; background-color: #f2f3f5;"></div>
+
+    <button data-u-type="button" data-u-name="GeneralButton" style="left: 20px; top: 80px; width: 310px; height: 44px; background-color: #eff6ff; color: #1456f0; font-size: 13px;">
+      <div data-u-type="text" data-u-name="Icon" style="left: 14px; top: 12px; width: 20px; height: 20px; color: #1456f0; font-size: 14px; text-align: center;">●</div>
+      <div data-u-type="text" data-u-name="Label" style="left: 44px; top: 0px; width: 250px; height: 44px; color: #1456f0; font-size: 13px; text-align: left;">基本信息设置</div>
+    </button>
+    <button data-u-type="button" data-u-name="HospitalButton" style="left: 20px; top: 128px; width: 310px; height: 44px; background-color: rgba(0,0,0,0); color: #45515e; font-size: 13px;">
+      <div data-u-type="text" data-u-name="Icon" style="left: 14px; top: 12px; width: 20px; height: 20px; color: #45515e; font-size: 14px; text-align: center;">▲</div>
+      <div data-u-type="text" data-u-name="Label" style="left: 44px; top: 0px; width: 220px; height: 44px; color: #45515e; font-size: 13px; text-align: left;">医院机构信息管理</div>
+      <div data-u-type="image" data-u-name="LockImage" style="left: 276px; top: 12px; width: 20px; height: 20px; background-color: #dc2626;"></div>
+    </button>
+    <button data-u-type="button" data-u-name="DoctorButton" style="left: 20px; top: 176px; width: 310px; height: 44px; background-color: rgba(0,0,0,0); color: #45515e; font-size: 13px;">
+      <div data-u-type="text" data-u-name="Icon" style="left: 14px; top: 12px; width: 20px; height: 20px; color: #45515e; font-size: 14px; text-align: center;">◆</div>
+      <div data-u-type="text" data-u-name="Label" style="left: 44px; top: 0px; width: 220px; height: 44px; color: #45515e; font-size: 13px; text-align: left;">医师账号权限管理</div>
+      <div data-u-type="image" data-u-name="LockImage" style="left: 276px; top: 12px; width: 20px; height: 20px; background-color: #dc2626;"></div>
+    </button>
+
+    <div data-u-type="image" data-u-name="MenuDivider" style="left: 349px; top: 0px; width: 1px; height: 1024px; background-color: #f2f3f5;"></div>
+  </div>
+
+  <!-- ─── 右侧工作台（参考 V6 canvas-panel：#f8fafc 底 + 白色卡片） ─── -->
+  <div data-u-type="div" data-u-name="WorkPanel" style="left: 434px; top: 56px; width: 1486px; height: 1024px; background-color: #f8fafc;">
+
+    <!-- 子面板 1: 基本设置（参考 V6 step-card：#fafafa 卡 + 1px 软边框 + 16px 内边距 / 12px 行距） -->
+    <div data-u-type="div" data-u-name="GeneralPanel" style="left: 20px; top: 20px; width: 1446px; height: 482px; background-color: rgba(0,0,0,0);">
+      <div data-u-type="image" data-u-name="SoundCardBorder" style="left: -1px; top: -1px; width: 1448px; height: 172px; background-color: #f2f3f5;"></div>
+      <div data-u-type="div" data-u-name="SoundCard" style="left: 0px; top: 0px; width: 1446px; height: 170px; background-color: #fafafa;"></div>
+      <div data-u-type="text" data-u-name="SoundTitleText" style="left: 16px; top: 16px; width: 800px; height: 20px; color: #222222; font-size: 13px; text-align: left;">声音与音效反馈</div>
+      <div data-u-type="text" data-u-name="SoundDescText" style="left: 16px; top: 40px; width: 800px; height: 16px; color: #8e8e93; font-size: 11px; text-align: left;">控制训练交互音效、端点拉伸提醒与背景舒缓音乐</div>
+
+      <div data-u-type="text" data-u-name="MusicLabelText" style="left: 16px; top: 68px; width: 400px; height: 20px; color: #45515e; font-size: 12px; text-align: left;">背景音乐音量 (BGM)</div>
+      <div data-u-type="text" data-u-name="MusicVolumeText" style="left: 1370px; top: 68px; width: 60px; height: 20px; color: #222222; font-size: 12px; text-align: right;">60</div>
+      <div data-u-type="slider" data-u-name="MusicSlider" data-u-value="0.6" style="left: 16px; top: 94px; width: 1414px; height: 8px; background-color: #e5e7eb; color: #1456f0;"></div>
+
+      <div data-u-type="text" data-u-name="SoundLabelText" style="left: 16px; top: 118px; width: 400px; height: 20px; color: #45515e; font-size: 12px; text-align: left;">操作与提示音效音量</div>
+      <div data-u-type="text" data-u-name="SoundVolumeText" style="left: 1370px; top: 118px; width: 60px; height: 20px; color: #222222; font-size: 12px; text-align: right;">80</div>
+      <div data-u-type="slider" data-u-name="SoundSlider" data-u-value="0.8" style="left: 16px; top: 144px; width: 1414px; height: 8px; background-color: #e5e7eb; color: #1456f0;"></div>
+
+      <div data-u-type="image" data-u-name="VersionCardBorder" style="left: -1px; top: 185px; width: 1448px; height: 298px; background-color: #f2f3f5;"></div>
+      <div data-u-type="div" data-u-name="VersionCard" style="left: 0px; top: 186px; width: 1446px; height: 296px; background-color: #fafafa;">
+        <div data-u-type="text" data-u-name="VersionText" style="left: 16px; top: 16px; width: 1398px; height: 20px; color: #45515e; font-size: 12px; text-align: left;">软件完整版本：</div>
+        <div data-u-type="text" data-u-name="ReleaseVersionText" style="left: 16px; top: 48px; width: 1398px; height: 20px; color: #45515e; font-size: 12px; text-align: left;">软件发布版本：</div>
+        <div data-u-type="text" data-u-name="DeviceText" style="left: 16px; top: 70px; width: 1398px; height: 40px; color: #45515e; font-size: 12px; text-align: left;">硬件版本：未检测</div>
+        <div data-u-type="text" data-u-name="DateText" style="left: 16px; top: 112px; width: 1398px; height: 20px; color: #45515e; font-size: 12px; text-align: left;">软件发布日期：</div>
+        <div data-u-type="text" data-u-name="TelephoneText" style="left: 16px; top: 144px; width: 1398px; height: 20px; color: #45515e; font-size: 12px; text-align: left;">联系电话：</div>
+        <div data-u-type="text" data-u-name="AddressText" style="left: 16px; top: 176px; width: 1398px; height: 20px; color: #45515e; font-size: 12px; text-align: left;">地址：</div>
+        <div data-u-type="text" data-u-name="WebsiteText" style="left: 16px; top: 208px; width: 1398px; height: 20px; color: #45515e; font-size: 12px; text-align: left;">网站：</div>
+        <button data-u-type="button" data-u-name="HelpButton" style="left: 16px; top: 240px; width: 160px; height: 40px; background-color: #181e25; color: #ffffff; font-size: 13px;">使用帮助</button>
+      </div>
+    </div>
+
+    <!-- 子面板 2: 医院机构信息 -->
+    <div data-u-type="div" data-u-name="HospitalPanel" style="left: 20px; top: 20px; width: 1446px; height: 840px; background-color: #ffffff;">
+      <div data-u-type="text" data-u-name="HospitalTitleText" style="left: 20px; top: 20px; width: 600px; height: 28px; color: #222222; font-size: 15px; text-align: left;">医院机构信息管理</div>
+
+      <input data-u-type="input" data-u-name="HospitalNameInputField" placeholder="医疗机构全称" style="left: 20px; top: 80px; width: 560px; height: 44px; background-color: #f8fafc; color: #222222; font-size: 13px; text-align: left;" />
+      <input data-u-type="input" data-u-name="HospitalCodeInputField" placeholder="医疗机构执业登记号" style="left: 20px; top: 140px; width: 560px; height: 44px; background-color: #f8fafc; color: #222222; font-size: 13px; text-align: left;" />
+      <input data-u-type="input" data-u-name="HospitalDeptInputField" placeholder="康复科室名称" style="left: 20px; top: 200px; width: 560px; height: 44px; background-color: #f8fafc; color: #222222; font-size: 13px; text-align: left;" />
+      <input data-u-type="input" data-u-name="HospitalTeleInputField" placeholder="联系电话" style="left: 20px; top: 260px; width: 560px; height: 44px; background-color: #f8fafc; color: #222222; font-size: 13px; text-align: left;" />
+      <input data-u-type="input" data-u-name="HospitalAddressInputField" placeholder="机构所在地址" style="left: 20px; top: 320px; width: 560px; height: 44px; background-color: #f8fafc; color: #222222; font-size: 13px; text-align: left;" />
+      <button data-u-type="button" data-u-name="SaveHospitalButton" style="left: 20px; top: 720px; width: 200px; height: 40px; background-color: #181e25; color: #ffffff; font-size: 13px;">保存机构信息</button>
+
+      <div data-u-type="div" data-u-name="HospitalLogo" style="left: 20px; top: 390px; width: 560px; height: 280px; background-color: #fafafa;">
+        <div data-u-type="image" data-u-name="Logo" style="left: 20px; top: 16px; width: 520px; height: 170px; background-color: #ffffff;">
+          <div data-u-type="image" data-u-name="Spare" style="left: 0px; top: 0px; width: 520px; height: 170px; background-color: #f0f0f0;"></div>
+        </div>
+        <button data-u-type="button" data-u-name="SelectLogoButton" style="left: 20px; top: 198px; width: 200px; height: 40px; background-color: #181e25; color: #ffffff; font-size: 12px;">选择 Logo</button>
+        <button data-u-type="button" data-u-name="DeleteLogoButton" style="left: 300px; top: 198px; width: 200px; height: 40px; background-color: #dc2626; color: #ffffff; font-size: 12px;">清除 Logo</button>
+      </div>
+      <div data-u-type="text" data-u-name="LastModifyTime" style="left: 20px; top: 680px; width: 560px; height: 24px; color: #8e8e93; font-size: 11px; text-align: left;"></div>
+    </div>
+
+    <!-- 子面板 3: 医师账号管理 -->
+    <div data-u-type="div" data-u-name="DoctorPanel" style="left: 20px; top: 20px; width: 1446px; height: 500px; background-color: #ffffff;">
+      <div data-u-type="text" data-u-name="DoctorTitleText" style="left: 20px; top: 16px; width: 700px; height: 28px; color: #222222; font-size: 15px; text-align: left;">医师账号档案 (7 字段规范)</div>
+      <button data-u-type="button" data-u-name="OpenAddPanelButton" style="left: 1206px; top: 16px; width: 220px; height: 40px; background-color: #181e25; color: #ffffff; font-size: 13px;">+ 新增医师账号</button>
+
+      <div data-u-type="div" data-u-name="DoctorTableHeader" style="left: 20px; top: 64px; width: 1406px; height: 40px; background-color: #fafafa;">
+        <div data-u-type="text" data-u-name="HeadAccount" style="left: 16px; top: 4px; width: 180px; height: 32px; color: #45515e; font-size: 12px; text-align: left;">账号</div>
+        <div data-u-type="text" data-u-name="HeadRole" style="left: 200px; top: 4px; width: 120px; height: 32px; color: #45515e; font-size: 12px; text-align: left;">权限</div>
+        <div data-u-type="text" data-u-name="HeadName" style="left: 340px; top: 4px; width: 120px; height: 32px; color: #45515e; font-size: 12px; text-align: left;">姓名</div>
+        <div data-u-type="text" data-u-name="HeadDept" style="left: 500px; top: 4px; width: 200px; height: 32px; color: #45515e; font-size: 12px; text-align: left;">科室</div>
+        <div data-u-type="text" data-u-name="HeadSex" style="left: 740px; top: 4px; width: 80px; height: 32px; color: #45515e; font-size: 12px; text-align: left;">性别</div>
+        <div data-u-type="text" data-u-name="HeadCreateTime" style="left: 850px; top: 4px; width: 160px; height: 32px; color: #45515e; font-size: 12px; text-align: left;">创建日期</div>
+        <div data-u-type="text" data-u-name="HeadPassword" style="left: 1040px; top: 4px; width: 250px; height: 32px; color: #45515e; font-size: 12px; text-align: left;">密码状态</div>
+      </div>
+      <div data-u-type="image" data-u-name="DoctorTableHeaderDivider" style="left: 20px; top: 103px; width: 1406px; height: 1px; background-color: #f2f3f5;"></div>
+
+      <div data-u-type="div" data-u-name="DoctorRowsContent" style="left: 20px; top: 104px; width: 1406px; height: 360px; background-color: #ffffff;">
+        <div data-u-type="div" data-u-name="DoctorRowTemplate" style="left: 0px; top: 0px; width: 1406px; height: 48px; background-color: #ffffff;">
+          <div data-u-type="text" data-u-name="RowAccountText" style="left: 16px; top: 8px; width: 180px; height: 32px; color: #222222; font-size: 13px; text-align: left;">account</div>
+          <div data-u-type="text" data-u-name="RowRoleText" style="left: 200px; top: 8px; width: 120px; height: 32px; color: #222222; font-size: 13px; text-align: left;">角色</div>
+          <div data-u-type="text" data-u-name="RowNameText" style="left: 340px; top: 8px; width: 120px; height: 32px; color: #222222; font-size: 13px; text-align: left;">姓名</div>
+          <div data-u-type="text" data-u-name="RowDeptText" style="left: 500px; top: 8px; width: 200px; height: 32px; color: #45515e; font-size: 13px; text-align: left;">科室</div>
+          <div data-u-type="text" data-u-name="RowSexText" style="left: 740px; top: 8px; width: 80px; height: 32px; color: #222222; font-size: 13px; text-align: left;">男</div>
+          <div data-u-type="text" data-u-name="RowCreateTimeText" style="left: 850px; top: 8px; width: 160px; height: 32px; color: #45515e; font-size: 13px; text-align: left;">2025-01-01</div>
+          <div data-u-type="text" data-u-name="RowPasswordText" style="left: 1040px; top: 8px; width: 250px; height: 32px; color: #8e8e93; font-size: 13px; text-align: left;">******** (已加密)</div>
+          <button data-u-type="button" data-u-name="SelectDoctorButton" style="left: 1300px; top: 10px; width: 90px; height: 28px; background-color: #f0f0f0; color: #222222; font-size: 11px;">修改</button>
+          <div data-u-type="image" data-u-name="RowDivider" style="left: 0px; top: 47px; width: 1406px; height: 1px; background-color: #f2f3f5;"></div>
+        </div>
+      </div>
+
+      <div data-u-type="div" data-u-name="DoctorPager" style="left: 20px; top: 466px; width: 1406px; height: 32px;">
+        <button data-u-type="button" data-u-name="PrevPageButton" style="left: 0px; top: 2px; width: 64px; height: 28px; background-color: #f0f0f0; color: #222222; font-size: 11px;">上一页</button>
+        <button data-u-type="button" data-u-name="NextPageButton" style="left: 1342px; top: 2px; width: 64px; height: 28px; background-color: #f0f0f0; color: #222222; font-size: 11px;">下一页</button>
+        <button data-u-type="button" data-u-name="PageNumberTemplate" style="left: 0px; top: 2px; width: 32px; height: 28px; background-color: #f0f0f0; color: #222222; font-size: 11px;">1</button>
+        <div data-u-type="text" data-u-name="PageEllipsisTemplate" style="left: 0px; top: 2px; width: 24px; height: 28px; color: #8e8e93; font-size: 11px; text-align: center;">...</div>
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- ─── 新增医师账号弹窗（与录入患者同款：全屏遮罩 + 480px 居中白卡） ─── -->
+  <div data-u-type="div" data-u-name="DoctorAddPanel" style="left: 0px; top: 0px; width: 1920px; height: 1080px; background-color: rgba(0, 0, 0, 0.4);">
+    <div data-u-type="div" data-u-name="DoctorAddCard" style="left: 720px; top: 290px; width: 480px; height: 500px; background-color: #ffffff;"></div>
+
+    <div data-u-type="text" data-u-name="DoctorAddTitleText" style="left: 744px; top: 314px; width: 380px; height: 24px; color: #222222; font-size: 16px; text-align: left;">新增医师账号</div>
+    <button data-u-type="button" data-u-name="AddCloseButton" style="left: 1152px; top: 314px; width: 24px; height: 24px; background-color: rgba(0,0,0,0); color: #8e8e93; font-size: 18px;"></button>
+
+    <div data-u-type="text" data-u-name="AddNameLabel" style="left: 744px; top: 354px; width: 210px; height: 16px; color: #45515e; font-size: 12px; text-align: left;">1. 姓名 *</div>
+    <div data-u-type="text" data-u-name="AddAccountLabel" style="left: 966px; top: 354px; width: 210px; height: 16px; color: #45515e; font-size: 12px; text-align: left;">2. 账号 *</div>
+    <div data-u-type="image" data-u-name="AddNameBorder" style="left: 743px; top: 373px; width: 212px; height: 38px; background-color: #e5e7eb;"></div>
+    <input data-u-type="input" data-u-name="AddNameInputField" placeholder="如: 李静" style="left: 744px; top: 374px; width: 210px; height: 36px; background-color: #ffffff; color: #222222; font-size: 13px; text-align: left;" />
+    <div data-u-type="image" data-u-name="AddAccountBorder" style="left: 965px; top: 373px; width: 212px; height: 38px; background-color: #e5e7eb;"></div>
+    <input data-u-type="input" data-u-name="AddAccountInputField" placeholder="如: doctor01" style="left: 966px; top: 374px; width: 210px; height: 36px; background-color: #ffffff; color: #222222; font-size: 13px; text-align: left;" />
+
+    <div data-u-type="text" data-u-name="AddDeptLabel" style="left: 744px; top: 422px; width: 210px; height: 16px; color: #45515e; font-size: 12px; text-align: left;">3. 科室</div>
+    <div data-u-type="text" data-u-name="AddTeleLabel" style="left: 966px; top: 422px; width: 210px; height: 16px; color: #45515e; font-size: 12px; text-align: left;">4. 联系电话</div>
+    <div data-u-type="image" data-u-name="AddDeptBorder" style="left: 743px; top: 441px; width: 212px; height: 38px; background-color: #e5e7eb;"></div>
+    <input data-u-type="input" data-u-name="AddDeptInputField" placeholder="如: 神经康复一科" style="left: 744px; top: 442px; width: 210px; height: 36px; background-color: #ffffff; color: #222222; font-size: 13px; text-align: left;" />
+    <div data-u-type="image" data-u-name="AddTeleBorder" style="left: 965px; top: 441px; width: 212px; height: 38px; background-color: #e5e7eb;"></div>
+    <input data-u-type="input" data-u-name="AddTeleInputField" placeholder="如: 17712410781" style="left: 966px; top: 442px; width: 210px; height: 36px; background-color: #ffffff; color: #222222; font-size: 13px; text-align: left;" />
+
+    <div data-u-type="text" data-u-name="AddRoleLabel" style="left: 744px; top: 490px; width: 210px; height: 16px; color: #45515e; font-size: 12px; text-align: left;">5. 角色 *</div>
+    <div data-u-type="text" data-u-name="AddSexLabel" style="left: 966px; top: 490px; width: 210px; height: 16px; color: #45515e; font-size: 12px; text-align: left;">6. 性别 *</div>
+    <div data-u-type="image" data-u-name="AddRoleBorder" style="left: 743px; top: 509px; width: 212px; height: 38px; background-color: #e5e7eb;"></div>
+    <select data-u-type="dropdown" data-u-name="AddRoleDropdown" style="left: 744px; top: 510px; width: 210px; height: 36px; background-color: #ffffff; color: #222222; font-size: 13px;"><option>操作员</option><option>管理员</option></select>
+    <div data-u-type="image" data-u-name="AddSexBorder" style="left: 965px; top: 509px; width: 212px; height: 38px; background-color: #e5e7eb;"></div>
+    <select data-u-type="dropdown" data-u-name="AddSexDropdown" style="left: 966px; top: 510px; width: 210px; height: 36px; background-color: #ffffff; color: #222222; font-size: 13px;"><option>女</option><option>男</option></select>
+
+    <div data-u-type="text" data-u-name="AddPassword1Label" style="left: 744px; top: 558px; width: 210px; height: 16px; color: #45515e; font-size: 12px; text-align: left;">7. 密码 *</div>
+    <div data-u-type="text" data-u-name="AddPassword2Label" style="left: 966px; top: 558px; width: 210px; height: 16px; color: #45515e; font-size: 12px; text-align: left;">8. 确认密码 *</div>
+    <div data-u-type="image" data-u-name="AddPassword1Border" style="left: 743px; top: 577px; width: 212px; height: 38px; background-color: #e5e7eb;"></div>
+    <input data-u-type="input" data-u-name="AddPassword1InputField" placeholder="输入密码" style="left: 744px; top: 578px; width: 210px; height: 36px; background-color: #ffffff; color: #222222; font-size: 13px; text-align: left;" />
+    <div data-u-type="image" data-u-name="AddPassword2Border" style="left: 965px; top: 577px; width: 212px; height: 38px; background-color: #e5e7eb;"></div>
+    <input data-u-type="input" data-u-name="AddPassword2InputField" placeholder="再次输入密码" style="left: 966px; top: 578px; width: 210px; height: 36px; background-color: #ffffff; color: #222222; font-size: 13px; text-align: left;" />
+
+    <div data-u-type="text" data-u-name="AddAvatarLabel" style="left: 744px; top: 630px; width: 210px; height: 16px; color: #45515e; font-size: 12px; text-align: left;">医师头像</div>
+    <div data-u-type="image" data-u-name="AddAvatarImage" style="left: 744px; top: 650px; width: 60px; height: 60px; background-color: #f0f0f0;"></div>
+    <div data-u-type="text" data-u-name="AddAvatarHintText" style="left: 966px; top: 650px; width: 210px; height: 60px; color: #8e8e93; font-size: 11px; text-align: left;">头像随性别自动匹配，创建后可在医师档案中查看</div>
+
+    <button data-u-type="button" data-u-name="CancelAddDoctorButton" style="left: 992px; top: 729px; width: 72px; height: 34px; background-color: #f0f0f0; color: #222222; font-size: 12px;">取消</button>
+    <button data-u-type="button" data-u-name="ConfirmAddDoctorButton" style="left: 1072px; top: 726px; width: 104px; height: 40px; background-color: #181e25; color: #ffffff; font-size: 13px;">创建账号</button>
+  </div>
+
+  <!-- ─── 修改医师账号弹窗（与录入患者同款：全屏遮罩 + 480px 居中白卡） ─── -->
+  <div data-u-type="div" data-u-name="DoctorEditPanel" style="left: 0px; top: 0px; width: 1920px; height: 1080px; background-color: rgba(0, 0, 0, 0.4);">
+    <div data-u-type="div" data-u-name="DoctorEditCard" style="left: 720px; top: 290px; width: 480px; height: 500px; background-color: #ffffff;"></div>
+
+    <div data-u-type="text" data-u-name="EditTitleText" style="left: 744px; top: 314px; width: 380px; height: 24px; color: #222222; font-size: 16px; text-align: left;">修改医师账号</div>
+    <button data-u-type="button" data-u-name="EditCloseButton" style="left: 1152px; top: 314px; width: 24px; height: 24px; background-color: rgba(0,0,0,0); color: #8e8e93; font-size: 18px;"></button>
+
+    <div data-u-type="text" data-u-name="EditAccountLabel" style="left: 744px; top: 354px; width: 210px; height: 16px; color: #45515e; font-size: 12px; text-align: left;">1. 账号 (不可修改)</div>
+    <div data-u-type="text" data-u-name="EditNameLabel" style="left: 966px; top: 354px; width: 210px; height: 16px; color: #45515e; font-size: 12px; text-align: left;">2. 姓名 *</div>
+    <div data-u-type="image" data-u-name="EditAccountBorder" style="left: 743px; top: 373px; width: 212px; height: 38px; background-color: #e5e7eb;"></div>
+    <input data-u-type="input" data-u-name="InfoAccountInputField" placeholder="账号 (不可修改)" style="left: 744px; top: 374px; width: 210px; height: 36px; background-color: #f0f0f0; color: #8e8e93; font-size: 13px; text-align: left;" />
+    <div data-u-type="image" data-u-name="EditNameBorder" style="left: 965px; top: 373px; width: 212px; height: 38px; background-color: #e5e7eb;"></div>
+    <input data-u-type="input" data-u-name="InfoNameInputField" placeholder="姓名" style="left: 966px; top: 374px; width: 210px; height: 36px; background-color: #ffffff; color: #222222; font-size: 13px; text-align: left;" />
+
+    <div data-u-type="text" data-u-name="EditDeptLabel" style="left: 744px; top: 422px; width: 210px; height: 16px; color: #45515e; font-size: 12px; text-align: left;">3. 科室</div>
+    <div data-u-type="text" data-u-name="EditTeleLabel" style="left: 966px; top: 422px; width: 210px; height: 16px; color: #45515e; font-size: 12px; text-align: left;">4. 联系电话</div>
+    <div data-u-type="image" data-u-name="EditDeptBorder" style="left: 743px; top: 441px; width: 212px; height: 38px; background-color: #e5e7eb;"></div>
+    <input data-u-type="input" data-u-name="InfoDeptInputField" placeholder="如: 神经康复一科" style="left: 744px; top: 442px; width: 210px; height: 36px; background-color: #ffffff; color: #222222; font-size: 13px; text-align: left;" />
+    <div data-u-type="image" data-u-name="EditTeleBorder" style="left: 965px; top: 441px; width: 212px; height: 38px; background-color: #e5e7eb;"></div>
+    <input data-u-type="input" data-u-name="InfoTeleInputField" placeholder="如: 17712410781" style="left: 966px; top: 442px; width: 210px; height: 36px; background-color: #ffffff; color: #222222; font-size: 13px; text-align: left;" />
+
+    <div data-u-type="text" data-u-name="EditRoleLabel" style="left: 744px; top: 490px; width: 210px; height: 16px; color: #45515e; font-size: 12px; text-align: left;">5. 角色 *</div>
+    <div data-u-type="text" data-u-name="EditSexLabel" style="left: 966px; top: 490px; width: 210px; height: 16px; color: #45515e; font-size: 12px; text-align: left;">6. 性别 *</div>
+    <div data-u-type="image" data-u-name="EditRoleBorder" style="left: 743px; top: 509px; width: 212px; height: 38px; background-color: #e5e7eb;"></div>
+    <select data-u-type="dropdown" data-u-name="InfoRoleDropdown" style="left: 744px; top: 510px; width: 210px; height: 36px; background-color: #ffffff; color: #222222; font-size: 13px;"><option>操作员</option><option>管理员</option></select>
+    <div data-u-type="image" data-u-name="EditSexBorder" style="left: 965px; top: 509px; width: 212px; height: 38px; background-color: #e5e7eb;"></div>
+    <select data-u-type="dropdown" data-u-name="InfoSexDropdown" style="left: 966px; top: 510px; width: 210px; height: 36px; background-color: #ffffff; color: #222222; font-size: 13px;"><option>女</option><option>男</option></select>
+
+    <div data-u-type="text" data-u-name="EditPassword1Label" style="left: 744px; top: 558px; width: 210px; height: 16px; color: #45515e; font-size: 12px; text-align: left;">7. 密码 *</div>
+    <div data-u-type="text" data-u-name="EditPassword2Label" style="left: 966px; top: 558px; width: 210px; height: 16px; color: #45515e; font-size: 12px; text-align: left;">8. 确认密码 *</div>
+    <div data-u-type="image" data-u-name="EditPassword1Border" style="left: 743px; top: 577px; width: 212px; height: 38px; background-color: #e5e7eb;"></div>
+    <input data-u-type="input" data-u-name="InfoPassword1InputField" placeholder="输入密码" style="left: 744px; top: 578px; width: 210px; height: 36px; background-color: #ffffff; color: #222222; font-size: 13px; text-align: left;" />
+    <div data-u-type="image" data-u-name="EditPassword2Border" style="left: 965px; top: 577px; width: 212px; height: 38px; background-color: #e5e7eb;"></div>
+    <input data-u-type="input" data-u-name="InfoPassword2InputField" placeholder="再次输入密码" style="left: 966px; top: 578px; width: 210px; height: 36px; background-color: #ffffff; color: #222222; font-size: 13px; text-align: left;" />
+
+    <div data-u-type="text" data-u-name="EditAvatarLabel" style="left: 744px; top: 630px; width: 210px; height: 16px; color: #45515e; font-size: 12px; text-align: left;">医师头像</div>
+    <div data-u-type="image" data-u-name="InfoAvatarImage" style="left: 744px; top: 650px; width: 60px; height: 60px; background-color: #f0f0f0;"></div>
+    <div data-u-type="text" data-u-name="EditAvatarHintText" style="left: 966px; top: 650px; width: 210px; height: 60px; color: #8e8e93; font-size: 11px; text-align: left;">头像随性别自动匹配，保存后生效</div>
+
+    <button data-u-type="button" data-u-name="ForbidButton" style="left: 744px; top: 726px; width: 96px; height: 40px; background-color: #dc2626; color: #ffffff; font-size: 13px;">禁用</button>
+    <button data-u-type="button" data-u-name="PermitButton" style="left: 744px; top: 726px; width: 96px; height: 40px; background-color: #16a34a; color: #ffffff; font-size: 13px;">启用</button>
+    <button data-u-type="button" data-u-name="CancelEditDoctorButton" style="left: 992px; top: 729px; width: 72px; height: 34px; background-color: #f0f0f0; color: #222222; font-size: 12px;">取消</button>
+    <button data-u-type="button" data-u-name="SaveDoctorButton" style="left: 1072px; top: 726px; width: 104px; height: 40px; background-color: #181e25; color: #ffffff; font-size: 13px;">保存修改</button>
+  </div>
+
+</div>
+
+</div>
+
+<script>
+(function () {
+    var stage = document.getElementById('u-stage');
+
+    // data-u-gap / data-u-pad 在 Unity 端由 C# 求解，在浏览器端翻译成真正的 CSS
+    var boxes = stage.querySelectorAll('[data-u-gap],[data-u-pad]');
+    for (var i = 0; i !== boxes.length; i++) {
+        var g = boxes[i].getAttribute('data-u-gap');
+        var p = boxes[i].getAttribute('data-u-pad');
+        if (g) boxes[i].style.gap = g + 'px';
+        if (p) boxes[i].style.padding = p + 'px';
+    }
+
+    // 文本节点去首尾空白，与 Unity 端 Trim 行为一致
+    var texts = stage.querySelectorAll('[data-u-type="text"]');
+    for (var j = 0; j !== texts.length; j++) {
+        texts[j].textContent = texts[j].textContent.replace(/^[\s\uFEFF]+|[\s\uFEFF]+$/g, '');
+    }
+
+    // 滑动条进度
+    var sliders = stage.querySelectorAll('[data-u-type="slider"]');
+    for (var k = 0; k !== sliders.length; k++) {
+        var v = parseFloat(sliders[k].getAttribute('data-u-value'));
+        if (isNaN(v)) v = 0.5;
+        if (v > 1) v = v / 100;
+        v = Math.max(0, Math.min(1, v));
+        sliders[k].style.setProperty('--u-val', (v * 100) + '%');
+    }
+
+})();
+</script>
+
+</body>
+</html>

@@ -81,6 +81,16 @@
       "dependencies": {},
       "url": "https://package.openupm.com"
     },
+    "com.shmqc.webui2unityui": {
+      "version": "https://github.com/boostcat/WebUI2UnityUI.git",
+      "depth": 0,
+      "source": "git",
+      "dependencies": {
+        "com.unity.ugui": "1.0.0",
+        "com.unity.textmeshpro": "2.0.1"
+      },
+      "hash": "ce5d26cb6a2a4cd46c690ac3765f9708719874aa"
+    },
     "com.tuyoogame.yooasset": {
       "version": "2.3.7",
       "depth": 0,

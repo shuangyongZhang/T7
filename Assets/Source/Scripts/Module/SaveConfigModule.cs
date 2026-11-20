@@ -122,7 +122,20 @@ namespace LB
         {
             if (_userDataDic.TryGetValue(key, out object value))
             {
-                return (T)value;
+                if (value is T typedValue)
+                {
+                    return typedValue;
+                }
+                // 旧存档可能把 int 字段存成小数（如音量滑条 float），直接强转会抛 InvalidCastException
+                try
+                {
+                    return (T)Convert.ChangeType(value, typeof(T));
+                }
+                catch (Exception e)
+                {
+                    Log.Warning($"GetUserData 类型转换失败 key={key} value={value} targetType={typeof(T)}: {e.Message}");
+                    return defaultValue;
+                }
             }
             return defaultValue;
         }

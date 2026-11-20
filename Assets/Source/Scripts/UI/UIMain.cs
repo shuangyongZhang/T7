@@ -1,7 +1,7 @@
 using System;
+using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
 using HT.Framework;
-using TheraBytes.BetterUi;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -10,37 +10,31 @@ using UnityTimer;
 namespace LB
 {
     /// <summary>
-    /// 主UI
+    /// 主UI：顶部状态栏 + 左侧导航栏（由 WebUI2UnityUI 转换的 UIMainPanel 驱动）
     /// </summary>
     [UIResource("UIMainPanel")]
-    // [UIResource("ui", "UIMainPanel", "Prefabs/UI/UIMainPanel")]
     public class UIMain : UILogicResident
     {
+        [InjectPath("Content")] private RectTransform content;
 
-        [InjectPath("LeftMenu")] private RectTransform leftMenu;
-        [InjectPath("LeftMenu")] private LocationAnimations menuAnimations;
+        [InjectPath("HeaderBar/AppNameText")] private TMP_Text appNameText;
+        [InjectPath("HeaderBar/PatientBadge/CurrentPatientNameText")] private TMP_Text patientNameText;
+        [InjectPath("HeaderBar/PatientBadge/CurrentPatientMetaText")] private TMP_Text patientMetaText;
+        [InjectPath("HeaderBar/PatientBadge/CurrentPatientMRNText")] private TMP_Text patientMRNText;
+        [InjectPath("HeaderBar/PatientBadge/DiagnosisText")] private TMP_Text diagnosisText;
+        [InjectPath("HeaderBar/DeviceStatusChip/DeviceStatusText")] private TMP_Text deviceStatusText;
+        [InjectPath("HeaderBar/UserBadge/UserNameText")] private TMP_Text userNameText;
+        [InjectPath("HeaderBar/UserBadge/LogoutButton")] private Button logoutButton;
+        [InjectPath("HeaderBar/QuitButton")] private Button quitButton;
 
+        [InjectPath("NavRail/NavPatientButton")] private Button patientButton;
+        [InjectPath("NavRail/NavAssessmentButton")] private Button assessmentButton;
+        [InjectPath("NavRail/NavTrainingButton")] private Button trainingButton;
+        [InjectPath("NavRail/NavReportButton")] private Button reportButton;
+        [InjectPath("NavRail/NavSettingButton")] private Button settingButton;
 
-        [InjectPath("LeftMenu")] private BetterButtonToggleGroup buttonToggleGroup;
-
-        [InjectPath("LeftMenu/MenuPanel/PatientInfoButton")] private BetterButtonToggle patientInfoButton;
-        [InjectPath("LeftMenu/MenuPanel/SettingButton")] private BetterButtonToggle settingButton;
-
-        [InjectPath("LeftMenu/PatientInfo/NameText")] private TMP_Text patientNameText;
-        [InjectPath("LeftMenu/PatientInfo/AvatarImage")] private Image patientAvatarImage;
-        [InjectPath("Panel/Content")] private RectTransform content;
-        // [InjectPath("LeftMenu/EquipDebugButton")] private Button equipDebugButton;
-        [InjectPath("TopPanel/LogoutButton")] private Button logoutButton;
-        [InjectPath("TopPanel/QuitButton")] private Button quitButton;
-        [InjectPath("TopPanel/DoctorText")] private TMP_Text doctorText;
-        [InjectPath("TopPanel/AppNameText")] private TMP_Text appNameText;
-        [InjectPath("TopPanel/icon")] private Image iconImage;
-        [InjectPath("LeftMenu/SerialStatus")] private GameObject seialStatusGO;
-        [InjectPath("LeftMenu/SerialStatus/Normal")] private Image seialNormalImage;
-        [InjectPath("LeftMenu/SerialStatus/Abnormal")] private Image seialAbnormalImage;
         private Type currentWindow;
         private Timer hardwareCheckTimer;
-
         private bool isWindowOpened = true;
 
         public RectTransform Content
@@ -49,133 +43,113 @@ namespace LB
             set { content = value; }
         }
 
+        private readonly Dictionary<Transform, Transform> modalOriginalParents = new Dictionary<Transform, Transform>();
 
+        // 弹窗提升到主UI根节点最末兄弟，使其盖住 HeaderBar / NavRail；关闭时还原回原面板。
+        public void ShowModal(GameObject modal)
+        {
+            if (modal == null) return;
+            Transform t = modal.transform;
+            if (!modalOriginalParents.ContainsKey(t)) modalOriginalParents[t] = t.parent;
+            t.SetParent(UIEntity.transform, true);
+            t.SetAsLastSibling();
+            modal.SetActive(true);
+        }
 
-        /// <summary>
-        /// 初始化
-        /// </summary>
+        public void HideModal(GameObject modal)
+        {
+            if (modal == null) return;
+            modal.SetActive(false);
+            Transform t = modal.transform;
+            Transform back;
+            if (modalOriginalParents.TryGetValue(t, out back))
+            {
+                modalOriginalParents.Remove(t);
+                if (back != null) t.SetParent(back, true);
+            }
+        }
+
         public override void OnInit()
         {
             base.OnInit();
-            patientInfoButton.onClick.AddListener(OnPatientInfo);
+
+            patientButton.onClick.AddListener(OnPatientInfo);
             settingButton.onClick.AddListener(OnSetting);
-            // equipDebugButton.gameObject.SetActive(true);
-            // equipDebugButton.onClick.AddListener(() =>
-            // {
-            //     Main.m_UI.OpenUI<UIEquipDebug>().Forget();
-            // });
-            seialStatusGO.SetActive(ConfigDataManager.Instance.IsCompensation);
+            assessmentButton.onClick.AddListener(OnModuleNotAvailable);
+            trainingButton.onClick.AddListener(OnModuleNotAvailable);
+            reportButton.onClick.AddListener(OnModuleNotAvailable);
             logoutButton.onClick.AddListener(OnLogout);
             quitButton.onClick.AddListener(OnQuit);
+
             Main.m_Event.Subscribe<EventPatientChanged>(OnPatientChanged);
             Main.m_Event.Subscribe<EventUIOpened>(OnUIOpened);
-            appNameText.text = AppDefine.AppName + " V" + Application.version.Substring(0, 1);
+
+            appNameText.text = "上肢智能康复训练与评估系统";
             hardwareCheckTimer = Timer.Register(1.0f, CheckHardwareStatus, null, true, true);
-            Main.m_Event.Subscribe<EventChangeCompensation>(OnChangeCompensation);
         }
+
         private void CheckHardwareStatus()
         {
-            if (SerialPortModule.Instance.IsConnected())
-            {
-                seialNormalImage.gameObject.SetActive(true);
-                seialAbnormalImage.gameObject.SetActive(false);
-            }
-            else
-            {
-                seialNormalImage.gameObject.SetActive(false);
-                seialAbnormalImage.gameObject.SetActive(true);
-            }
+            bool connected = SerialPortModule.Instance.IsConnected();
+            deviceStatusText.text = connected ? "上肢机械臂在线 · 01号机" : "上肢机械臂离线 · 01号机";
+            deviceStatusText.color = connected ? new Color(0.086f, 0.639f, 0.29f, 1f) : new Color(0.863f, 0.149f, 0.149f, 1f);
         }
-        /// <summary>
-        /// 打开UI
-        /// </summary>
+
         public override void OnOpen(params object[] args)
         {
             base.OnOpen(args);
 
-            patientNameText.text = "患者: 空";
-            doctorText.text = "医师:" + Global.CurAdminInfo.Account;
-            iconImage.sprite = Global.CurAdminInfo.Sex == Sex.Male ? Global.IconDic["maleDoctor"] : Global.IconDic["femaleDoctor"];
-            if (Global.IsQuickLogin)
-            {
-                patientInfoButton.gameObject.SetActive(true);
-                settingButton.gameObject.SetActive(false);
-            }
-            else
-            {
-                patientInfoButton.gameObject.SetActive(true);
-                settingButton.gameObject.SetActive(true);
-            }
-            OpenModularWindow(typeof(UIPatientInfo));
+            userNameText.text = (Global.CurAdminInfo == null ? "未知用户" : Global.CurAdminInfo.Name) +
+                (Global.CurAdminInfo != null && Global.CurAdminInfo.Role == Role.Administrator ? " (管理员)" : " (操作员)");
+            ClearPatientHeader();
 
+            settingButton.gameObject.SetActive(!Global.IsQuickLogin);
+            OpenModularWindow(typeof(UIPatientInfo));
         }
-        private void OnChangeCompensation(EventHandlerBase eventHandler)
+
+        private void ClearPatientHeader()
         {
-            if (eventHandler is EventChangeCompensation e && e.IsCompensation)
-                seialStatusGO.SetActive(true);
-            else
-                seialStatusGO.SetActive(false);
+            patientNameText.text = "未选择";
+            patientMetaText.text = "(男 · 0岁)";
+            patientMRNText.text = "-";
+            diagnosisText.text = "诊断: 未选择患者";
         }
-        /// <summary>
-        /// 置顶UI
-        /// </summary>
+
         public override void OnPlaceTop()
         {
             base.OnPlaceTop();
         }
 
-        /// <summary>
-        /// 关闭UI
-        /// </summary>
         public override void OnClose()
         {
             base.OnClose();
         }
 
-        /// <summary>
-        /// 销毁UI
-        /// </summary>
         public override void OnDestroy()
         {
             base.OnDestroy();
             Timer.Cancel(hardwareCheckTimer);
-            patientInfoButton.onClick.RemoveAllListeners();
+            patientButton.onClick.RemoveAllListeners();
             settingButton.onClick.RemoveAllListeners();
+            assessmentButton.onClick.RemoveAllListeners();
+            trainingButton.onClick.RemoveAllListeners();
+            reportButton.onClick.RemoveAllListeners();
             logoutButton.onClick.RemoveAllListeners();
             quitButton.onClick.RemoveAllListeners();
             Main.m_Event.Unsubscribe<EventPatientChanged>(OnPatientChanged);
             Main.m_Event.Unsubscribe<EventUIOpened>(OnUIOpened);
-            Main.m_Event.Unsubscribe<EventChangeCompensation>(OnChangeCompensation);
         }
 
-
-
-        /// <summary>
-        /// UI逻辑刷新
-        /// </summary>
         public override void OnUpdate()
         {
             base.OnUpdate();
-
         }
 
         public void OpenModularWindow(Type window)
         {
-
-            NotifyButtonOn(currentWindow);
-
             SwitchModularWindow(window);
         }
 
-        public void ExpandLeftMenu()
-        {
-
-            menuAnimations.StartAnimation("Expand", 3);
-        }
-        public void CollapseLeftMenu()
-        {
-            menuAnimations.StartAnimation("Collapse", 3);
-        }
         public void SwitchModularWindow(Type window)
         {
             if (currentWindow == window && Main.m_UI.GetOpenedUI(currentWindow) != null) return;
@@ -186,41 +160,67 @@ namespace LB
             NotifyButtonOn(window);
             currentWindow = window;
         }
+
+        private void SetNavActive(Button activeButton)
+        {
+            HighlightNav(patientButton, activeButton == patientButton);
+            HighlightNav(assessmentButton, activeButton == assessmentButton);
+            HighlightNav(trainingButton, activeButton == trainingButton);
+            HighlightNav(reportButton, activeButton == reportButton);
+            HighlightNav(settingButton, activeButton == settingButton);
+        }
+
+        private static void HighlightNav(Button button, bool active)
+        {
+            if (button == null) return;
+            Image image = button.GetComponent<Image>();
+            if (image != null)
+            {
+                image.color = active
+                    ? new Color(1f, 1f, 1f, 1f)
+                    : new Color(0f, 0f, 0f, 0f);
+            }
+            Color textColor = active
+                ? new Color(0.078f, 0.337f, 0.941f, 1f)
+                : new Color(0.271f, 0.318f, 0.369f, 1f);
+            foreach (TMP_Text text in button.GetComponentsInChildren<TMP_Text>())
+            {
+                text.color = textColor;
+            }
+            Transform indicator = button.transform.Find("ActiveIndicator");
+            if (indicator != null) indicator.gameObject.SetActive(active);
+        }
+
         public void NotifyButtonOn(Type window)
         {
-            Log.Info("NotifyButtonOn" + window);
-            if (window == typeof(UIPatientInfo)) buttonToggleGroup.NotifyButtonOn(patientInfoButton, false);
-            if (window == typeof(UISetting)) buttonToggleGroup.NotifyButtonOn(settingButton, false);
-
+            if (window == typeof(UIPatientInfo)) SetNavActive(patientButton);
+            else if (window == typeof(UISetting)) SetNavActive(settingButton);
         }
+
         private void OnPatientChanged(EventHandlerBase eventHandler)
         {
-            // Log.Info("接收到EventPatientChanged事件，参数：" + (eventHandler as EventPatientChanged).PatientInfo.Name);
             var patientInfo = (eventHandler as EventPatientChanged).PatientInfo;
             if (patientInfo != null)
             {
-                patientNameText.text = patientInfo.Name;
-                patientAvatarImage.sprite = patientInfo.Sex == Sex.Female ? Global.IconDic["women"] : Global.IconDic["man"];
+                patientNameText.text = patientInfo.Name ?? "未选择";
+                patientMetaText.text = "(" + (patientInfo.Sex == Sex.Female ? "女" : "男") + " · " + patientInfo.Age + "岁)";
+                patientMRNText.text = string.IsNullOrEmpty(patientInfo.CardNum) ? "-" : patientInfo.CardNum;
+                diagnosisText.text = "诊断: " + (string.IsNullOrEmpty(patientInfo.Diagnose) ? "未填写" : patientInfo.Diagnose);
+            }
+            else
+            {
+                ClearPatientHeader();
             }
 
-            if (Global.CurPatientInfo != patientInfo)
-            {
-                Global.CurPatientInfo = patientInfo;
-            }
+            if (Global.CurPatientInfo != patientInfo) Global.CurPatientInfo = patientInfo;
         }
 
         private void OnUIOpened(EventHandlerBase eventHandler)
         {
-            var uiLogic = (eventHandler as EventUIOpened).UILogic;
-            var type = uiLogic.GetType();
-            if (
-                 type == typeof(UIPatientInfo) ||
-                type == typeof(UISetting))
-            {
-                isWindowOpened = true;
-            }
-
+            var type = (eventHandler as EventUIOpened).UILogic.GetType();
+            if (type == typeof(UIPatientInfo) || type == typeof(UISetting)) isWindowOpened = true;
         }
+
         private void OnPatientInfo()
         {
             OpenModularWindow(typeof(UIPatientInfo));
@@ -231,31 +231,29 @@ namespace LB
             OpenModularWindow(typeof(UISetting));
         }
 
+        private void OnModuleNotAvailable()
+        {
+            UINotifyDialogHelper.Current.ShowNotifyAutoHide("评估 / 训练 / 报告模块未接入当前工作流");
+        }
 
         private void OnLogout()
         {
-            UINotifyDialogHelper.Current.ShowPromptDialog("提示", "确定注销登录?", "确定", "取消", (index) =>
+            UINotifyDialogHelper.Current.ShowPromptDialog("提示", "确定注销登录?", "确定", "取消", index =>
             {
                 Global.Reset();
                 Main.m_Procedure.SwitchProcedure<LoginProcedure>();
                 return true;
             });
-
         }
 
         private void OnQuit()
         {
-            // AppBootstrap.Instance.ApplicationWantsToQuit();
-
-
-            UINotifyDialogHelper.Current.ShowPromptDialog("提示", "确认关闭应用?", "确定", "取消", (index) =>
+            UINotifyDialogHelper.Current.ShowPromptDialog("提示", "确认关闭应用?", "确定", "取消", index =>
             {
                 Main.m_UI.OpenUI<UIStartLoading>("应用关闭中......").Forget();
                 Application.Quit();
                 return true;
             });
-
         }
-
     }
 }

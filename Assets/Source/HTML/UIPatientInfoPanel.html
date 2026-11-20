@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>患者界面（UI 原型预览 / Unity 数据文件）</title>
+<style>
+    /* ── 预览外壳：只为浏览器服务，Unity 完全忽略，请勿修改 ────── */
+    html, body { margin: 0; padding: 0; background: #0a0a0a; }
+    body {
+        font-family: "Microsoft YaHei", "PingFang SC", "Noto Sans CJK SC", "Source Han Sans SC", sans-serif;
+        -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── 约束堆叠：与 Unity 端求解规则一一对应 ─────────────────── */
+    [data-u-type] { box-sizing: border-box; }
+    [data-u-layout="v"] { display: flex; flex-direction: column; flex-wrap: nowrap; align-items: stretch; justify-content: flex-start; }
+    [data-u-layout="h"] { display: flex; flex-direction: row;    flex-wrap: nowrap; align-items: stretch; justify-content: flex-start; }
+    /* 缺省尺寸与 Unity 一致：纵向容器子节点默认高 40，横向容器子节点默认宽 100 */
+    [data-u-layout="v"] > * { flex: 0 0 auto; height: 40px; }
+    [data-u-layout="h"] > * { flex: 0 0 auto; width: 100px; }
+
+    /* ── 控件外观：Unity 端由 UGUI 组件渲染，此处用 CSS 模拟 ───── */
+    text, image { display: block; }
+    /* 垂直居中与 Unity 端 TMP 的默认 Middle 对齐保持一致 */
+    [data-u-type="text"]     { display: flex; align-items: center; white-space: pre-wrap; line-height: 1.2; overflow: hidden; }
+    [data-u-type="image"]    { background-image: repeating-linear-gradient(45deg, rgba(255,255,255,.07) 0 8px, rgba(0,0,0,0) 8px 16px); }
+    [data-u-type="button"]   { display: block; border: 0; padding: 0; font-family: inherit; cursor: pointer; }
+    [data-u-type="input"]    { display: block; border: 1px solid rgba(255,255,255,.18); padding: 0 12px; font-family: inherit; }
+    [data-u-type="dropdown"] { display: block; border: 1px solid rgba(255,255,255,.18); padding: 0 8px; font-family: inherit; }
+    [data-u-type="input"]::placeholder { color: rgba(255,255,255,.35); }
+
+    [data-u-type="toggle"]   { display: flex; align-items: center; }
+    [data-u-type="toggle"]::before {
+        content: ""; width: 1.05em; height: 1.05em; border-radius: 999px;
+        background: currentColor; margin-right: .5em; flex: 0 0 auto;
+    }
+    [data-u-type="toggle"][data-u-checked="false"]::before {
+        background: rgba(0,0,0,0); box-shadow: inset 0 0 0 2px currentColor;
+    }
+
+    [data-u-type="radio"]    { display: flex; align-items: center; }
+    [data-u-type="radio"]::before {
+        content: ""; width: .9em; height: .9em; border-radius: 999px;
+        box-shadow: inset 0 0 0 2px currentColor; margin-right: .5em; flex: 0 0 auto;
+    }
+    [data-u-type="radio"][data-u-checked="true"]::before { background: currentColor; }
+
+    [data-u-type="slider"]   { position: relative; border-radius: 999px; overflow: hidden; }
+    [data-u-type="slider"]::before {
+        content: ""; position: absolute; left: 0; top: 0; bottom: 0;
+        width: var(--u-val, 50%); background: currentColor;
+    }
+    [data-u-type="slider"]::after {
+        content: ""; position: absolute; top: 0; bottom: 0; left: var(--u-val, 50%);
+        width: 4px; margin-left: -2px; background: #fff; opacity: .9;
+    }
+
+    [data-u-type="scroll"]   { position: relative; overflow: auto; border: 1px dashed rgba(255,255,255,.22); }
+    [data-u-type="scroll"]::before {
+        content: "滚动区域 ScrollView"; position: absolute; inset: 0;
+        display: flex; align-items: center; justify-content: center;
+        color: rgba(255,255,255,.28); font-size: 20px;
+    }
+
+</style>
+</head>
+<body>
+
+<div id="u-stage">
+
+<div data-u-type="div" data-u-name="UIPatientInfoPanel" data-u-layout="v" style="width: 1920px; height: 1080px; background-color: rgba(0,0,0,0);">
+
+  <!-- ─── 左侧控制台（参考 V6 console-panel：350px 白底，step-card 动线） ─── -->
+  <div data-u-type="div" data-u-name="ConsolePanel" style="left: 84px; top: 56px; width: 350px; height: 1024px; background-color: #ffffff;">
+    <div data-u-type="div" data-u-name="ConsoleHeader" style="left: 0px; top: 0px; width: 350px; height: 64px; background-color: #ffffff;">
+      <div data-u-type="text" data-u-name="ConsoleTitleText" style="left: 20px; top: 16px; width: 170px; height: 30px; color: #222222; font-size: 16px; text-align: left;">患者档案库</div>
+      <div data-u-type="div" data-u-name="CountBadge" style="left: 200px; top: 20px; width: 130px; height: 26px; background-color: #eff6ff;">
+        <div data-u-type="text" data-u-name="PatientCountText" style="left: 0px; top: 1px; width: 130px; height: 24px; color: #1456f0; font-size: 11px; text-align: center;">共 0 名患者</div>
+      </div>
+      <div data-u-type="image" data-u-name="HeaderDivider" style="left: 20px; top: 62px; width: 310px; height: 1px; background-color: #f2f3f5;"></div>
+    </div>
+
+    <div data-u-type="div" data-u-name="SearchPanel" style="left: 20px; top: 84px; width: 310px; height: 96px; background-color: #fafafa;">
+      <div data-u-type="text" data-u-name="SearchLabelText" style="left: 16px; top: 12px; width: 278px; height: 20px; color: #222222; font-size: 13px; text-align: left;">快速检索</div>
+      <input data-u-type="input" data-u-name="SearchInputField" placeholder="输入姓名或病历号检索..." style="left: 16px; top: 40px; width: 278px; height: 40px; background-color: #ffffff; color: #222222; font-size: 13px; text-align: left;" />
+    </div>
+
+    <button data-u-type="button" data-u-name="AddPatientButton" style="left: 20px; top: 196px; width: 310px; height: 40px; background-color: #181e25; color: #ffffff; font-size: 13px;">+ 新增患者档案 (6字段)</button>
+
+    <div data-u-type="image" data-u-name="ConsoleDivider" style="left: 349px; top: 0px; width: 1px; height: 1024px; background-color: #f2f3f5;"></div>
+  </div>
+
+  <!-- ─── 右侧画布（参考 V6 canvas-panel：#f8fafc 底 + 白色表格卡片） ─── -->
+  <div data-u-type="div" data-u-name="CanvasPanel" style="left: 434px; top: 56px; width: 1486px; height: 1024px; background-color: #f8fafc;">
+
+    <div data-u-type="div" data-u-name="TableHeader" style="left: 20px; top: 20px; width: 1446px; height: 44px; background-color: #fafafa;">
+      <div data-u-type="text" data-u-name="HeadCardNum" style="left: 16px; top: 6px; width: 180px; height: 32px; color: #45515e; font-size: 12px; text-align: left;">病历号</div>
+      <div data-u-type="text" data-u-name="HeadName" style="left: 216px; top: 6px; width: 100px; height: 32px; color: #45515e; font-size: 12px; text-align: left;">姓名</div>
+      <div data-u-type="text" data-u-name="HeadSex" style="left: 336px; top: 6px; width: 70px; height: 32px; color: #45515e; font-size: 12px; text-align: left;">性别</div>
+      <div data-u-type="text" data-u-name="HeadAge" style="left: 426px; top: 6px; width: 70px; height: 32px; color: #45515e; font-size: 12px; text-align: left;">年龄</div>
+      <div data-u-type="text" data-u-name="HeadStature" style="left: 516px; top: 6px; width: 90px; height: 32px; color: #45515e; font-size: 12px; text-align: left;">身高(cm)</div>
+      <div data-u-type="text" data-u-name="HeadWeight" style="left: 626px; top: 6px; width: 90px; height: 32px; color: #45515e; font-size: 12px; text-align: left;">体重(kg)</div>
+      <div data-u-type="text" data-u-name="HeadDiagnose" style="left: 736px; top: 6px; width: 340px; height: 32px; color: #45515e; font-size: 12px; text-align: left;">临床诊断</div>
+      <div data-u-type="text" data-u-name="HeadCreateTime" style="left: 1096px; top: 6px; width: 140px; height: 32px; color: #45515e; font-size: 12px; text-align: left;">建档日期</div>
+      <div data-u-type="text" data-u-name="HeadAction" style="left: 1256px; top: 6px; width: 170px; height: 32px; color: #45515e; font-size: 12px; text-align: left;">操作</div>
+    </div>
+    <div data-u-type="image" data-u-name="TableHeaderDivider" style="left: 20px; top: 63px; width: 1446px; height: 1px; background-color: #f2f3f5;"></div>
+
+    <div data-u-type="div" data-u-name="PatientRowsContent" style="left: 20px; top: 64px; width: 1446px; height: 640px; background-color: #ffffff;">
+      <div data-u-type="div" data-u-name="PatientRowTemplate" style="left: 0px; top: 0px; width: 1446px; height: 56px; background-color: #ffffff;">
+        <div data-u-type="text" data-u-name="RowCardNumText" style="left: 16px; top: 10px; width: 180px; height: 36px; color: #222222; font-size: 13px; text-align: left;">P-00000000</div>
+        <div data-u-type="text" data-u-name="RowNameText" style="left: 216px; top: 10px; width: 100px; height: 36px; color: #222222; font-size: 13px; text-align: left;">姓名</div>
+        <div data-u-type="text" data-u-name="RowSexText" style="left: 336px; top: 10px; width: 70px; height: 36px; color: #222222; font-size: 13px; text-align: left;">男</div>
+        <div data-u-type="text" data-u-name="RowAgeText" style="left: 426px; top: 10px; width: 70px; height: 36px; color: #222222; font-size: 13px; text-align: left;">0</div>
+        <div data-u-type="text" data-u-name="RowStatureText" style="left: 516px; top: 10px; width: 90px; height: 36px; color: #222222; font-size: 13px; text-align: left;">0</div>
+        <div data-u-type="text" data-u-name="RowWeightText" style="left: 626px; top: 10px; width: 90px; height: 36px; color: #222222; font-size: 13px; text-align: left;">0</div>
+        <div data-u-type="text" data-u-name="RowDiagnoseText" style="left: 736px; top: 10px; width: 340px; height: 36px; color: #45515e; font-size: 13px; text-align: left;">临床诊断</div>
+        <div data-u-type="text" data-u-name="RowCreateTimeText" style="left: 1096px; top: 10px; width: 140px; height: 36px; color: #45515e; font-size: 13px; text-align: left;">2026-01-01</div>
+        <button data-u-type="button" data-u-name="SelectRowButton" style="left: 1256px; top: 14px; width: 100px; height: 28px; background-color: #f0f0f0; color: #222222; font-size: 11px;">修改</button>
+        <div data-u-type="image" data-u-name="RowDivider" style="left: 0px; top: 55px; width: 1446px; height: 1px; background-color: #f2f3f5;"></div>
+      </div>
+    </div>
+
+    <div data-u-type="div" data-u-name="PatientPager" style="left: 20px; top: 724px; width: 1446px; height: 40px;">
+      <button data-u-type="button" data-u-name="PrevPageButton" style="left: 0px; top: 4px; width: 64px; height: 32px; background-color: #f0f0f0; color: #222222; font-size: 12px;">上一页</button>
+      <button data-u-type="button" data-u-name="NextPageButton" style="left: 1382px; top: 4px; width: 64px; height: 32px; background-color: #f0f0f0; color: #222222; font-size: 12px;">下一页</button>
+      <button data-u-type="button" data-u-name="PageNumberTemplate" style="left: 0px; top: 4px; width: 32px; height: 32px; background-color: #f0f0f0; color: #222222; font-size: 12px;">1</button>
+      <div data-u-type="text" data-u-name="PageEllipsisTemplate" style="left: 0px; top: 4px; width: 24px; height: 32px; color: #8e8e93; font-size: 12px; text-align: center;">...</div>
+    </div>
+
+  </div>
+
+  <!-- ─── 新增患者弹窗（参考 V6 modal-backdrop + modal-box：全屏遮罩 + 480px 居中白卡） ─── -->
+  <div data-u-type="div" data-u-name="AddPatientPanel" style="left: 0px; top: 0px; width: 1920px; height: 1080px; background-color: rgba(0, 0, 0, 0.4);">
+    <div data-u-type="div" data-u-name="AddCard" style="left: 720px; top: 302px; width: 480px; height: 476px; background-color: #ffffff;"></div>
+
+    <div data-u-type="text" data-u-name="AddTitleText" style="left: 744px; top: 326px; width: 380px; height: 24px; color: #222222; font-size: 16px; text-align: left;">录入新患者档案 (6 核心字段)</div>
+    <button data-u-type="button" data-u-name="AddCloseButton" style="left: 1152px; top: 326px; width: 24px; height: 24px; background-color: rgba(0,0,0,0); color: #8e8e93; font-size: 18px;"></button>
+
+    <div data-u-type="text" data-u-name="AddNameLabel" style="left: 744px; top: 366px; width: 210px; height: 16px; color: #45515e; font-size: 12px; text-align: left;">1. 姓名 *</div>
+    <div data-u-type="text" data-u-name="AddSexLabel" style="left: 966px; top: 366px; width: 210px; height: 16px; color: #45515e; font-size: 12px; text-align: left;">2. 性别 *</div>
+    <div data-u-type="image" data-u-name="AddNameBorder" style="left: 743px; top: 385px; width: 212px; height: 38px; background-color: #e5e7eb;"></div>
+    <input data-u-type="input" data-u-name="AddNameInputField" placeholder="如: 赵宏图" style="left: 744px; top: 386px; width: 210px; height: 36px; background-color: #ffffff; color: #222222; font-size: 13px; text-align: left;" />
+    <div data-u-type="image" data-u-name="AddSexBorder" style="left: 965px; top: 385px; width: 212px; height: 38px; background-color: #e5e7eb;"></div>
+    <select data-u-type="dropdown" data-u-name="AddSexDropdown" style="left: 966px; top: 386px; width: 210px; height: 36px; background-color: #ffffff; color: #222222; font-size: 13px;"><option>女</option><option>男</option></select>
+
+    <div data-u-type="text" data-u-name="AddAgeLabel" style="left: 744px; top: 434px; width: 210px; height: 16px; color: #45515e; font-size: 12px; text-align: left;">3. 年龄 *</div>
+    <div data-u-type="text" data-u-name="AddStatureLabel" style="left: 966px; top: 434px; width: 210px; height: 16px; color: #45515e; font-size: 12px; text-align: left;">4. 身高 (cm) *</div>
+    <div data-u-type="image" data-u-name="AddAgeBorder" style="left: 743px; top: 453px; width: 212px; height: 38px; background-color: #e5e7eb;"></div>
+    <input data-u-type="input" data-u-name="AddAgeInputField" placeholder="如: 56" style="left: 744px; top: 454px; width: 210px; height: 36px; background-color: #ffffff; color: #222222; font-size: 13px; text-align: left;" />
+    <div data-u-type="image" data-u-name="AddStatureBorder" style="left: 965px; top: 453px; width: 212px; height: 38px; background-color: #e5e7eb;"></div>
+    <input data-u-type="input" data-u-name="AddStatureInputField" placeholder="如: 170" style="left: 966px; top: 454px; width: 210px; height: 36px; background-color: #ffffff; color: #222222; font-size: 13px; text-align: left;" />
+
+    <div data-u-type="text" data-u-name="AddWeightLabel" style="left: 744px; top: 502px; width: 210px; height: 16px; color: #45515e; font-size: 12px; text-align: left;">5. 体重 (kg) *</div>
+    <div data-u-type="text" data-u-name="AddCardNumLabel" style="left: 966px; top: 502px; width: 210px; height: 16px; color: #45515e; font-size: 12px; text-align: left;">6. 病历号 (MRN) *</div>
+    <div data-u-type="image" data-u-name="AddWeightBorder" style="left: 743px; top: 521px; width: 212px; height: 38px; background-color: #e5e7eb;"></div>
+    <input data-u-type="input" data-u-name="AddWeightInputField" placeholder="如: 65" style="left: 744px; top: 522px; width: 210px; height: 36px; background-color: #ffffff; color: #222222; font-size: 13px; text-align: left;" />
+    <div data-u-type="image" data-u-name="AddCardNumBorder" style="left: 965px; top: 521px; width: 212px; height: 38px; background-color: #e5e7eb;"></div>
+    <input data-u-type="input" data-u-name="AddCardNumInputField" placeholder="如: P-20260899" style="left: 966px; top: 522px; width: 210px; height: 36px; background-color: #ffffff; color: #222222; font-size: 13px; text-align: left;" />
+
+    <div data-u-type="text" data-u-name="AddSideLabel" style="left: 744px; top: 570px; width: 210px; height: 16px; color: #45515e; font-size: 12px; text-align: left;">7. 患侧 *</div>
+    <div data-u-type="image" data-u-name="AddSideBorder" style="left: 743px; top: 589px; width: 212px; height: 38px; background-color: #e5e7eb;"></div>
+    <select data-u-type="dropdown" data-u-name="AddAffectedSideDropdown" style="left: 744px; top: 590px; width: 210px; height: 36px; background-color: #ffffff; color: #222222; font-size: 13px;"><option>左侧</option><option>右侧</option><option>双侧</option></select>
+
+    <div data-u-type="text" data-u-name="AddDiagnoseLabel" style="left: 744px; top: 642px; width: 432px; height: 16px; color: #45515e; font-size: 12px; text-align: left;">临床诊断备注</div>
+    <div data-u-type="image" data-u-name="AddDiagnoseBorder" style="left: 743px; top: 661px; width: 434px; height: 38px; background-color: #e5e7eb;"></div>
+    <input data-u-type="input" data-u-name="AddDiagnoseInputField" placeholder="如: 脑卒中偏瘫恢复期上肢运动功能障碍" style="left: 744px; top: 662px; width: 432px; height: 36px; background-color: #ffffff; color: #222222; font-size: 13px; text-align: left;" />
+
+    <button data-u-type="button" data-u-name="CancelAddButton" style="left: 900px; top: 717px; width: 72px; height: 34px; background-color: #f0f0f0; color: #222222; font-size: 12px;">取消</button>
+    <button data-u-type="button" data-u-name="ConfirmAddButton" style="left: 980px; top: 714px; width: 196px; height: 40px; background-color: #181e25; color: #ffffff; font-size: 13px;">保存档案并设为当前患者</button>
+  </div>
+
+  <!-- ─── 编辑患者弹窗（同款居中白卡） ─── -->
+  <div data-u-type="div" data-u-name="EditPatientPanel" style="left: 0px; top: 0px; width: 1920px; height: 1080px; background-color: rgba(0, 0, 0, 0.4);">
+    <div data-u-type="div" data-u-name="EditCard" style="left: 720px; top: 302px; width: 480px; height: 476px; background-color: #ffffff;"></div>
+
+    <div data-u-type="text" data-u-name="EditTitleText" style="left: 744px; top: 326px; width: 380px; height: 24px; color: #222222; font-size: 16px; text-align: left;">编辑患者档案</div>
+    <button data-u-type="button" data-u-name="EditCloseButton" style="left: 1152px; top: 326px; width: 24px; height: 24px; background-color: rgba(0,0,0,0); color: #8e8e93; font-size: 18px;"></button>
+
+    <div data-u-type="text" data-u-name="EditNameLabel" style="left: 744px; top: 366px; width: 210px; height: 16px; color: #45515e; font-size: 12px; text-align: left;">1. 姓名 *</div>
+    <div data-u-type="text" data-u-name="EditSexLabel" style="left: 966px; top: 366px; width: 210px; height: 16px; color: #45515e; font-size: 12px; text-align: left;">2. 性别 *</div>
+    <div data-u-type="image" data-u-name="EditNameBorder" style="left: 743px; top: 385px; width: 212px; height: 38px; background-color: #e5e7eb;"></div>
+    <input data-u-type="input" data-u-name="EditNameInputField" placeholder="如: 赵宏图" style="left: 744px; top: 386px; width: 210px; height: 36px; background-color: #ffffff; color: #222222; font-size: 13px; text-align: left;" />
+    <div data-u-type="image" data-u-name="EditSexBorder" style="left: 965px; top: 385px; width: 212px; height: 38px; background-color: #e5e7eb;"></div>
+    <select data-u-type="dropdown" data-u-name="EditSexDropdown" style="left: 966px; top: 386px; width: 210px; height: 36px; background-color: #ffffff; color: #222222; font-size: 13px;"><option>女</option><option>男</option></select>
+
+    <div data-u-type="text" data-u-name="EditAgeLabel" style="left: 744px; top: 434px; width: 210px; height: 16px; color: #45515e; font-size: 12px; text-align: left;">3. 年龄 *</div>
+    <div data-u-type="text" data-u-name="EditStatureLabel" style="left: 966px; top: 434px; width: 210px; height: 16px; color: #45515e; font-size: 12px; text-align: left;">4. 身高 (cm) *</div>
+    <div data-u-type="image" data-u-name="EditAgeBorder" style="left: 743px; top: 453px; width: 212px; height: 38px; background-color: #e5e7eb;"></div>
+    <input data-u-type="input" data-u-name="EditAgeInputField" placeholder="如: 56" style="left: 744px; top: 454px; width: 210px; height: 36px; background-color: #ffffff; color: #222222; font-size: 13px; text-align: left;" />
+    <div data-u-type="image" data-u-name="EditStatureBorder" style="left: 965px; top: 453px; width: 212px; height: 38px; background-color: #e5e7eb;"></div>
+    <input data-u-type="input" data-u-name="EditStatureInputField" placeholder="如: 170" style="left: 966px; top: 454px; width: 210px; height: 36px; background-color: #ffffff; color: #222222; font-size: 13px; text-align: left;" />
+
+    <div data-u-type="text" data-u-name="EditWeightLabel" style="left: 744px; top: 502px; width: 210px; height: 16px; color: #45515e; font-size: 12px; text-align: left;">5. 体重 (kg) *</div>
+    <div data-u-type="text" data-u-name="EditCardNumLabel" style="left: 966px; top: 502px; width: 210px; height: 16px; color: #45515e; font-size: 12px; text-align: left;">6. 病历号 (MRN) *</div>
+    <div data-u-type="image" data-u-name="EditWeightBorder" style="left: 743px; top: 521px; width: 212px; height: 38px; background-color: #e5e7eb;"></div>
+    <input data-u-type="input" data-u-name="EditWeightInputField" placeholder="如: 65" style="left: 744px; top: 522px; width: 210px; height: 36px; background-color: #ffffff; color: #222222; font-size: 13px; text-align: left;" />
+    <div data-u-type="image" data-u-name="EditCardNumBorder" style="left: 965px; top: 521px; width: 212px; height: 38px; background-color: #e5e7eb;"></div>
+    <input data-u-type="input" data-u-name="EditCardNumInputField" placeholder="如: P-20260899" style="left: 966px; top: 522px; width: 210px; height: 36px; background-color: #ffffff; color: #222222; font-size: 13px; text-align: left;" />
+
+    <div data-u-type="text" data-u-name="EditSideLabel" style="left: 744px; top: 570px; width: 210px; height: 16px; color: #45515e; font-size: 12px; text-align: left;">7. 患侧 *</div>
+    <div data-u-type="text" data-u-name="EditCreateTimeLabel" style="left: 966px; top: 570px; width: 210px; height: 16px; color: #45515e; font-size: 12px; text-align: left;">创建时间 (不可修改)</div>
+    <div data-u-type="image" data-u-name="EditSideBorder" style="left: 743px; top: 589px; width: 212px; height: 38px; background-color: #e5e7eb;"></div>
+    <select data-u-type="dropdown" data-u-name="EditAffectedSideDropdown" style="left: 744px; top: 590px; width: 210px; height: 36px; background-color: #ffffff; color: #222222; font-size: 13px;"><option>左侧</option><option>右侧</option><option>双侧</option></select>
+    <div data-u-type="image" data-u-name="EditCreateTimeBorder" style="left: 965px; top: 589px; width: 212px; height: 38px; background-color: #e5e7eb;"></div>
+    <input data-u-type="input" data-u-name="EditCreateTimeInputField" placeholder="建档时间" style="left: 966px; top: 590px; width: 210px; height: 36px; background-color: #f0f0f0; color: #8e8e93; font-size: 13px; text-align: left;" />
+
+    <div data-u-type="text" data-u-name="EditDiagnoseLabel" style="left: 744px; top: 642px; width: 432px; height: 16px; color: #45515e; font-size: 12px; text-align: left;">临床诊断备注</div>
+    <div data-u-type="image" data-u-name="EditDiagnoseBorder" style="left: 743px; top: 661px; width: 434px; height: 38px; background-color: #e5e7eb;"></div>
+    <input data-u-type="input" data-u-name="EditDiagnoseInputField" placeholder="如: 脑卒中偏瘫恢复期上肢运动功能障碍" style="left: 744px; top: 662px; width: 432px; height: 36px; background-color: #ffffff; color: #222222; font-size: 13px; text-align: left;" />
+
+    <button data-u-type="button" data-u-name="DeletePatientButton" style="left: 744px; top: 714px; width: 96px; height: 40px; background-color: #dc2626; color: #ffffff; font-size: 13px;">删除患者</button>
+    <button data-u-type="button" data-u-name="CancelEditButton" style="left: 992px; top: 717px; width: 72px; height: 34px; background-color: #f0f0f0; color: #222222; font-size: 12px;">取消</button>
+    <button data-u-type="button" data-u-name="ConfirmEditButton" style="left: 1072px; top: 714px; width: 104px; height: 40px; background-color: #181e25; color: #ffffff; font-size: 13px;">保存修改</button>
+  </div>
+
+</div>
+
+</div>
+
+<script>
+(function () {
+    var stage = document.getElementById('u-stage');
+
+    // data-u-gap / data-u-pad 在 Unity 端由 C# 求解，在浏览器端翻译成真正的 CSS
+    var boxes = stage.querySelectorAll('[data-u-gap],[data-u-pad]');
+    for (var i = 0; i !== boxes.length; i++) {
+        var g = boxes[i].getAttribute('data-u-gap');
+        var p = boxes[i].getAttribute('data-u-pad');
+        if (g) boxes[i].style.gap = g + 'px';
+        if (p) boxes[i].style.padding = p + 'px';
+    }
+
+    // 文本节点去首尾空白，与 Unity 端 Trim 行为一致
+    var texts = stage.querySelectorAll('[data-u-type="text"]');
+    for (var j = 0; j !== texts.length; j++) {
+        texts[j].textContent = texts[j].textContent.replace(/^[\s\uFEFF]+|[\s\uFEFF]+$/g, '');
+    }
+
+    // 滑动条进度
+    var sliders = stage.querySelectorAll('[data-u-type="slider"]');
+    for (var k = 0; k !== sliders.length; k++) {
+        var v = parseFloat(sliders[k].getAttribute('data-u-value'));
+        if (isNaN(v)) v = 0.5;
+        if (v > 1) v = v / 100;
+        v = Math.max(0, Math.min(1, v));
+        sliders[k].style.setProperty('--u-val', (v * 100) + '%');
+    }
+
+})();
+</script>
+
+</body>
+</html>

@@ -9,6 +9,7 @@
     "com.juce.utils": "1.3.1",
     "com.ls9512.utween": "1.1.4",
     "com.neuecc.unirx": "7.1.0",
+    "com.shmqc.webui2unityui": "https://github.com/boostcat/WebUI2UnityUI.git",
     "com.tuyoogame.yooasset": "2.3.7",
     "com.unity.2d.sprite": "1.0.0",
     "com.unity.2d.tilemap": "1.0.0",

@@ -1,519 +1,468 @@
 using System;
-using System.IO;
 using System.Collections.Generic;
 using HT.Framework;
 using TMPro;
-using UIWidgets;
 using UnityEngine;
 using UnityEngine.UI;
 using Cysharp.Threading.Tasks;
-using UnityEngine.UI.ProceduralImage;
 
 namespace LB
 {
     /// <summary>
-    /// 患者信息UI
+    /// 患者信息UI（由 WebUI2UnityUI 转换的 UIPatientInfoPanel 驱动）
     /// </summary>
     [UIResource("UIPatientInfoPanel")]
-    // [UIResource("ui", "UIPatientInfoPanel", "Prefabs/UI/UIPatientInfoPanel")]
     public class UIPatientInfo : UILogicResident
     {
+        [InjectPath("ConsolePanel/ConsoleHeader/CountBadge/PatientCountText")] private TMP_Text patientCountText;
+        [InjectPath("ConsolePanel/SearchPanel/SearchInputField")] private TMP_InputField searchInputField;
+        [InjectPath("ConsolePanel/AddPatientButton")] private Button openAddPanelButton;
 
-        [InjectPath("SearchPanel/SearchInputField")] private TMP_InputField searchInputField;
-        [InjectPath("PatientListPanel")] private RectTransform patientListPanel;
-        [InjectPath("PatientListPanel/ListView")] private PatientListView patientListView;
-        [InjectPath("PatientListPanel/AddPatientButton")] private Button openAddPanelButton;
-        [InjectPath("PatientInfoPanel")] private RectTransform patientInfoPanel;
-        [InjectPath("PatientInfoPanel/Content")] private ProceduralImage patientInfoPanelContent;
-        [InjectPath("PatientInfoPanel/Content/DeleteButton")] private Button deleteButton;
-        [InjectPath("PatientInfoPanel/Content/SaveButton")] private Button saveButton;
-        [InjectPath("PatientInfoPanel/Content/EditButton")] private Button editButton;
-        [InjectPath("PatientInfoPanel/Content/CloseButton")] private Button closeButton;
-        [InjectPath("PatientInfoPanel/Content/AvatarImage")] private Image infoPanel_avatarImage;
-        [InjectPath("PatientInfoPanel/Content/NameInputField")] private TMP_InputField infoPanel_nameInputField;
-        [InjectPath("PatientInfoPanel/Content/AgeInputField")] private TMP_InputField infoPanel_ageInputField;
-        [InjectPath("PatientInfoPanel/Content/StatureInputField")] private TMP_InputField infoPanel_statureInputField;
-        [InjectPath("PatientInfoPanel/Content/WeightInputField")] private TMP_InputField infoPanel_weightInputField;
+        [InjectPath("CanvasPanel/PatientRowsContent")] private RectTransform rowsContent;
+        [InjectPath("CanvasPanel/PatientRowsContent/PatientRowTemplate")] private GameObject rowTemplate;
 
-        [InjectPath("PatientInfoPanel/Content/CardNumInputField")] private TMP_InputField infoPanel_cardNumInputField;
-        [InjectPath("PatientInfoPanel/Content/CreateTimeInputField")] private TMP_InputField infoPanel_createTimeInputField;
-
-        [InjectPath("PatientInfoPanel/Content/SexDropdown")] private TMP_Dropdown infoPanel_sexDropdown;
-        [InjectPath("PatientInfoPanel/Content/AffectedSideDropdown")] private TMP_Dropdown infoPanel_affectedSideDropdown;
+        [InjectPath("CanvasPanel/PatientPager")] private RectTransform patientPager;
+        [InjectPath("CanvasPanel/PatientPager/PrevPageButton")] private Button prevPageButton;
+        [InjectPath("CanvasPanel/PatientPager/NextPageButton")] private Button nextPageButton;
+        [InjectPath("CanvasPanel/PatientPager/PageNumberTemplate")] private GameObject pageNumberTemplate;
+        [InjectPath("CanvasPanel/PatientPager/PageEllipsisTemplate")] private GameObject pageEllipsisTemplate;
 
 
-        [InjectPath("AddPatientPanel")] private RectTransform addPatientPanel;
-        [InjectPath("AddPatientPanel/Content")] private ProceduralImage addPatientPanelContent;
-        [InjectPath("AddPatientPanel/Content/AvatarImage")] private Image addPanel_avatarImage;
-        [InjectPath("AddPatientPanel/Content/NameInputField")] private TMP_InputField addPanel_nameInputField;
-        [InjectPath("AddPatientPanel/Content/CardNumInputField")] private TMP_InputField addPanel_cardNumInputField;
+        [InjectPath("AddPatientPanel")] private GameObject addPatientPanel;
+        [InjectPath("AddPatientPanel/AddCloseButton")] private Button addCloseButton;
+        [InjectPath("AddPatientPanel/AddNameInputField")] private TMP_InputField addNameInput;
+        [InjectPath("AddPatientPanel/AddCardNumInputField")] private TMP_InputField addCardNumInput;
+        [InjectPath("AddPatientPanel/AddAgeInputField")] private TMP_InputField addAgeInput;
+        [InjectPath("AddPatientPanel/AddStatureInputField")] private TMP_InputField addStatureInput;
+        [InjectPath("AddPatientPanel/AddWeightInputField")] private TMP_InputField addWeightInput;
+        [InjectPath("AddPatientPanel/AddSexDropdown")] private TMP_Dropdown addSexDropdown;
+        [InjectPath("AddPatientPanel/AddAffectedSideDropdown")] private TMP_Dropdown addAffectedSideDropdown;
+        [InjectPath("AddPatientPanel/AddDiagnoseInputField")] private TMP_InputField addDiagnoseInput;
+        [InjectPath("AddPatientPanel/CancelAddButton")] private Button cancelAddButton;
+        [InjectPath("AddPatientPanel/ConfirmAddButton")] private Button confirmAddButton;
 
-        [InjectPath("AddPatientPanel/Content/AgeInputField")] private TMP_InputField addPanel_ageInputField;
-        [InjectPath("AddPatientPanel/Content/StatureInputField")] private TMP_InputField addPanel_statureInputField;
-        [InjectPath("AddPatientPanel/Content/WeightInputField")] private TMP_InputField addPanel_weightInputField;
-        // [InjectPath("AddPatientPanel/Content/AdmissionDateInputField")] private TMP_InputField addPanel_admissionDateInputField;
-        // [InjectPath("AddPatientPanel/Content/DiagnoseInputField")] private TMP_InputField addPanel_diagnoseInputField;
-        [InjectPath("AddPatientPanel/Content/SexDropdown")] private TMP_Dropdown addPanel_sexDropdown;
-        [InjectPath("AddPatientPanel/Content/AffectedSideDropdown")] private TMP_Dropdown addPanel_affectedSideDropdown;
-
-
-        [InjectPath("AddPatientPanel/Content/CancelButton")] private Button cancelButton;
-        [InjectPath("AddPatientPanel/Content/AddButton")] private Button addButton;
-        [InjectPath("AddPatientPanel/Content/CloseButton")] private Button addCloseBtn;
-
+        [InjectPath("EditPatientPanel")] private GameObject editPatientPanel;
+        [InjectPath("EditPatientPanel/EditCloseButton")] private Button editCloseButton;
+        [InjectPath("EditPatientPanel/EditNameInputField")] private TMP_InputField editNameInput;
+        [InjectPath("EditPatientPanel/EditCardNumInputField")] private TMP_InputField editCardNumInput;
+        [InjectPath("EditPatientPanel/EditAgeInputField")] private TMP_InputField editAgeInput;
+        [InjectPath("EditPatientPanel/EditStatureInputField")] private TMP_InputField editStatureInput;
+        [InjectPath("EditPatientPanel/EditWeightInputField")] private TMP_InputField editWeightInput;
+        [InjectPath("EditPatientPanel/EditSexDropdown")] private TMP_Dropdown editSexDropdown;
+        [InjectPath("EditPatientPanel/EditAffectedSideDropdown")] private TMP_Dropdown editAffectedSideDropdown;
+        [InjectPath("EditPatientPanel/EditDiagnoseInputField")] private TMP_InputField editDiagnoseInput;
+        [InjectPath("EditPatientPanel/EditCreateTimeInputField")] private TMP_InputField editCreateTimeInput;
+        [InjectPath("EditPatientPanel/DeletePatientButton")] private Button deletePatientButton;
+        [InjectPath("EditPatientPanel/CancelEditButton")] private Button cancelEditButton;
+        [InjectPath("EditPatientPanel/ConfirmEditButton")] private Button confirmEditButton;
 
         private List<PatientInfo> patientInfos;
-
-        private List<PatientInfo> searchPatientInfos;
-
-        private bool isSearching = false;
-
-
-        private PatientInfo CurPatientInfo
-        {
-            get;
-            set;
-        }
+        private List<PatientInfo> displayedPatients;
+        private PatientInfo curPatient;
+        private GameObject selectedRow;
         private string curDoctor;
+        private int curPage;
+        private const int PageSize = 11;
 
-        /// <summary>
-        /// 初始化
-        /// </summary>
         public override void OnInit()
         {
             base.OnInit();
-            patientListView.Init();
 
-
-            var affectedSideList = EnumHelper.GetDescriptions(typeof(AffectedSide));
-            addPanel_affectedSideDropdown.ClearOptions();
-            addPanel_affectedSideDropdown.AddOptions(affectedSideList);
-
-            infoPanel_affectedSideDropdown.ClearOptions();
-            infoPanel_affectedSideDropdown.AddOptions(affectedSideList);
-
-            var sexList = EnumHelper.GetDescriptions(typeof(Sex));
-            addPanel_sexDropdown.ClearOptions();
-            addPanel_sexDropdown.AddOptions(sexList);
-
-            infoPanel_sexDropdown.ClearOptions();
-            infoPanel_sexDropdown.AddOptions(sexList);
-
-            addButton.onClick.AddListener(OnAddPatient);
-            saveButton.onClick.AddListener(OnSavePatient);
-            deleteButton.onClick.AddListener(OnRemovePatient);
-            editButton.onClick.AddListener(OnEditPatient);
-            closeButton.onClick.AddListener(OnCloseAddPatientPanel);
-            cancelButton.onClick.AddListener(OnCloseAddPatientPanel);
-            addCloseBtn.onClick.AddListener(OnCloseAddPatientPanel);
-            openAddPanelButton.onClick.AddListener(OnOpenAddPatientPanel);
-
-            addPanel_sexDropdown.onValueChanged.AddListener((value) =>
-            {
-                addPanel_avatarImage.sprite = (Sex)value == Sex.Female ? Global.IconDic["women"] : Global.IconDic["man"];
-                addPatientPanelContent.sprite = (Sex)value == Sex.Female ? Global.IconDic["womenBigK"] : Global.IconDic["manBigK"];
-            });
-            infoPanel_sexDropdown.onValueChanged.AddListener((value) =>
-            {
-                infoPanel_avatarImage.sprite = (Sex)value == Sex.Female ? Global.IconDic["women"] : Global.IconDic["man"];
-                patientInfoPanelContent.sprite = (Sex)value == Sex.Female ? Global.IconDic["womenBigK"] : Global.IconDic["manBigK"];
-            });
+            var sexOptions = EnumHelper.GetDescriptions(typeof(Sex));
+            var sideOptions = EnumHelper.GetDescriptions(typeof(AffectedSide));
+            addSexDropdown.ClearOptions();
+            addSexDropdown.AddOptions(sexOptions);
+            editSexDropdown.ClearOptions();
+            editSexDropdown.AddOptions(sexOptions);
+            addAffectedSideDropdown.ClearOptions();
+            addAffectedSideDropdown.AddOptions(sideOptions);
+            editAffectedSideDropdown.ClearOptions();
+            editAffectedSideDropdown.AddOptions(sideOptions);
 
             searchInputField.onValueChanged.AddListener(OnSearchTextChanged);
-            patientListView.OnSelect.AddListener(OnPatientItemSelected);
-            patientListView.DataSource.OnCollectionChange += OnListViewDataSourceChanged;
+            openAddPanelButton.onClick.AddListener(OnOpenAddPatientPanel);
+            prevPageButton.onClick.AddListener(() => TurnPage(-1));
+            nextPageButton.onClick.AddListener(() => TurnPage(1));
+
+            addCloseButton.onClick.AddListener(CloseAddPatientPanel);
+            cancelAddButton.onClick.AddListener(CloseAddPatientPanel);
+            confirmAddButton.onClick.AddListener(OnAddPatient);
+
+            editCloseButton.onClick.AddListener(CloseEditPatientPanel);
+            cancelEditButton.onClick.AddListener(CloseEditPatientPanel);
+            confirmEditButton.onClick.AddListener(OnSavePatient);
+            deletePatientButton.onClick.AddListener(OnRemovePatient);
         }
 
-        private void SetPatientInfoPanelEditMode(bool editMode)
-        {
-            infoPanel_nameInputField.interactable = editMode;
-            infoPanel_ageInputField.interactable = editMode;
-            infoPanel_weightInputField.interactable = editMode;
-            infoPanel_statureInputField.interactable = editMode;
-            infoPanel_cardNumInputField.interactable = editMode;
-            infoPanel_createTimeInputField.interactable = false;
-            infoPanel_sexDropdown.interactable = editMode;
-            infoPanel_affectedSideDropdown.interactable = editMode;
-
-            saveButton.gameObject.SetActive(editMode);
-            editButton.gameObject.SetActive(!editMode);
-        }
-
-
-        private void OnSearchTextChanged(string text)
-        {
-
-            if (!string.IsNullOrEmpty(text))
-            {
-                isSearching = true;
-                if (searchPatientInfos != null)
-                    searchPatientInfos.Clear();
-
-                searchPatientInfos = patientInfos.FindAll((x) =>
-                {
-                    return x.CardNum.Contains(text) || x.Name.Contains(text);
-                });
-                patientListView.DataSource.Clear();
-                patientListView.DataSource.BeginUpdate();
-                foreach (var patientInfo in searchPatientInfos)
-                {
-                    var item = new PatientItem() { ID = patientInfo.ID, Name = patientInfo.Name, Age = patientInfo.Age, Sex = patientInfo.Sex, CreateTime = patientInfo.CreateTime };
-                    patientListView.DataSource.Add(item);
-                }
-
-                patientListView.DataSource.EndUpdate();
-                SetListViewDefaultSelect();
-
-            }
-            else
-            {
-                isSearching = false;
-
-                patientListView.DataSource.Clear();
-                patientListView.DataSource.BeginUpdate();
-                foreach (var patientInfo in patientInfos)
-                {
-                    var item = new PatientItem() { ID = patientInfo.ID, Name = patientInfo.Name, Age = patientInfo.Age, Sex = patientInfo.Sex, CreateTime = patientInfo.CreateTime };
-                    patientListView.DataSource.Add(item);
-                }
-
-                patientListView.DataSource.EndUpdate();
-                SetListViewDefaultSelect();
-            }
-
-        }
-
-        private void OnListViewDataSourceChanged()
-        {
-            if (patientInfos.Count > 0)
-            {
-                openAddPanelButton.transform.SetParent(patientListView.Container);
-                openAddPanelButton.transform.SetAsFirstSibling();
-            }
-            else
-            {
-                openAddPanelButton.transform.SetParent(patientListPanel);
-                openAddPanelButton.transform.localPosition = new Vector3(-610, 308);
-                openAddPanelButton.transform.SetAsLastSibling();
-            }
-
-        }
-        private void SetListViewDefaultSelect(int selectedIndex = 0)
-        {
-            var items = patientListView.DataSource;
-            // int selectedIndex = patientListView.SelectedIndex < 0 ? 0 : patientListView.SelectedIndex;
-            if (CurPatientInfo != null && !isSearching)
-            {
-                int index = items.FindIndex(x => x.ID == CurPatientInfo.ID);
-                if (index != -1)
-                {
-                    patientListView.Select(index);
-                    // patientListView.ScrollTo(index);
-                }
-            }
-            else
-            {
-                //默认选择
-                if (items.Count > 0)
-                {
-                    selectedIndex = selectedIndex < items.Count ? selectedIndex : items.Count - 1;
-                    patientListView.Select(selectedIndex);
-                    // patientListView.ScrollTo(selectedIndex);
-                }
-                else
-                {
-                    Main.m_Event.Throw(Main.m_ReferencePool.Spawn<EventPatientChanged>().Fill(null));
-                }
-            }
-        }
-        private void OnPatientItemSelected(int index, ListViewItem component)
-        {
-
-            var item = patientListView.DataSource[index];
-            var patientInfo = patientInfos.Find(e => e.ID == item.ID);
-            if (patientInfo != null)
-            {
-                CurPatientInfo = patientInfo;
-                Main.m_Event.Throw(Main.m_ReferencePool.Spawn<EventPatientChanged>().Fill(patientInfo));
-            }
-
-        }
-
-
-        private void OnOpenAddPatientPanel()
-        {
-
-            addPanel_sexDropdown.value = 0;
-            addPanel_affectedSideDropdown.value = 0;
-            addPanel_avatarImage.sprite = Global.IconDic["women"];
-            addPatientPanelContent.sprite = Global.IconDic["womenBigK"];
-            addPanel_nameInputField.text = "";
-            addPanel_cardNumInputField.text = DateTime.Now.ToFileTime().ToString();
-            addPanel_ageInputField.text = "";
-            addPanel_statureInputField.text = "";
-            addPanel_weightInputField.text = "";
-
-            addPatientPanel.gameObject.SetActive(true);
-        }
-
-        private void CloseAddPatientPanel()
-        {
-
-            addPatientPanel.gameObject.SetActive(false);
-            patientInfoPanel.gameObject.SetActive(false);
-        }
-
-        private void OnCloseAddPatientPanel()
-        {
-            CloseAddPatientPanel();
-        }
-
-
-        //新增患者
-        private void OnAddPatient()
-        {
-
-            if (addPanel_nameInputField.text == "" ||
-                addPanel_cardNumInputField.text == "" ||
-                addPanel_statureInputField.text == "" ||
-                addPanel_weightInputField.text == "")
-            {
-                UINotifyDialogHelper.Current.ShowPromptDialog("错误", "标记*为必填项,不能为空!", "确定");
-                return;
-            }
-
-
-            if (!int.TryParse(addPanel_statureInputField.text, out var stature) || stature <= 0 || stature > 250)
-            {
-                UINotifyDialogHelper.Current.ShowPromptDialog("错误", "身高必须大于0,小于250厘米!", "确定");
-                return;
-            }
-
-            if (!int.TryParse(addPanel_weightInputField.text, out var weight) || weight <= 0 || weight > 150)
-            {
-                UINotifyDialogHelper.Current.ShowPromptDialog("错误", "体重必须大于0,小于150千克!", "确定");
-
-                return;
-            }
-
-            var patientInfo = new PatientInfo
-            {
-                ID = DateTime.Now.ToFileTime().ToString(),
-                Name = addPanel_nameInputField.text,
-                CardNum = addPanel_cardNumInputField.text,
-                Doctor = Global.CurAdminInfo.Account,
-                Sex = (Sex)addPanel_sexDropdown.value,
-                AffectedSide = (AffectedSide)addPanel_affectedSideDropdown.value,
-                Age = int.TryParse(addPanel_ageInputField.text, out var age) ? age : 0,
-                Weight = weight,
-                Stature = stature,
-                AdmissionDate = DateTime.Now,
-                CreateTime = DateTime.Now
-            };
-
-            bool result = DBManagerModule.Instance.InsertPatientInfo(patientInfo);
-            if (result)
-            {
-                patientInfos.Add(patientInfo);
-                patientListView.DataSource.BeginUpdate();
-                patientListView.DataSource.Add(new PatientItem() { ID = patientInfo.ID, Name = patientInfo.Name, Age = patientInfo.Age, Sex = patientInfo.Sex, CreateTime = patientInfo.CreateTime });
-                patientListView.DataSource.EndUpdate();
-                CurPatientInfo = patientInfo;
-
-
-                CloseAddPatientPanel();
-                SetListViewDefaultSelect();
-
-                UINotifyDialogHelper.Current.ShowNotifyAutoHide("新增患者成功");
-            }
-            else
-            {
-                UINotifyDialogHelper.Current.ShowPromptDialog("错误", "新增患者失败!", "确定");
-            }
-
-
-        }
-        public void OpenPatientDetailPanel(int index)
-        {
-            patientListView.Select(index);
-
-            if (CurPatientInfo == null) return;
-            infoPanel_nameInputField.text = CurPatientInfo.Name;
-            infoPanel_cardNumInputField.text = CurPatientInfo.CardNum;
-            infoPanel_ageInputField.text = CurPatientInfo.Age.ToString();
-            infoPanel_createTimeInputField.text = CurPatientInfo.CreateTime.ToString("yyyy-MM-dd HH:mm");
-            infoPanel_weightInputField.text = CurPatientInfo.Weight > 0 ? CurPatientInfo.Weight.ToString() : "";
-            infoPanel_statureInputField.text = CurPatientInfo.Stature > 0 ? CurPatientInfo.Stature.ToString() : "";
-            infoPanel_avatarImage.sprite = CurPatientInfo.Sex == Sex.Female ? Global.IconDic["women"] : Global.IconDic["man"];
-            patientInfoPanelContent.sprite = CurPatientInfo.Sex == Sex.Female ? Global.IconDic["womenBigK"] : Global.IconDic["manBigK"];
-            infoPanel_sexDropdown.value = (int)CurPatientInfo.Sex;
-            infoPanel_affectedSideDropdown.value = (int)CurPatientInfo.AffectedSide;
-
-            SetPatientInfoPanelEditMode(false);
-
-            patientInfoPanel.gameObject.SetActive(true);
-        }
-
-        //删除患者
-        private void OnRemovePatient()
-        {
-            var patientInfo = CurPatientInfo;
-            if (patientInfo == null) return;
-            Action yesCallback = () =>
-            {
-                bool result = DBManagerModule.Instance.DeletePatientInfo(patientInfo);
-                if (result)
-                {
-
-                    //DBManagerModule.Instance.DeleteAllPatientReport(patientInfo.ID);
-
-                    patientInfos.Remove(patientInfo);
-
-                    int selectedIndex = patientListView.SelectedIndex;
-                    patientListView.DataSource.BeginUpdate();
-                    patientListView.DataSource.Remove(patientListView.DataSource[selectedIndex]);
-                    patientListView.DataSource.EndUpdate();
-                    CurPatientInfo = null;
-                    SetListViewDefaultSelect(selectedIndex);
-                    CloseAddPatientPanel();
-                    UINotifyDialogHelper.Current.ShowNotifyAutoHide("删除患者成功");
-
-                }
-                else
-                {
-                    UINotifyDialogHelper.Current.ShowPromptDialog("错误", "删除患者失败!", "确定");
-                }
-            };
-
-
-
-            UINotifyDialogHelper.Current.ShowPromptDialog("提示", "确定删除患者?", "确定", "取消", (index) =>
-               {
-                   Main.m_UI.OpenUI<UIAdminPasswordDialog>(yesCallback).Forget();
-                   return true;
-               });
-        }
-
-
-        private void OnSavePatient()
-        {
-
-            if (CurPatientInfo == null) return;
-            if (infoPanel_nameInputField.text == "" ||
-                infoPanel_cardNumInputField.text == "" ||
-                infoPanel_statureInputField.text == "" ||
-                infoPanel_weightInputField.text == "")
-            {
-                UINotifyDialogHelper.Current.ShowPromptDialog("错误", "信息不能为空!", "确定");
-                return;
-            }
-
-            if (!int.TryParse(infoPanel_statureInputField.text, out var stature) || stature <= 0 || stature > 250)
-            {
-                UINotifyDialogHelper.Current.ShowPromptDialog("错误", "身高必须大于0,小于250厘米!", "确定");
-                return;
-            }
-
-            if (!int.TryParse(infoPanel_weightInputField.text, out var weight) || weight <= 0 || weight > 150)
-            {
-                UINotifyDialogHelper.Current.ShowPromptDialog("错误", "体重必须大于0,小于150千克!", "确定");
-
-                return;
-            }
-
-            // Action yesCallback = () =>
-            // {
-            var patientInfo = new PatientInfo();
-            patientInfo = CurPatientInfo.Clone();
-            patientInfo.Name = infoPanel_nameInputField.text;
-            patientInfo.Sex = (Sex)infoPanel_sexDropdown.value;
-            patientInfo.Age = int.TryParse(infoPanel_ageInputField.text, out var age) ? age : 0;
-            patientInfo.Weight = weight;
-            patientInfo.Stature = stature;
-            patientInfo.CardNum = infoPanel_cardNumInputField.text;
-            patientInfo.AffectedSide = (AffectedSide)infoPanel_affectedSideDropdown.value;
-            bool result = DBManagerModule.Instance.UpdatePatientInfo(patientInfo);
-            if (result)
-            {
-                int selectedIndex = patientListView.SelectedIndex;
-                patientListView.DataSource.BeginUpdate();
-                if (selectedIndex >= 0 && selectedIndex < patientListView.DataSource.Count)
-                {
-                    // patientListView.DataSource[selectedIndex] = new PatientItem() { ID = patientInfo.ID, Name = patientInfo.Name, Age = patientInfo.Age, Sex = patientInfo.Sex };
-                    patientListView.DataSource.Remove(patientListView.DataSource[selectedIndex]);
-                    patientListView.DataSource.Add(new PatientItem()
-                    {
-                        ID = patientInfo.ID,
-                        Name = patientInfo.Name,
-                        Age = patientInfo.Age,
-                        Sex = patientInfo.Sex,
-                        CreateTime = patientInfo.CreateTime
-                    });
-                }
-                patientListView.DataSource.EndUpdate();
-
-                int index = patientListView.DataSource.FindIndex(e => e.ID == patientInfo.ID);
-                if (index >= 0) patientListView.Select(index);
-                index = patientInfos.FindIndex(e => e.ID == patientInfo.ID);
-                if (index >= 0) patientInfos[index] = patientInfo.Clone();
-
-                SetPatientInfoPanelEditMode(false);
-
-                UINotifyDialogHelper.Current.ShowNotifyAutoHide("保存患者信息成功");
-
-            }
-            else
-            {
-                UINotifyDialogHelper.Current.ShowPromptDialog("错误", "保存患者信息失败!", "确定");
-
-            }
-            OnCloseAddPatientPanel();
-            // };
-            // Main.m_UI.OpenUI<UIAdminPasswordDialog>(yesCallback);
-        }
-        private void OnEditPatient()
-        {
-            SetPatientInfoPanelEditMode(true);
-        }
-
-
-        /// <summary>
-        /// 打开UI
-        /// </summary>
         public override void OnOpen(params object[] args)
         {
             base.OnOpen(args);
 
             if (patientInfos == null || curDoctor != Global.CurAdminInfo.Account)
             {
-                CurPatientInfo = null;
-                patientInfos = DBManagerModule.Instance.QueryAllPatientInfos(Global.CurAdminInfo);
+                patientInfos = DBManagerModule.Instance.QueryAllPatientInfos(Global.CurAdminInfo) ?? new List<PatientInfo>();
                 curDoctor = Global.CurAdminInfo.Account;
-
-
-                patientListView.DataSource.Clear();
-                patientListView.DataSource.BeginUpdate();
-                foreach (var patientInfo in patientInfos)
-                {
-                    var item = new PatientItem() { ID = patientInfo.ID, Name = patientInfo.Name, Age = patientInfo.Age, Sex = patientInfo.Sex, CreateTime = patientInfo.CreateTime };
-                    patientListView.DataSource.Add(item);
-                }
-
-                patientListView.DataSource.EndUpdate();
-
+                curPatient = null;
             }
-            CloseAddPatientPanel();
-            SetListViewDefaultSelect();
 
+            searchInputField.text = "";
+            CloseAddPatientPanel();
+            CloseEditPatientPanel();
+            RefreshPatientList(null, true);
+        }
+
+        private void OnSearchTextChanged(string text)
+        {
+            curPage = 0;
+            RefreshPatientList(text);
+        }
+
+        private void RefreshPatientList(string keyword = null, bool followSelection = false)
+        {
+            if (patientInfos == null) patientInfos = new List<PatientInfo>();
+            string key = string.IsNullOrEmpty(keyword) ? searchInputField.text : keyword;
+
+            displayedPatients = string.IsNullOrEmpty(key)
+                ? new List<PatientInfo>(patientInfos)
+                : patientInfos.FindAll(p =>
+                    (p.CardNum != null && p.CardNum.Contains(key)) ||
+                    (p.Name != null && p.Name.Contains(key)) ||
+                    (p.Diagnose != null && p.Diagnose.Contains(key)));
+
+            patientCountText.text = string.Format("共 {0} 名患者", displayedPatients.Count);
+
+            int pageCount = Mathf.Max(1, Mathf.CeilToInt(displayedPatients.Count / (float)PageSize));
+            PatientInfo keep = curPatient != null ? curPatient : Global.CurPatientInfo;
+            int keepIndex = keep != null ? displayedPatients.FindIndex(p => p.ID == keep.ID) : -1;
+            if (keepIndex >= 0 && followSelection) curPage = keepIndex / PageSize;
+            curPage = Mathf.Clamp(curPage, 0, pageCount - 1);
+
+            int start = curPage * PageSize;
+            int sliceCount = Mathf.Min(PageSize, displayedPatients.Count - start);
+            ClearRows();
+            for (int i = 0; i < sliceCount; i++) CreateRow(displayedPatients[start + i], i);
+
+            selectedRow = null;
+            if (sliceCount > 0)
+            {
+                int keepInSlice = keepIndex - start;
+                if (keepIndex >= 0 && keepInSlice >= 0 && keepInSlice < sliceCount)
+                {
+                    SelectPatient(displayedPatients[keepIndex]);
+                    Transform keepRow = rowsContent.Find("PatientRow_" + keepInSlice);
+                    if (keepRow != null) HighlightRow(keepRow.gameObject);
+                }
+                else if (keepIndex < 0)
+                {
+                    SelectPatient(displayedPatients[start]);
+                    Transform firstRow = rowsContent.Find("PatientRow_0");
+                    if (firstRow != null) HighlightRow(firstRow.gameObject);
+                }
+            }
+            else
+            {
+                curPatient = null;
+                Global.CurPatientInfo = null;
+                Main.m_Event.Throw(Main.m_ReferencePool.Spawn<EventPatientChanged>().Fill(null));
+            }
+
+            UIPagerBar.Refresh(patientPager, prevPageButton, nextPageButton, pageNumberTemplate, pageEllipsisTemplate,
+                pageCount, curPage, OnPageSelected);
+        }
+
+        private void TurnPage(int delta)
+        {
+            curPage += delta;
+            RefreshPatientList();
+        }
+
+        private void OnPageSelected(int page)
+        {
+            curPage = page;
+            RefreshPatientList();
+        }
+
+        private void ClearRows()
+        {
+            for (int i = rowsContent.childCount - 1; i >= 0; i--)
+            {
+                Transform child = rowsContent.GetChild(i);
+                if (child == rowTemplate.transform) continue;
+                child.gameObject.SetActive(false);
+                UnityEngine.Object.DestroyImmediate(child.gameObject);
+            }
+        }
+
+        private void CreateRow(PatientInfo patient, int index)
+        {
+            GameObject row = UnityEngine.Object.Instantiate(rowTemplate, rowsContent);
+            row.name = "PatientRow_" + index;
+            row.SetActive(true);
+
+            RectTransform templateRect = rowTemplate.GetComponent<RectTransform>();
+            RectTransform rowRect = row.GetComponent<RectTransform>();
+            if (templateRect != null && rowRect != null)
+            {
+                Vector2 basePosition = templateRect.anchoredPosition;
+                rowRect.anchoredPosition = new Vector2(basePosition.x, basePosition.y - index * 56f);
+            }
+
+            SetChildText(row, "RowCardNumText", patient.CardNum);
+            SetChildText(row, "RowNameText", patient.Name);
+            SetChildText(row, "RowSexText", patient.Sex == Sex.Female ? "女" : "男");
+            SetChildText(row, "RowAgeText", patient.Age > 0 ? patient.Age + " 岁" : "-");
+            SetChildText(row, "RowStatureText", patient.Stature > 0 ? patient.Stature.ToString() : "-");
+            SetChildText(row, "RowWeightText", patient.Weight > 0 ? patient.Weight.ToString() : "-");
+            SetChildText(row, "RowDiagnoseText", string.IsNullOrEmpty(patient.Diagnose) ? "未填写诊断" : patient.Diagnose);
+            SetChildText(row, "RowCreateTimeText", patient.CreateTime == default(DateTime) ? "-" : patient.CreateTime.ToString("yyyy-MM-dd"));
+
+            PatientInfo captured = patient;
+            Button rowButton = row.GetComponent<Button>();
+            if (rowButton != null)
+            {
+                rowButton.transition = Selectable.Transition.None;
+                rowButton.onClick.RemoveAllListeners();
+                rowButton.onClick.AddListener(() => SelectPatient(captured));
+                rowButton.onClick.AddListener(() => HighlightRow(row));
+            }
+
+            Transform editNode = row.transform.Find("SelectRowButton");
+            if (editNode != null)
+            {
+                Button editButton = editNode.GetComponent<Button>();
+                editButton.onClick.RemoveAllListeners();
+                editButton.onClick.AddListener(() =>
+                {
+                    SelectPatient(captured);
+                    HighlightRow(row);
+                    OnOpenEditPatientPanel();
+                });
+            }
+        }
+
+        private void HighlightRow(GameObject row)
+        {
+            if (selectedRow != null)
+            {
+                Image oldImage = selectedRow.GetComponent<Image>();
+                if (oldImage != null) oldImage.color = Color.white;
+            }
+            selectedRow = row;
+            Image image = row != null ? row.GetComponent<Image>() : null;
+            if (image != null) image.color = new Color(0.937f, 0.965f, 1f, 1f);
+        }
+
+        private static void SetChildText(GameObject parent, string childName, string value)
+        {
+            Transform node = parent.transform.Find(childName);
+            if (node == null) return;
+            TMP_Text text = node.GetComponent<TMP_Text>();
+            if (text != null) text.text = value ?? "";
+        }
+
+        private void SelectPatient(PatientInfo patient)
+        {
+            if (patient == null) return;
+            curPatient = patient;
+            Global.CurPatientInfo = patient;
+
+            Main.m_Event.Throw(Main.m_ReferencePool.Spawn<EventPatientChanged>().Fill(patient));
         }
 
         /// <summary>
-        /// 置顶UI
+        /// 供列表项等外部逻辑按索引打开患者详情
         /// </summary>
+        public void OpenPatientDetailPanel(int index)
+        {
+            if (displayedPatients == null || index < 0 || index >= displayedPatients.Count) return;
+            SelectPatient(displayedPatients[index]);
+        }
+
+        private void OnOpenAddPatientPanel()
+        {
+            addNameInput.text = "";
+            addCardNumInput.text = DateTime.Now.ToFileTime().ToString();
+            addAgeInput.text = "";
+            addStatureInput.text = "";
+            addWeightInput.text = "";
+            addDiagnoseInput.text = "";
+            addSexDropdown.SetValueWithoutNotify(0);
+            addAffectedSideDropdown.SetValueWithoutNotify(0);
+            ShowModalOnMain(addPatientPanel);
+        }
+
+        private void CloseAddPatientPanel()
+        {
+            HideModalOnMain(addPatientPanel);
+        }
+
+        private void OnOpenEditPatientPanel()
+        {
+            if (curPatient == null)
+            {
+                UINotifyDialogHelper.Current.ShowNotifyAutoHide("请先选择患者");
+                return;
+            }
+            editNameInput.text = curPatient.Name ?? "";
+            editCardNumInput.text = curPatient.CardNum ?? "";
+            editAgeInput.text = curPatient.Age > 0 ? curPatient.Age.ToString() : "";
+            editStatureInput.text = curPatient.Stature > 0 ? curPatient.Stature.ToString() : "";
+            editWeightInput.text = curPatient.Weight > 0 ? curPatient.Weight.ToString() : "";
+            editSexDropdown.SetValueWithoutNotify((int)curPatient.Sex);
+            editAffectedSideDropdown.SetValueWithoutNotify((int)curPatient.AffectedSide);
+            editDiagnoseInput.text = curPatient.Diagnose ?? "";
+            editCreateTimeInput.text = curPatient.CreateTime == default(DateTime) ? "" : curPatient.CreateTime.ToString("yyyy-MM-dd HH:mm");
+            ShowModalOnMain(editPatientPanel);
+        }
+
+        private void CloseEditPatientPanel()
+        {
+            HideModalOnMain(editPatientPanel);
+        }
+
+        private void ShowModalOnMain(GameObject modal)
+        {
+            var main = Main.m_UI.GetOpenedUI<UIMain>();
+            if (main != null) main.ShowModal(modal);
+            else if (modal != null) modal.SetActive(true);
+        }
+
+        private void HideModalOnMain(GameObject modal)
+        {
+            var main = Main.m_UI.GetOpenedUI<UIMain>();
+            if (main != null) main.HideModal(modal);
+            else if (modal != null) modal.SetActive(false);
+        }
+
+        private void OnAddPatient()
+        {
+            if (string.IsNullOrEmpty(addNameInput.text) || string.IsNullOrEmpty(addCardNumInput.text) ||
+                string.IsNullOrEmpty(addStatureInput.text) || string.IsNullOrEmpty(addWeightInput.text))
+            {
+                UINotifyDialogHelper.Current.ShowPromptDialog("错误", "标记*为必填项，不能为空!", "确定");
+                return;
+            }
+
+            int stature, weight;
+            if (!int.TryParse(addStatureInput.text, out stature) || stature <= 0 || stature > 250)
+            {
+                UINotifyDialogHelper.Current.ShowPromptDialog("错误", "身高必须大于0，小于250厘米!", "确定");
+                return;
+            }
+            if (!int.TryParse(addWeightInput.text, out weight) || weight <= 0 || weight > 150)
+            {
+                UINotifyDialogHelper.Current.ShowPromptDialog("错误", "体重必须大于0，小于150千克!", "确定");
+                return;
+            }
+
+            var patient = new PatientInfo
+            {
+                ID = DateTime.Now.ToFileTime().ToString(),
+                Name = addNameInput.text,
+                CardNum = addCardNumInput.text,
+                Doctor = Global.CurAdminInfo.Account,
+                Sex = (Sex)addSexDropdown.value,
+                AffectedSide = (AffectedSide)addAffectedSideDropdown.value,
+                Age = int.TryParse(addAgeInput.text, out int age) ? age : 0,
+                Stature = stature,
+                Weight = weight,
+                Diagnose = addDiagnoseInput.text,
+                AdmissionDate = DateTime.Now,
+                CreateTime = DateTime.Now
+            };
+
+            if (!DBManagerModule.Instance.InsertPatientInfo(patient))
+            {
+                UINotifyDialogHelper.Current.ShowPromptDialog("错误", "新增患者失败!", "确定");
+                return;
+            }
+
+            patientInfos.Add(patient);
+            curPatient = patient;
+            CloseAddPatientPanel();
+            searchInputField.text = "";
+            RefreshPatientList(null, true);
+            UINotifyDialogHelper.Current.ShowNotifyAutoHide("新增患者成功");
+        }
+
+        private void OnSavePatient()
+        {
+            if (curPatient == null) return;
+            if (string.IsNullOrEmpty(editNameInput.text) || string.IsNullOrEmpty(editCardNumInput.text) ||
+                string.IsNullOrEmpty(editStatureInput.text) || string.IsNullOrEmpty(editWeightInput.text))
+            {
+                UINotifyDialogHelper.Current.ShowPromptDialog("错误", "信息不能为空!", "确定");
+                return;
+            }
+
+            int stature, weight;
+            if (!int.TryParse(editStatureInput.text, out stature) || stature <= 0 || stature > 250)
+            {
+                UINotifyDialogHelper.Current.ShowPromptDialog("错误", "身高必须大于0，小于250厘米!", "确定");
+                return;
+            }
+            if (!int.TryParse(editWeightInput.text, out weight) || weight <= 0 || weight > 150)
+            {
+                UINotifyDialogHelper.Current.ShowPromptDialog("错误", "体重必须大于0，小于150千克!", "确定");
+                return;
+            }
+
+            PatientInfo updated = curPatient.Clone();
+            updated.Name = editNameInput.text;
+            updated.CardNum = editCardNumInput.text;
+            updated.Age = int.TryParse(editAgeInput.text, out int age) ? age : 0;
+            updated.Stature = stature;
+            updated.Weight = weight;
+            updated.Sex = (Sex)editSexDropdown.value;
+            updated.AffectedSide = (AffectedSide)editAffectedSideDropdown.value;
+            updated.Diagnose = editDiagnoseInput.text;
+
+            if (!DBManagerModule.Instance.UpdatePatientInfo(updated))
+            {
+                UINotifyDialogHelper.Current.ShowPromptDialog("错误", "保存患者信息失败!", "确定");
+                return;
+            }
+
+            int index = patientInfos.FindIndex(p => p.ID == updated.ID);
+            if (index >= 0) patientInfos[index] = updated.Clone();
+            curPatient = updated;
+            Global.CurPatientInfo = updated;
+            CloseEditPatientPanel();
+            RefreshPatientList(null, true);
+            UINotifyDialogHelper.Current.ShowNotifyAutoHide("保存患者信息成功");
+        }
+
+        private void OnRemovePatient()
+        {
+            PatientInfo target = curPatient;
+            if (target == null) return;
+
+            Action yesCallback = () =>
+            {
+                if (!DBManagerModule.Instance.DeletePatientInfo(target))
+                {
+                    UINotifyDialogHelper.Current.ShowPromptDialog("错误", "删除患者失败!", "确定");
+                    return;
+                }
+
+                patientInfos.RemoveAll(p => p.ID == target.ID);
+                curPatient = null;
+                Global.CurPatientInfo = null;
+                CloseEditPatientPanel();
+                RefreshPatientList();
+                UINotifyDialogHelper.Current.ShowNotifyAutoHide("删除患者成功");
+            };
+
+            UINotifyDialogHelper.Current.ShowPromptDialog("提示", "确定删除患者?", "确定", "取消", index =>
+            {
+                Main.m_UI.OpenUI<UIAdminPasswordDialog>(yesCallback).Forget();
+                return true;
+            });
+        }
+
         public override void OnPlaceTop()
         {
             base.OnPlaceTop();
-
             var mainWindow = Main.m_UI.GetOpenedUI<UIMain>();
             if (mainWindow != null)
             {
@@ -521,56 +470,29 @@ namespace LB
                 UIEntity.transform.localScale = Vector3.one;
                 UIEntity.transform.localPosition = Vector3.zero;
             }
-
         }
 
-        /// <summary>
-        /// 关闭UI
-        /// </summary>
         public override void OnClose()
         {
             base.OnClose();
-
-            patientListView.SelectedIndex = -1;
+            CloseAddPatientPanel();
+            CloseEditPatientPanel();
         }
 
-        /// <summary>
-        /// 销毁UI
-        /// </summary>
         public override void OnDestroy()
         {
-
             base.OnDestroy();
-            isSearching = false;
-            patientListView.OnSelect.RemoveAllListeners();
-            patientListView.DataSource.OnCollectionChange -= OnListViewDataSourceChanged;
-
-            openAddPanelButton.onClick.RemoveAllListeners();
-
-            cancelButton.onClick.RemoveAllListeners();
-            addCloseBtn.onClick.RemoveAllListeners();
-            addButton.onClick.RemoveAllListeners();
-            deleteButton.onClick.RemoveAllListeners();
-            saveButton.onClick.RemoveAllListeners();
-            editButton.onClick.RemoveAllListeners();
-            closeButton.onClick.RemoveAllListeners();
-
             searchInputField.onValueChanged.RemoveAllListeners();
-            addPanel_sexDropdown.onValueChanged.RemoveAllListeners();
-            infoPanel_sexDropdown.onValueChanged.RemoveAllListeners();
-
-
+            openAddPanelButton.onClick.RemoveAllListeners();
+            prevPageButton.onClick.RemoveAllListeners();
+            nextPageButton.onClick.RemoveAllListeners();
+            addCloseButton.onClick.RemoveAllListeners();
+            cancelAddButton.onClick.RemoveAllListeners();
+            confirmAddButton.onClick.RemoveAllListeners();
+            editCloseButton.onClick.RemoveAllListeners();
+            cancelEditButton.onClick.RemoveAllListeners();
+            confirmEditButton.onClick.RemoveAllListeners();
+            deletePatientButton.onClick.RemoveAllListeners();
         }
-
-        /// <summary>
-        /// UI逻辑刷新
-        /// </summary>
-        public override void OnUpdate()
-        {
-            base.OnUpdate();
-        }
-
     }
-
-
 }
