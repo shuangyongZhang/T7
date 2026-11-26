@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>报告档案库（分栏卡片列表 UI 原型）</title>
+<style>
+    html, body { margin: 0; padding: 0; background: #0a0a0a; }
+    body { font-family: "Microsoft YaHei", "PingFang SC", "Noto Sans CJK SC", "Source Han Sans SC", sans-serif; -webkit-font-smoothing: antialiased; }
+    [data-u-type] { box-sizing: border-box; }
+    [data-u-type][style*="left:"] { position: absolute; }
+    text, image { display: block; }
+    [data-u-type="text"] { display: flex; align-items: center; white-space: pre-wrap; line-height: 1.3; overflow: hidden; }
+    [data-u-type="image"] { background-image: repeating-linear-gradient(45deg, rgba(255,255,255,.07) 0 8px, rgba(0,0,0,0) 8px 16px); }
+    [data-u-type="button"] { display: block; border: 0; padding: 0; font-family: inherit; cursor: pointer; }
+    [data-u-type="scroll"] { position: relative; overflow: auto; border: 0; }
+    [data-u-type="scroll"]::before { content: ""; }
+</style>
+</head>
+<body>
+<div id="u-stage">
+
+<div data-u-type="div" data-u-name="UIReportPanel" style="width: 1920px; height: 1080px; background-color: rgba(0,0,0,0);">
+  <div data-u-type="div" data-u-name="ConsolePanel" style="left: 84px; top: 56px; width: 350px; height: 1024px; background-color: #ffffff;">
+    <div data-u-type="text" data-u-name="ConsoleTitleText" style="left: 20px; top: 18px; width: 180px; height: 30px; color: #222222; font-size: 16px; text-align: left;">报告档案库</div>
+    <div data-u-type="div" data-u-name="CountBadge" style="left: 224px; top: 20px; width: 106px; height: 26px; background-color: #eff6ff;">
+      <div data-u-type="text" data-u-name="ReportCountText" style="left: 0px; top: 1px; width: 106px; height: 24px; color: #1456f0; font-size: 11px; text-align: center;">0 份报告</div>
+    </div>
+    <div data-u-type="image" data-u-name="HeaderDivider" style="left: 20px; top: 62px; width: 310px; height: 1px; background-color: #f2f3f5;"></div>
+
+    <div data-u-type="div" data-u-name="PatientCard" style="left: 20px; top: 84px; width: 310px; height: 112px; background-color: #fafafa;">
+      <div data-u-type="text" data-u-name="PatientNameText" style="left: 16px; top: 14px; width: 278px; height: 24px; color: #222222; font-size: 14px; text-align: left;">未选择患者</div>
+      <div data-u-type="text" data-u-name="PatientMRNText" style="left: 16px; top: 46px; width: 278px; height: 20px; color: #45515e; font-size: 12px; text-align: left;">病历号：--</div>
+      <div data-u-type="text" data-u-name="PatientMetaText" style="left: 16px; top: 76px; width: 278px; height: 20px; color: #8e8e93; font-size: 11px; text-align: left;">请先在患者页面选择患者</div>
+    </div>
+
+    <div data-u-type="div" data-u-name="FilterTabs" style="left: 20px; top: 216px; width: 310px; height: 44px; background-color: #f0f0f0;">
+      <button data-u-type="button" data-u-name="AllFilterButton" style="left: 0px; top: 0px; width: 100px; height: 44px; background-color: #eef5ff; color: #1456f0; font-size: 12px;">全部 (0)</button>
+      <button data-u-type="button" data-u-name="TrainingFilterButton" style="left: 104px; top: 0px; width: 100px; height: 44px; background-color: #f0f0f0; color: #45515e; font-size: 12px;">训练 (0)</button>
+      <button data-u-type="button" data-u-name="AssessmentFilterButton" style="left: 208px; top: 0px; width: 102px; height: 44px; background-color: #f0f0f0; color: #45515e; font-size: 12px;">评估 (0)</button>
+    </div>
+
+    <div data-u-type="div" data-u-name="ReportRowsContent" style="left: 20px; top: 280px; width: 310px; height: 640px; background-color: #ffffff;">
+      <div data-u-type="div" data-u-name="ReportRowTemplate" style="left: 0px; top: 0px; width: 310px; height: 142px; background-color: #ffffff; border: 1px solid #e5e7eb;">
+        <div data-u-type="div" data-u-name="TypeBadge" style="left: 14px; top: 14px; width: 104px; height: 24px; background-color: #eef5ff;">
+          <div data-u-type="text" data-u-name="RowTypeText" style="left: 0px; top: 2px; width: 104px; height: 20px; color: #1456f0; font-size: 10px; text-align: center;">训练报告</div>
+        </div>
+        <div data-u-type="text" data-u-name="RowTimeText" style="left: 130px; top: 14px; width: 166px; height: 24px; color: #8e8e93; font-size: 10px; text-align: right;">2026-08-26 14:30</div>
+        <div data-u-type="text" data-u-name="RowTitleText" style="left: 14px; top: 50px; width: 282px; height: 44px; color: #222222; font-size: 13px; text-align: left;">上肢智能抗阻训练阶段分析报告</div>
+        <div data-u-type="text" data-u-name="RowMetricText" style="left: 14px; top: 104px; width: 282px; height: 22px; color: #45515e; font-size: 11px; text-align: left;">训练会话归档</div>
+      </div>
+    </div>
+
+    <div data-u-type="div" data-u-name="EmptyListState" style="left: 20px; top: 430px; width: 310px; height: 180px; background-color: #f8fafc;">
+      <div data-u-type="text" data-u-name="EmptyListTitleText" style="left: 20px; top: 54px; width: 270px; height: 28px; color: #45515e; font-size: 14px; text-align: center;">暂无报告记录</div>
+      <div data-u-type="text" data-u-name="EmptyListHintText" style="left: 20px; top: 94px; width: 270px; height: 44px; color: #8e8e93; font-size: 11px; text-align: center;">完成评估或训练归档后，报告会显示在这里。</div>
+    </div>
+
+    <div data-u-type="text" data-u-name="ListCountText" style="left: 20px; top: 924px; width: 310px; height: 20px; color: #8e8e93; font-size: 10px; text-align: left;">共 0 条</div>
+    <div data-u-type="div" data-u-name="ReportPager" style="left: 0px; top: 948px; width: 350px; height: 36px;">
+      <button data-u-type="button" data-u-name="PrevPageButton" style="left: 0px; top: 2px; width: 56px; height: 32px; background-color: #f0f0f0; color: #222222; font-size: 10px;">上一页</button>
+      <button data-u-type="button" data-u-name="NextPageButton" style="left: 294px; top: 2px; width: 56px; height: 32px; background-color: #f0f0f0; color: #222222; font-size: 10px;">下一页</button>
+      <button data-u-type="button" data-u-name="PageNumberTemplate" style="left: 0px; top: 2px; width: 28px; height: 32px; background-color: #f0f0f0; color: #222222; font-size: 10px;">1</button>
+      <div data-u-type="text" data-u-name="PageEllipsisTemplate" style="left: 0px; top: 2px; width: 20px; height: 32px; color: #8e8e93; font-size: 10px; text-align: center;">...</div>
+    </div>
+    <button data-u-type="button" data-u-name="RefreshButton" style="left: 20px; top: 992px; width: 310px; height: 28px; background-color: #f8fafc; color: #45515e; font-size: 10px;">刷新报告列表</button>
+    <div data-u-type="image" data-u-name="ConsoleDivider" style="left: 349px; top: 0px; width: 1px; height: 1024px; background-color: #f2f3f5;"></div>
+  </div>
+
+  <div data-u-type="div" data-u-name="CanvasPanel" style="left: 434px; top: 56px; width: 1486px; height: 1024px; background-color: #f8fafc;">
+    <div data-u-type="div" data-u-name="DetailCard" style="left: 20px; top: 20px; width: 1446px; height: 984px; background-color: #ffffff;">
+      <div data-u-type="text" data-u-name="DetailTitleText" style="left: 24px; top: 18px; width: 940px; height: 30px; color: #222222; font-size: 16px; text-align: left;">请选择报告</div>
+      <div data-u-type="text" data-u-name="DetailTypeText" style="left: 24px; top: 52px; width: 940px; height: 20px; color: #8e8e93; font-size: 11px; text-align: left;">报告内容将在这里显示</div>
+      <div data-u-type="text" data-u-name="DetailDateText" style="left: 1080px; top: 22px; width: 340px; height: 24px; color: #8e8e93; font-size: 11px; text-align: right;">--</div>
+      <div data-u-type="image" data-u-name="DetailHeaderDivider" style="left: 24px; top: 84px; width: 1398px; height: 1px; background-color: #f2f3f5;"></div>
+
+      <div data-u-type="scroll" data-u-name="AssessmentScroll" data-u-dir="v" style="left: 24px; top: 96px; width: 1398px; height: 860px; background-color: #f3f4f6;">
+        <div data-u-type="div" data-u-name="AssessmentContent" style="left: 0px; top: 0px; width: 1398px; height: 1904px; background-color: rgba(0,0,0,0);"></div>
+      </div>
+
+      <div data-u-type="div" data-u-name="TrainingPlaceholder" style="left: 24px; top: 96px; width: 1398px; height: 860px; background-color: #f8fafc;">
+        <div data-u-type="text" data-u-name="TrainingPlaceholderTitleText" style="left: 160px; top: 330px; width: 1078px; height: 36px; color: #45515e; font-size: 20px; text-align: center;">训练报告内容待定</div>
+        <div data-u-type="text" data-u-name="TrainingPlaceholderHintText" style="left: 160px; top: 386px; width: 1078px; height: 48px; color: #8e8e93; font-size: 13px; text-align: center;">当前报告已选中，训练报告详情界面将在后续版本接入。</div>
+      </div>
+
+      <div data-u-type="div" data-u-name="EmptyDetail" style="left: 24px; top: 96px; width: 1398px; height: 860px; background-color: #f8fafc;">
+        <div data-u-type="text" data-u-name="EmptyDetailTitleText" style="left: 160px; top: 330px; width: 1078px; height: 36px; color: #45515e; font-size: 20px; text-align: center;">请选择一份报告</div>
+        <div data-u-type="text" data-u-name="EmptyDetailHintText" style="left: 160px; top: 386px; width: 1078px; height: 48px; color: #8e8e93; font-size: 13px; text-align: center;">左侧报告按创建时间倒序排列，点击卡片查看右侧内容。</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div>
+<script>
+(function () {
+    var stage = document.getElementById('u-stage');
+    var texts = stage.querySelectorAll('[data-u-type="text"]');
+    for (var j = 0; j !== texts.length; j++) texts[j].textContent = texts[j].textContent.replace(/^[\s\uFEFF]+|[\s\uFEFF]+$/g, '');
+})();
+</script>
+</body>
+</html>

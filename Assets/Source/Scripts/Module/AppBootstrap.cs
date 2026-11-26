@@ -89,7 +89,6 @@ namespace LB
                 await FileCopyModule.Instance.CopyFilesOnStartup();
             await ConfigDataManager.Instance.ReadConfigData();
             await DataSetManager.Instance.LoadDataSetAsync();
-            SerialPortModule.Instance.ConnectBluetoothDevice();
         }
 
 

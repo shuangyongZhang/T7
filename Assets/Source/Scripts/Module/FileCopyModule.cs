@@ -117,7 +117,7 @@ namespace LB
                 Directory.CreateDirectory(targetDir);
             }
 
-            string[] rootFiles = { "evaluationSetting.json", "game.txt", "keyInputConfig.json" };
+            string[] rootFiles = { "evaluationSetting.json", "game.txt" };
             string[] rootFolders = { "BeachVolleyball", "BirdHitting", "BraveBird", "CanyonRacing",
                 "CardShapeMatch", "ColorMatching", "FindTreasure", "HTML", "MazeGame",
                 "PufferfishCatchBall", "SeaTreasureHunting", "SharkEatFish",

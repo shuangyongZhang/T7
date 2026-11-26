@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>康复训练控制台（UI 原型预览 / Unity 数据文件）</title>
+<style>
+    html, body { margin: 0; padding: 0; background: #0a0a0a; }
+    body { font-family: "Microsoft YaHei", "PingFang SC", "Noto Sans CJK SC", "Source Han Sans SC", sans-serif; -webkit-font-smoothing: antialiased; }
+    [data-u-type] { box-sizing: border-box; }
+    [data-u-type][style*="left:"] { position: absolute; }
+    [data-u-layout="v"] { display: flex; flex-direction: column; flex-wrap: nowrap; align-items: stretch; justify-content: flex-start; }
+    [data-u-layout="h"] { display: flex; flex-direction: row; flex-wrap: nowrap; align-items: stretch; justify-content: flex-start; }
+    [data-u-layout="v"] > * { flex: 0 0 auto; height: 40px; }
+    [data-u-layout="h"] > * { flex: 0 0 auto; width: 100px; }
+    text, image { display: block; }
+    [data-u-type="text"] { display: flex; align-items: center; white-space: pre-wrap; line-height: 1.2; overflow: hidden; }
+    [data-u-type="image"] { background-image: repeating-linear-gradient(45deg, rgba(255,255,255,.07) 0 8px, rgba(0,0,0,0) 8px 16px); }
+    [data-u-type="button"] { display: block; border: 0; padding: 0; font-family: inherit; cursor: pointer; }
+    [data-u-type="input"] { display: block; border: 1px solid rgba(255,255,255,.18); padding: 0 12px; font-family: inherit; }
+    [data-u-type="dropdown"] { display: block; border: 1px solid rgba(255,255,255,.18); padding: 0 8px; font-family: inherit; }
+    [data-u-type="input"]::placeholder { color: rgba(255,255,255,.35); }
+    [data-u-type="toggle"] { display: flex; align-items: center; }
+    [data-u-type="toggle"]::before { content: ""; width: 1.05em; height: 1.05em; border-radius: 999px; background: currentColor; margin-right: .5em; flex: 0 0 auto; }
+    [data-u-type="toggle"][data-u-checked="false"]::before { background: rgba(0,0,0,0); box-shadow: inset 0 0 0 2px currentColor; }
+    [data-u-type="radio"] { display: flex; align-items: center; }
+    [data-u-type="radio"]::before { content: ""; width: .9em; height: .9em; border-radius: 999px; box-shadow: inset 0 0 0 2px currentColor; margin-right: .5em; }
+    [data-u-type="radio"][data-u-checked="true"]::before { background: currentColor; }
+    [data-u-type="slider"] { position: relative; border-radius: 999px; overflow: hidden; }
+    [data-u-type="slider"]::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: var(--u-val, 50%); background: currentColor; }
+    [data-u-type="slider"]::after { content: ""; position: absolute; top: 0; bottom: 0; left: var(--u-val, 50%); width: 4px; margin-left: -2px; background: #fff; opacity: .9; }
+    [data-u-type="scroll"] { position: relative; overflow: auto; border: 1px dashed rgba(255,255,255,.22); }
+    [data-u-type="scroll"]::before { content: "滚动区域 ScrollView"; position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,.28); font-size: 20px; }
+</style>
+</head>
+<body>
+<div id="u-stage">
+
+<div data-u-type="div" data-u-name="UITrainingPanel" data-u-layout="v" style="width: 1920px; height: 1080px; background-color: rgba(0,0,0,0);">
+  <div data-u-type="div" data-u-name="ConsolePanel" style="left: 84px; top: 56px; width: 350px; height: 1024px; background-color: #ffffff;">
+    <div data-u-type="text" data-u-name="ConsoleTitleText" style="left: 20px; top: 20px; width: 220px; height: 24px; color: #222222; font-size: 16px; text-align: left;">康复训练控制台</div>
+    <div data-u-type="div" data-u-name="StatusBadge" style="left: 250px; top: 18px; width: 80px; height: 28px; background-color: #eff6ff;">
+      <div data-u-type="text" data-u-name="StatusBadgeText" style="left: 0px; top: 2px; width: 80px; height: 24px; color: #1456f0; font-size: 11px; text-align: center;">就绪等待</div>
+    </div>
+    <div data-u-type="image" data-u-name="HeaderDivider" style="left: 20px; top: 62px; width: 310px; height: 1px; background-color: #f2f3f5;"></div>
+
+    <div data-u-type="div" data-u-name="ModeCard" style="left: 20px; top: 84px; width: 310px; height: 112px; background-color: #fafafa;">
+      <div data-u-type="text" data-u-name="ModeStepText" style="left: 16px; top: 14px; width: 278px; height: 20px; color: #222222; font-size: 13px; text-align: left;">01  训练主模式</div>
+      <button data-u-type="button" data-u-name="CpmButton" style="left: 16px; top: 48px; width: 86px; height: 36px; background-color: rgba(0,0,0,0); color: #45515e; font-size: 12px;">CPM 被动</button>
+      <button data-u-type="button" data-u-name="AssistButton" style="left: 112px; top: 48px; width: 86px; height: 36px; background-color: rgba(0,0,0,0); color: #45515e; font-size: 12px;">主动助力</button>
+      <button data-u-type="button" data-u-name="ResistButton" style="left: 208px; top: 48px; width: 86px; height: 36px; background-color: #ffffff; color: #1456f0; font-size: 12px;">智能抗阻</button>
+    </div>
+
+    <div data-u-type="div" data-u-name="DirectionCard" style="left: 20px; top: 208px; width: 310px; height: 220px; background-color: #fafafa;">
+      <div data-u-type="text" data-u-name="DirectionStepText" style="left: 16px; top: 14px; width: 278px; height: 20px; color: #222222; font-size: 13px; text-align: left;">02  运动方向（6 轴向）</div>
+      <button data-u-type="button" data-u-name="AbductionButton" style="left: 16px; top: 50px; width: 135px; height: 40px; background-color: #eff6ff; color: #1456f0; font-size: 12px;">冠状面外展</button>
+      <button data-u-type="button" data-u-name="FlexionButton" style="left: 159px; top: 50px; width: 135px; height: 40px; background-color: #ffffff; color: #45515e; font-size: 12px;">矢状面前屈</button>
+      <button data-u-type="button" data-u-name="HorizontalButton" style="left: 16px; top: 102px; width: 135px; height: 40px; background-color: #ffffff; color: #45515e; font-size: 12px;">水平面内收</button>
+      <button data-u-type="button" data-u-name="PronationButton" style="left: 159px; top: 102px; width: 135px; height: 40px; background-color: #ffffff; color: #45515e; font-size: 12px;">冠状轴旋前</button>
+      <button data-u-type="button" data-u-name="RotationButton" style="left: 16px; top: 154px; width: 135px; height: 40px; background-color: #ffffff; color: #45515e; font-size: 12px;">垂直轴旋转</button>
+      <button data-u-type="button" data-u-name="ExtensionButton" style="left: 159px; top: 154px; width: 135px; height: 40px; background-color: #ffffff; color: #45515e; font-size: 12px;">矢状轴屈伸</button>
+    </div>
+
+    <div data-u-type="div" data-u-name="ParameterCard" style="left: 20px; top: 440px; width: 310px; height: 270px; background-color: #fafafa;">
+      <div data-u-type="text" data-u-name="ParameterTitleText" style="left: 16px; top: 14px; width: 278px; height: 20px; color: #222222; font-size: 13px; text-align: left;">03  智能抗阻细分配置</div>
+      <div data-u-type="text" data-u-name="ModelLabelText" style="left: 16px; top: 48px; width: 278px; height: 18px; color: #45515e; font-size: 11px; text-align: left;">力学模型：等速自适应</div>
+      <button data-u-type="button" data-u-name="IsotonicButton" style="left: 16px; top: 74px; width: 64px; height: 30px; background-color: rgba(0,0,0,0); color: #45515e; font-size: 11px;">等张</button>
+      <button data-u-type="button" data-u-name="IsokineticButton" style="left: 87px; top: 74px; width: 64px; height: 30px; background-color: #ffffff; color: #1456f0; font-size: 11px;">等速</button>
+      <button data-u-type="button" data-u-name="ElasticButton" style="left: 158px; top: 74px; width: 64px; height: 30px; background-color: rgba(0,0,0,0); color: #45515e; font-size: 11px;">弹性</button>
+      <button data-u-type="button" data-u-name="ViscousButton" style="left: 229px; top: 74px; width: 64px; height: 30px; background-color: rgba(0,0,0,0); color: #45515e; font-size: 11px;">黏滞</button>
+      <div data-u-type="text" data-u-name="ResistanceLabelText" style="left: 16px; top: 122px; width: 160px; height: 20px; color: #45515e; font-size: 12px; text-align: left;">阻力负荷等级</div>
+      <div data-u-type="text" data-u-name="ResistanceValueText" style="left: 176px; top: 122px; width: 118px; height: 20px; color: #222222; font-size: 12px; text-align: right;">等级 3 (20 N)</div>
+      <div data-u-type="slider" data-u-name="ResistanceSlider" data-u-value="0.6667" style="left: 16px; top: 154px; width: 278px; height: 8px; background-color: #e5e7eb; color: #1456f0;"></div>
+      <div data-u-type="text" data-u-name="DurationLabelText" style="left: 16px; top: 184px; width: 160px; height: 20px; color: #45515e; font-size: 12px; text-align: left;">训练设定时长</div>
+      <div data-u-type="text" data-u-name="DurationValueText" style="left: 176px; top: 184px; width: 118px; height: 20px; color: #222222; font-size: 12px; text-align: right;">20 分钟</div>
+      <div data-u-type="slider" data-u-name="DurationSlider" data-u-value="0.6" style="left: 16px; top: 216px; width: 278px; height: 8px; background-color: #e5e7eb; color: #1456f0;"></div>
+      <div data-u-type="text" data-u-name="ParameterHintText" style="left: 16px; top: 238px; width: 278px; height: 20px; color: #8e8e93; font-size: 10px; text-align: left;">参数仅用于本次训练会话，不向设备下发指令。</div>
+    </div>
+
+    <div data-u-type="div" data-u-name="ActionCard" style="left: 20px; top: 722px; width: 310px; height: 150px; background-color: #fafafa;">
+      <div data-u-type="text" data-u-name="ActionStepText" style="left: 16px; top: 14px; width: 278px; height: 20px; color: #222222; font-size: 13px; text-align: left;">04  启动管控</div>
+      <button data-u-type="button" data-u-name="StartButton" style="left: 16px; top: 48px; width: 172px; height: 44px; background-color: #181e25; color: #ffffff; font-size: 13px;">启动训练</button>
+      <button data-u-type="button" data-u-name="EmergencyStopButton" style="left: 198px; top: 48px; width: 96px; height: 44px; background-color: #dc2626; color: #ffffff; font-size: 13px;">急停</button>
+      <div data-u-type="text" data-u-name="TimerText" style="left: 16px; top: 104px; width: 278px; height: 24px; color: #222222; font-size: 14px; text-align: center;">00:00 / 20:00</div>
+    </div>
+
+    <div data-u-type="div" data-u-name="DeviceCard" style="left: 20px; top: 892px; width: 310px; height: 100px; background-color: #f8fafc;">
+      <div data-u-type="text" data-u-name="DeviceStateText" style="left: 16px; top: 14px; width: 278px; height: 20px; color: #45515e; font-size: 12px; text-align: left;">设备状态：检测中</div>
+      <div data-u-type="text" data-u-name="PatientStateText" style="left: 16px; top: 44px; width: 278px; height: 20px; color: #45515e; font-size: 12px; text-align: left;">当前患者：未选择</div>
+      <div data-u-type="text" data-u-name="SafetyHintText" style="left: 16px; top: 70px; width: 278px; height: 20px; color: #8e8e93; font-size: 10px; text-align: left;">急停仅停止软件会话，不替代设备硬件急停。</div>
+    </div>
+    <div data-u-type="image" data-u-name="ConsoleDivider" style="left: 349px; top: 0px; width: 1px; height: 1024px; background-color: #f2f3f5;"></div>
+  </div>
+
+  <div data-u-type="div" data-u-name="CanvasPanel" style="left: 434px; top: 56px; width: 1486px; height: 1024px; background-color: #f8fafc;">
+    <div data-u-type="div" data-u-name="AngleCard" style="left: 20px; top: 20px; width: 900px; height: 320px; background-color: #ffffff;">
+      <div data-u-type="text" data-u-name="AngleTitleText" style="left: 24px; top: 20px; width: 600px; height: 24px; color: #222222; font-size: 14px; text-align: left;">上肢关节角度实时监控</div>
+      <div data-u-type="text" data-u-name="AngleSubtitleText" style="left: 24px; top: 50px; width: 600px; height: 20px; color: #45515e; font-size: 11px; text-align: left;">当前方向：冠状面外展</div>
+      <div data-u-type="div" data-u-name="ArmArea" style="left: 24px; top: 84px; width: 852px; height: 212px; background-color: #f8fafc;">
+        <div data-u-type="image" data-u-name="ArmBase" style="left: 326px; top: 164px; width: 200px; height: 12px; background-color: #94a3b8;"></div>
+        <div data-u-type="image" data-u-name="ArmUpper" style="left: 416px; top: 86px; width: 150px; height: 12px; background-color: #1456f0;"></div>
+        <div data-u-type="image" data-u-name="ArmLower" style="left: 556px; top: 86px; width: 130px; height: 10px; background-color: #181e25;"></div>
+        <div data-u-type="image" data-u-name="ShoulderJoint" style="left: 412px; top: 82px; width: 20px; height: 20px; background-color: #1456f0;"></div>
+        <div data-u-type="image" data-u-name="ElbowJoint" style="left: 556px; top: 84px; width: 16px; height: 16px; background-color: #181e25;"></div>
+        <div data-u-type="image" data-u-name="HandJoint" style="left: 678px; top: 85px; width: 16px; height: 16px; background-color: #181e25;"></div>
+        <div data-u-type="text" data-u-name="ArmAngleText" style="left: 24px; top: 16px; width: 180px; height: 24px; color: #1456f0; font-size: 14px; text-align: left;">0.0°</div>
+      </div>
+    </div>
+
+    <div data-u-type="div" data-u-name="TelemetryCard" style="left: 936px; top: 20px; width: 490px; height: 320px; background-color: #ffffff;">
+      <div data-u-type="text" data-u-name="TelemetryTitleText" style="left: 20px; top: 20px; width: 450px; height: 24px; color: #222222; font-size: 14px; text-align: left;">实时训练指标</div>
+      <div data-u-type="div" data-u-name="AngleMetric" style="left: 20px; top: 64px; width: 214px; height: 96px; background-color: #fafafa;">
+        <div data-u-type="text" data-u-name="AngleMetricLabel" style="left: 14px; top: 12px; width: 186px; height: 18px; color: #8e8e93; font-size: 11px; text-align: left;">当前关节角度</div>
+        <div data-u-type="text" data-u-name="LiveAngleText" style="left: 14px; top: 38px; width: 186px; height: 34px; color: #1456f0; font-size: 24px; text-align: left;">0.0°</div>
+      </div>
+      <div data-u-type="div" data-u-name="SpeedMetric" style="left: 250px; top: 64px; width: 220px; height: 96px; background-color: #fafafa;">
+        <div data-u-type="text" data-u-name="SpeedMetricLabel" style="left: 14px; top: 12px; width: 192px; height: 18px; color: #8e8e93; font-size: 11px; text-align: left;">实时角速度</div>
+        <div data-u-type="text" data-u-name="LiveSpeedText" style="left: 14px; top: 38px; width: 192px; height: 34px; color: #222222; font-size: 24px; text-align: left;">0.0°/s</div>
+      </div>
+      <div data-u-type="div" data-u-name="RangeMetric" style="left: 20px; top: 176px; width: 214px; height: 96px; background-color: #fafafa;">
+        <div data-u-type="text" data-u-name="RangeMetricLabel" style="left: 14px; top: 12px; width: 186px; height: 18px; color: #8e8e93; font-size: 11px; text-align: left;">本次角度范围</div>
+        <div data-u-type="text" data-u-name="LiveRangeText" style="left: 14px; top: 38px; width: 186px; height: 34px; color: #222222; font-size: 18px; text-align: left;">-- ~ --</div>
+      </div>
+      <div data-u-type="div" data-u-name="SampleMetric" style="left: 250px; top: 176px; width: 220px; height: 96px; background-color: #fafafa;">
+        <div data-u-type="text" data-u-name="SampleMetricLabel" style="left: 14px; top: 12px; width: 192px; height: 18px; color: #8e8e93; font-size: 11px; text-align: left;">有效采样</div>
+        <div data-u-type="text" data-u-name="SampleCountText" style="left: 14px; top: 38px; width: 192px; height: 34px; color: #222222; font-size: 24px; text-align: left;">0</div>
+      </div>
+    </div>
+
+    <div data-u-type="div" data-u-name="WaveCard" style="left: 20px; top: 356px; width: 1446px; height: 648px; background-color: #ffffff;">
+      <div data-u-type="text" data-u-name="WaveTitleText" style="left: 24px; top: 20px; width: 900px; height: 24px; color: #222222; font-size: 14px; text-align: left;">连续关节角度波形</div>
+      <div data-u-type="text" data-u-name="WaveLegendText" style="left: 1000px; top: 20px; width: 400px; height: 24px; color: #1456f0; font-size: 11px; text-align: right;">● 实际角度采样</div>
+      <div data-u-type="div" data-u-name="WaveArea" style="left: 24px; top: 72px; width: 1398px; height: 540px; background-color: #0f172a;">
+        <div data-u-type="image" data-u-name="WaveBarTemplate" style="left: 0px; top: 0px; width: 8px; height: 40px; background-color: #60a5fa;"></div>
+        <div data-u-type="text" data-u-name="WaveEmptyText" style="left: 399px; top: 246px; width: 600px; height: 48px; color: #94a3b8; font-size: 14px; text-align: center;">开始训练后显示真实角度波形</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div>
+<script>
+(function () {
+    var stage = document.getElementById('u-stage');
+    var boxes = stage.querySelectorAll('[data-u-gap],[data-u-pad]');
+    for (var i = 0; i !== boxes.length; i++) {
+        var g = boxes[i].getAttribute('data-u-gap');
+        var p = boxes[i].getAttribute('data-u-pad');
+        if (g) boxes[i].style.gap = g + 'px';
+        if (p) boxes[i].style.padding = p + 'px';
+    }
+    var texts = stage.querySelectorAll('[data-u-type="text"]');
+    for (var j = 0; j !== texts.length; j++) texts[j].textContent = texts[j].textContent.replace(/^[\s\uFEFF]+|[\s\uFEFF]+$/g, '');
+    var sliders = stage.querySelectorAll('[data-u-type="slider"]');
+    for (var k = 0; k !== sliders.length; k++) {
+        var v = parseFloat(sliders[k].getAttribute('data-u-value'));
+        if (isNaN(v)) v = 0.5;
+        if (v > 1) v = v / 100;
+        v = Math.max(0, Math.min(1, v));
+        sliders[k].style.setProperty('--u-val', (v * 100) + '%');
+    }
+})();
+</script>
+</body>
+</html>

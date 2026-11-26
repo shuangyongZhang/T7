@@ -5,7 +5,6 @@ using HT.Framework;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
-using UnityTimer;
 
 namespace LB
 {
@@ -22,6 +21,8 @@ namespace LB
         [InjectPath("HeaderBar/PatientBadge/CurrentPatientMetaText")] private TMP_Text patientMetaText;
         [InjectPath("HeaderBar/PatientBadge/CurrentPatientMRNText")] private TMP_Text patientMRNText;
         [InjectPath("HeaderBar/PatientBadge/DiagnosisText")] private TMP_Text diagnosisText;
+        [InjectPath("HeaderBar/DeviceStatusChip")] private Image deviceStatusChip;
+        [InjectPath("HeaderBar/DeviceStatusChip/DeviceStatusDot")] private Image deviceStatusDot;
         [InjectPath("HeaderBar/DeviceStatusChip/DeviceStatusText")] private TMP_Text deviceStatusText;
         [InjectPath("HeaderBar/UserBadge/UserNameText")] private TMP_Text userNameText;
         [InjectPath("HeaderBar/UserBadge/LogoutButton")] private Button logoutButton;
@@ -34,7 +35,6 @@ namespace LB
         [InjectPath("NavRail/NavSettingButton")] private Button settingButton;
 
         private Type currentWindow;
-        private Timer hardwareCheckTimer;
         private bool isWindowOpened = true;
 
         public RectTransform Content
@@ -75,9 +75,9 @@ namespace LB
 
             patientButton.onClick.AddListener(OnPatientInfo);
             settingButton.onClick.AddListener(OnSetting);
-            assessmentButton.onClick.AddListener(OnModuleNotAvailable);
-            trainingButton.onClick.AddListener(OnModuleNotAvailable);
-            reportButton.onClick.AddListener(OnModuleNotAvailable);
+            assessmentButton.onClick.AddListener(OnAssessment);
+            trainingButton.onClick.AddListener(OnTraining);
+            reportButton.onClick.AddListener(OnReport);
             logoutButton.onClick.AddListener(OnLogout);
             quitButton.onClick.AddListener(OnQuit);
 
@@ -85,14 +85,11 @@ namespace LB
             Main.m_Event.Subscribe<EventUIOpened>(OnUIOpened);
 
             appNameText.text = "上肢智能康复训练与评估系统";
-            hardwareCheckTimer = Timer.Register(1.0f, CheckHardwareStatus, null, true, true);
-        }
-
-        private void CheckHardwareStatus()
-        {
-            bool connected = SerialPortModule.Instance.IsConnected();
-            deviceStatusText.text = connected ? "上肢机械臂在线 · 01号机" : "上肢机械臂离线 · 01号机";
-            deviceStatusText.color = connected ? new Color(0.086f, 0.639f, 0.29f, 1f) : new Color(0.863f, 0.149f, 0.149f, 1f);
+            Color statusColor = new Color(0.557f, 0.557f, 0.576f, 1f);
+            deviceStatusText.text = "上肢机械臂通讯未接入";
+            deviceStatusText.color = statusColor;
+            deviceStatusDot.color = statusColor;
+            deviceStatusChip.color = new Color(0.941f, 0.941f, 0.941f, 1f);
         }
 
         public override void OnOpen(params object[] args)
@@ -128,7 +125,6 @@ namespace LB
         public override void OnDestroy()
         {
             base.OnDestroy();
-            Timer.Cancel(hardwareCheckTimer);
             patientButton.onClick.RemoveAllListeners();
             settingButton.onClick.RemoveAllListeners();
             assessmentButton.onClick.RemoveAllListeners();
@@ -194,6 +190,9 @@ namespace LB
         public void NotifyButtonOn(Type window)
         {
             if (window == typeof(UIPatientInfo)) SetNavActive(patientButton);
+            else if (window == typeof(UIAssessment)) SetNavActive(assessmentButton);
+            else if (window == typeof(UITraining)) SetNavActive(trainingButton);
+            else if (window == typeof(UIReport)) SetNavActive(reportButton);
             else if (window == typeof(UISetting)) SetNavActive(settingButton);
         }
 
@@ -218,7 +217,8 @@ namespace LB
         private void OnUIOpened(EventHandlerBase eventHandler)
         {
             var type = (eventHandler as EventUIOpened).UILogic.GetType();
-            if (type == typeof(UIPatientInfo) || type == typeof(UISetting)) isWindowOpened = true;
+            if (type == typeof(UIPatientInfo) || type == typeof(UIAssessment) ||
+                type == typeof(UITraining) || type == typeof(UIReport) || type == typeof(UISetting)) isWindowOpened = true;
         }
 
         private void OnPatientInfo()
@@ -226,14 +226,24 @@ namespace LB
             OpenModularWindow(typeof(UIPatientInfo));
         }
 
+        private void OnAssessment()
+        {
+            OpenModularWindow(typeof(UIAssessment));
+        }
+
+        private void OnTraining()
+        {
+            OpenModularWindow(typeof(UITraining));
+        }
+
+        private void OnReport()
+        {
+            OpenModularWindow(typeof(UIReport));
+        }
+
         private void OnSetting()
         {
             OpenModularWindow(typeof(UISetting));
-        }
-
-        private void OnModuleNotAvailable()
-        {
-            UINotifyDialogHelper.Current.ShowNotifyAutoHide("评估 / 训练 / 报告模块未接入当前工作流");
         }
 
         private void OnLogout()

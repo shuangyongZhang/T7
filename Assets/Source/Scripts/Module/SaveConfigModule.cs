@@ -17,7 +17,6 @@ namespace LB
         public string Password;
         public string AdminPassword;
         public string HospitalName;
-        public string PortName;
         public bool AgingTest;
 
         //UserData构造函数
@@ -41,33 +40,13 @@ namespace LB
     {
 
         // 老化测试
-        [JahroConsole.JahroCommand("老化测试", "发送时保证蓝牙连接!", "测试设置")]
+        [JahroConsole.JahroCommand("老化测试", "发送时保证设备连接!", "测试设置")]
         public static void SetAgingTest(bool agingTest)
         {
             Instance.SetUserData("agingTest", agingTest);
             UserData.AgingTest = agingTest;
             Instance.SaveUserData();
 
-        }
-
-        // 修改portName
-        [JahroConsole.JahroCommand("串口设置", "输入串口名", "系统设置")]
-        public static void SetSerialPortName(string portName)
-        {
-            Instance.SetUserData("portName", portName);
-            UserData.PortName = portName;
-            Instance.SaveUserData();
-            // 抛出蓝牙名称改变事件
-            Main.m_Event.Throw(Main.m_ReferencePool.Spawn<EventChangeBlueName>().Fill(portName));
-        }
-
-        [JahroConsole.JahroCommand("代偿开关", "开启代偿保证蓝牙连接!", "系统设置")]
-        public static void SetCompensation(bool compensation)
-        {
-            Instance.SetUserData("compensation", compensation);
-            Instance.SaveUserData();
-            // 抛出代偿开关改变事件
-            Main.m_Event.Throw(Main.m_ReferencePool.Spawn<EventChangeCompensation>().Fill(compensation));
         }
 
         [JahroConsole.JahroCommand("设置超级管理员密码", "设置超级管理员密码", "系统设置")]
@@ -189,7 +168,6 @@ namespace LB
             UserData.Password = GetUserData<string>("password");
             UserData.AdminPassword = GetUserData<string>("adminPassword");
 
-            UserData.PortName = GetUserData<string>("portName");
             UserData.AgingTest = GetUserData<bool>("agingTest");
 
 #if UNITY_EDITOR

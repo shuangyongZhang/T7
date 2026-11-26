@@ -26,6 +26,10 @@ namespace LB
         [InjectPath("CanvasPanel/PatientPager/NextPageButton")] private Button nextPageButton;
         [InjectPath("CanvasPanel/PatientPager/PageNumberTemplate")] private GameObject pageNumberTemplate;
         [InjectPath("CanvasPanel/PatientPager/PageEllipsisTemplate")] private GameObject pageEllipsisTemplate;
+        [InjectPath("CanvasPanel/RehabOverview/OverviewTitleText")] private TMP_Text overviewTitleText;
+        [InjectPath("CanvasPanel/RehabOverview/OverviewDescText")] private TMP_Text overviewDescText;
+        [InjectPath("CanvasPanel/RehabOverview/OpenAssessmentButton")] private Button openAssessmentButton;
+        [InjectPath("CanvasPanel/RehabOverview/OpenTrainingButton")] private Button openTrainingButton;
 
 
         [InjectPath("AddPatientPanel")] private GameObject addPatientPanel;
@@ -81,6 +85,8 @@ namespace LB
 
             searchInputField.onValueChanged.AddListener(OnSearchTextChanged);
             openAddPanelButton.onClick.AddListener(OnOpenAddPatientPanel);
+            openAssessmentButton.onClick.AddListener(OnOpenAssessment);
+            openTrainingButton.onClick.AddListener(OnOpenTraining);
             prevPageButton.onClick.AddListener(() => TurnPage(-1));
             nextPageButton.onClick.AddListener(() => TurnPage(1));
 
@@ -164,6 +170,7 @@ namespace LB
                 curPatient = null;
                 Global.CurPatientInfo = null;
                 Main.m_Event.Throw(Main.m_ReferencePool.Spawn<EventPatientChanged>().Fill(null));
+                RefreshRehabOverview();
             }
 
             UIPagerBar.Refresh(patientPager, prevPageButton, nextPageButton, pageNumberTemplate, pageEllipsisTemplate,
@@ -265,8 +272,40 @@ namespace LB
             if (patient == null) return;
             curPatient = patient;
             Global.CurPatientInfo = patient;
+            RefreshRehabOverview();
 
             Main.m_Event.Throw(Main.m_ReferencePool.Spawn<EventPatientChanged>().Fill(patient));
+        }
+
+        private void RefreshRehabOverview()
+        {
+            bool selected = curPatient != null;
+            overviewTitleText.text = selected ? curPatient.Name + "·康复阶段总览" : "患者·康复阶段总览";
+            overviewDescText.text = "当前康复周期：暂无记录 · Brunnstrom 上肢评定：暂无记录 · 累计做功：暂无记录";
+            openAssessmentButton.interactable = selected;
+            openTrainingButton.interactable = selected;
+        }
+
+        private void OnOpenAssessment()
+        {
+            if (curPatient == null)
+            {
+                UINotifyDialogHelper.Current.ShowNotifyAutoHide("请先选择患者");
+                return;
+            }
+            var main = Main.m_UI.GetOpenedUI<UIMain>();
+            if (main != null) main.OpenModularWindow(typeof(UIAssessment));
+        }
+
+        private void OnOpenTraining()
+        {
+            if (curPatient == null)
+            {
+                UINotifyDialogHelper.Current.ShowNotifyAutoHide("请先选择患者");
+                return;
+            }
+            var main = Main.m_UI.GetOpenedUI<UIMain>();
+            if (main != null) main.OpenModularWindow(typeof(UITraining));
         }
 
         /// <summary>
@@ -484,6 +523,8 @@ namespace LB
             base.OnDestroy();
             searchInputField.onValueChanged.RemoveAllListeners();
             openAddPanelButton.onClick.RemoveAllListeners();
+            openAssessmentButton.onClick.RemoveAllListeners();
+            openTrainingButton.onClick.RemoveAllListeners();
             prevPageButton.onClick.RemoveAllListeners();
             nextPageButton.onClick.RemoveAllListeners();
             addCloseButton.onClick.RemoveAllListeners();

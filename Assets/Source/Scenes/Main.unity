@@ -1632,6 +1632,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 114872231495406314, guid: d09e5ea50d2aa0841ab072ac17fbd207,
         type: 3}
+      propertyPath: _version
+      value: 0.5.8
+      objectReference: {fileID: 0}
+    - target: {fileID: 114872231495406314, guid: d09e5ea50d2aa0841ab072ac17fbd207,
+        type: 3}
       propertyPath: IsEnabledLogError
       value: 1
       objectReference: {fileID: 0}

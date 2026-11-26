@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ROM 关节评估（UI 原型预览 / Unity 数据文件）</title>
+<style>
+    html, body { margin: 0; padding: 0; background: #0a0a0a; }
+    body {
+        font-family: "Microsoft YaHei", "PingFang SC", "Noto Sans CJK SC", "Source Han Sans SC", sans-serif;
+        -webkit-font-smoothing: antialiased;
+    }
+    [data-u-type] { box-sizing: border-box; }
+    [data-u-type][style*="left:"] { position: absolute; }
+    [data-u-layout="v"] { display: flex; flex-direction: column; flex-wrap: nowrap; align-items: stretch; justify-content: flex-start; }
+    [data-u-layout="h"] { display: flex; flex-direction: row;    flex-wrap: nowrap; align-items: stretch; justify-content: flex-start; }
+    [data-u-layout="v"] > * { flex: 0 0 auto; height: 40px; }
+    [data-u-layout="h"] > * { flex: 0 0 auto; width: 100px; }
+    text, image { display: block; }
+    [data-u-type="text"]     { display: flex; align-items: center; white-space: pre-wrap; line-height: 1.2; overflow: hidden; }
+    [data-u-type="image"]    { background-image: repeating-linear-gradient(45deg, rgba(255,255,255,.07) 0 8px, rgba(0,0,0,0) 8px 16px); }
+    [data-u-type="button"]   { display: block; border: 0; padding: 0; font-family: inherit; cursor: pointer; }
+    [data-u-type="input"]    { display: block; border: 1px solid rgba(255,255,255,.18); padding: 0 12px; font-family: inherit; }
+    [data-u-type="dropdown"] { display: block; border: 1px solid rgba(255,255,255,.18); padding: 0 8px; font-family: inherit; }
+    [data-u-type="input"]::placeholder { color: rgba(255,255,255,.35); }
+    [data-u-type="toggle"]   { display: flex; align-items: center; }
+    [data-u-type="toggle"]::before { content: ""; width: 1.05em; height: 1.05em; border-radius: 999px; background: currentColor; margin-right: .5em; flex: 0 0 auto; }
+    [data-u-type="toggle"][data-u-checked="false"]::before { background: rgba(0,0,0,0); box-shadow: inset 0 0 0 2px currentColor; }
+    [data-u-type="radio"]    { display: flex; align-items: center; }
+    [data-u-type="radio"]::before { content: ""; width: .9em; height: .9em; border-radius: 999px; box-shadow: inset 0 0 0 2px currentColor; margin-right: .5em; }
+    [data-u-type="radio"][data-u-checked="true"]::before { background: currentColor; }
+    [data-u-type="slider"]   { position: relative; border-radius: 999px; overflow: hidden; }
+    [data-u-type="slider"]::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: var(--u-val, 50%); background: currentColor; }
+    [data-u-type="slider"]::after { content: ""; position: absolute; top: 0; bottom: 0; left: var(--u-val, 50%); width: 4px; margin-left: -2px; background: #fff; opacity: .9; }
+    [data-u-type="scroll"]   { position: relative; overflow: auto; border: 1px dashed rgba(255,255,255,.22); }
+    [data-u-type="scroll"]::before { content: "滚动区域 ScrollView"; position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,.28); font-size: 20px; }
+</style>
+</head>
+<body>
+<div id="u-stage">
+
+<div data-u-type="div" data-u-name="UIAssessmentPanel" data-u-layout="v" style="width: 1920px; height: 1080px; background-color: rgba(0,0,0,0);">
+  <div data-u-type="div" data-u-name="ConsolePanel" style="left: 84px; top: 56px; width: 350px; height: 1024px; background-color: #ffffff;">
+    <div data-u-type="text" data-u-name="ConsoleTitleText" style="left: 20px; top: 20px; width: 220px; height: 24px; color: #222222; font-size: 16px; text-align: left;">ROM 关节活动度评估</div>
+    <div data-u-type="div" data-u-name="ConsoleBadge" style="left: 250px; top: 18px; width: 80px; height: 28px; background-color: #eff6ff;">
+      <div data-u-type="text" data-u-name="ConsoleBadgeText" style="left: 0px; top: 2px; width: 80px; height: 24px; color: #1456f0; font-size: 11px; text-align: center;">实时量角</div>
+    </div>
+    <div data-u-type="image" data-u-name="HeaderDivider" style="left: 20px; top: 62px; width: 310px; height: 1px; background-color: #f2f3f5;"></div>
+
+    <div data-u-type="div" data-u-name="JointCard" style="left: 20px; top: 84px; width: 310px; height: 112px; background-color: #fafafa;">
+      <div data-u-type="text" data-u-name="JointStepText" style="left: 16px; top: 14px; width: 278px; height: 20px; color: #222222; font-size: 13px; text-align: left;">01  评估关节部位</div>
+      <button data-u-type="button" data-u-name="ShoulderButton" style="left: 16px; top: 48px; width: 86px; height: 36px; background-color: #ffffff; color: #1456f0; font-size: 12px;">肩关节</button>
+      <button data-u-type="button" data-u-name="ElbowButton" style="left: 112px; top: 48px; width: 86px; height: 36px; background-color: rgba(0,0,0,0); color: #45515e; font-size: 12px;">肘关节</button>
+      <button data-u-type="button" data-u-name="ForearmButton" style="left: 208px; top: 48px; width: 86px; height: 36px; background-color: rgba(0,0,0,0); color: #45515e; font-size: 12px;">前臂旋转</button>
+    </div>
+
+    <div data-u-type="div" data-u-name="ModeCard" style="left: 20px; top: 208px; width: 310px; height: 116px; background-color: #fafafa;">
+      <div data-u-type="text" data-u-name="ModeStepText" style="left: 16px; top: 14px; width: 278px; height: 20px; color: #222222; font-size: 13px; text-align: left;">02  评估模式</div>
+      <button data-u-type="button" data-u-name="AromButton" style="left: 16px; top: 52px; width: 135px; height: 40px; background-color: #eff6ff; color: #1456f0; font-size: 12px;">主动活动度 AROM</button>
+      <button data-u-type="button" data-u-name="PromButton" style="left: 159px; top: 52px; width: 135px; height: 40px; background-color: #ffffff; color: #45515e; font-size: 12px;">被动活动度 PROM</button>
+    </div>
+
+    <div data-u-type="div" data-u-name="AxisCard" style="left: 20px; top: 336px; width: 310px; height: 168px; background-color: #fafafa;">
+      <div data-u-type="text" data-u-name="AxisStepText" style="left: 16px; top: 14px; width: 278px; height: 20px; color: #222222; font-size: 13px; text-align: left;">03  运动轴向</div>
+      <button data-u-type="button" data-u-name="FlexionAxisButton" style="left: 16px; top: 50px; width: 135px; height: 40px; background-color: #eff6ff; color: #1456f0; font-size: 12px;">前屈 / 后伸</button>
+      <button data-u-type="button" data-u-name="AbductionAxisButton" style="left: 159px; top: 50px; width: 135px; height: 40px; background-color: #ffffff; color: #45515e; font-size: 12px;">内收 / 外展</button>
+      <button data-u-type="button" data-u-name="HorizontalAxisButton" style="left: 16px; top: 102px; width: 135px; height: 40px; background-color: #ffffff; color: #45515e; font-size: 12px;">水平内收 / 外展</button>
+      <button data-u-type="button" data-u-name="RotationAxisButton" style="left: 159px; top: 102px; width: 135px; height: 40px; background-color: #ffffff; color: #45515e; font-size: 12px;">内旋 / 外旋</button>
+    </div>
+
+    <div data-u-type="div" data-u-name="ActionCard" style="left: 20px; top: 516px; width: 310px; height: 188px; background-color: #fafafa;">
+      <div data-u-type="text" data-u-name="ActionStepText" style="left: 16px; top: 14px; width: 278px; height: 20px; color: #222222; font-size: 13px; text-align: left;">04  控制行动</div>
+      <button data-u-type="button" data-u-name="StartButton" style="left: 16px; top: 48px; width: 278px; height: 44px; background-color: #181e25; color: #ffffff; font-size: 13px;">开始动态角度采集</button>
+      <button data-u-type="button" data-u-name="SaveButton" style="left: 16px; top: 104px; width: 278px; height: 44px; background-color: #f0f0f0; color: #222222; font-size: 12px;">抓取极值并归档数据</button>
+    </div>
+
+    <div data-u-type="div" data-u-name="SessionCard" style="left: 20px; top: 724px; width: 310px; height: 196px; background-color: #f8fafc;">
+      <div data-u-type="text" data-u-name="MeasurementStateText" style="left: 16px; top: 16px; width: 278px; height: 24px; color: #222222; font-size: 13px; text-align: left;">等待开始采集</div>
+      <div data-u-type="text" data-u-name="ElapsedText" style="left: 16px; top: 52px; width: 278px; height: 20px; color: #45515e; font-size: 12px; text-align: left;">采集时长：00:00</div>
+      <div data-u-type="text" data-u-name="SampleCountText" style="left: 16px; top: 84px; width: 278px; height: 20px; color: #45515e; font-size: 12px; text-align: left;">有效采样：0</div>
+      <div data-u-type="text" data-u-name="DeviceStateText" style="left: 16px; top: 116px; width: 278px; height: 20px; color: #8e8e93; font-size: 11px; text-align: left;">设备状态：检测中</div>
+      <div data-u-type="text" data-u-name="SessionHintText" style="left: 16px; top: 148px; width: 278px; height: 32px; color: #8e8e93; font-size: 11px; text-align: left;">选择患者后开始采集，归档结果可在报告列表查看。</div>
+    </div>
+    <div data-u-type="image" data-u-name="ConsoleDivider" style="left: 349px; top: 0px; width: 1px; height: 1024px; background-color: #f2f3f5;"></div>
+  </div>
+
+  <div data-u-type="div" data-u-name="CanvasPanel" style="left: 434px; top: 56px; width: 1486px; height: 1024px; background-color: #f8fafc;">
+    <div data-u-type="div" data-u-name="MeasureCard" style="left: 20px; top: 20px; width: 1446px; height: 984px; background-color: #ffffff;">
+      <div data-u-type="text" data-u-name="MeasureTitleText" style="left: 24px; top: 24px; width: 780px; height: 28px; color: #222222; font-size: 16px; text-align: left;">肩关节 · 前屈 / 后伸测量</div>
+      <div data-u-type="text" data-u-name="MeasureSubtitleText" style="left: 24px; top: 58px; width: 780px; height: 20px; color: #45515e; font-size: 12px; text-align: left;">传感器实时角度采集 · 当前角度与极值同步更新</div>
+
+      <div data-u-type="div" data-u-name="CurrentMetric" style="left: 900px; top: 20px; width: 160px; height: 70px; background-color: #fafafa;">
+        <div data-u-type="text" data-u-name="CurrentMetricLabel" style="left: 12px; top: 8px; width: 136px; height: 18px; color: #8e8e93; font-size: 11px; text-align: left;">当前实时角度</div>
+        <div data-u-type="text" data-u-name="CurrentAngleText" style="left: 12px; top: 28px; width: 136px; height: 30px; color: #1456f0; font-size: 22px; text-align: left;">0.0°</div>
+      </div>
+      <div data-u-type="div" data-u-name="MaxMetric" style="left: 1070px; top: 20px; width: 160px; height: 70px; background-color: #fafafa;">
+        <div data-u-type="text" data-u-name="MaxMetricLabel" style="left: 12px; top: 8px; width: 136px; height: 18px; color: #8e8e93; font-size: 11px; text-align: left;">最大极值</div>
+        <div data-u-type="text" data-u-name="MaxAngleText" style="left: 12px; top: 28px; width: 136px; height: 30px; color: #222222; font-size: 22px; text-align: left;">--</div>
+      </div>
+      <div data-u-type="div" data-u-name="MinMetric" style="left: 1240px; top: 20px; width: 160px; height: 70px; background-color: #fafafa;">
+        <div data-u-type="text" data-u-name="MinMetricLabel" style="left: 12px; top: 8px; width: 136px; height: 18px; color: #8e8e93; font-size: 11px; text-align: left;">最小极值</div>
+        <div data-u-type="text" data-u-name="MinAngleText" style="left: 12px; top: 28px; width: 136px; height: 30px; color: #222222; font-size: 22px; text-align: left;">--</div>
+      </div>
+
+      <div data-u-type="div" data-u-name="GaugeArea" style="left: 24px; top: 120px; width: 1398px; height: 300px; background-color: #f8fafc;">
+        <div data-u-type="div" data-u-name="GaugeTicks" style="left: 0px; top: 0px; width: 1398px; height: 300px; background-color: rgba(0,0,0,0);"></div>
+        <div data-u-type="image" data-u-name="GaugeTickTemplate" style="left: 0px; top: 0px; width: 8px; height: 8px; background-color: #cbd5e1;"></div>
+        <div data-u-type="image" data-u-name="GaugePointer" style="left: 679px; top: 147px; width: 160px; height: 6px; background-color: #181e25;"></div>
+        <div data-u-type="image" data-u-name="GaugeCenter" style="left: 695px; top: 146px; width: 8px; height: 8px; background-color: #1456f0;"></div>
+        <div data-u-type="text" data-u-name="GaugeZeroText" style="left: 250px; top: 252px; width: 60px; height: 24px; color: #64748b; font-size: 12px; text-align: center;">0°</div>
+        <div data-u-type="text" data-u-name="GaugeNinetyText" style="left: 669px; top: 24px; width: 60px; height: 24px; color: #64748b; font-size: 12px; text-align: center;">90°</div>
+        <div data-u-type="text" data-u-name="GaugeOneEightyText" style="left: 1088px; top: 252px; width: 60px; height: 24px; color: #64748b; font-size: 12px; text-align: center;">180°</div>
+      </div>
+
+      <div data-u-type="div" data-u-name="ReferenceCard" style="left: 24px; top: 448px; width: 446px; height: 90px; background-color: #fafafa;">
+        <div data-u-type="text" data-u-name="ReferenceLabel" style="left: 16px; top: 14px; width: 414px; height: 18px; color: #8e8e93; font-size: 11px; text-align: left;">生理标准参考范围</div>
+        <div data-u-type="text" data-u-name="ReferenceRangeText" style="left: 16px; top: 42px; width: 414px; height: 28px; color: #222222; font-size: 16px; text-align: left;">0° ~ 180°</div>
+      </div>
+      <div data-u-type="div" data-u-name="BaselineCard" style="left: 486px; top: 448px; width: 446px; height: 90px; background-color: #fafafa;">
+        <div data-u-type="text" data-u-name="BaselineLabel" style="left: 16px; top: 14px; width: 414px; height: 18px; color: #8e8e93; font-size: 11px; text-align: left;">健侧基准值</div>
+        <div data-u-type="text" data-u-name="HealthyBaselineText" style="left: 16px; top: 42px; width: 414px; height: 28px; color: #16a34a; font-size: 16px; text-align: left;">暂无记录</div>
+      </div>
+      <div data-u-type="div" data-u-name="ImprovementCard" style="left: 948px; top: 448px; width: 446px; height: 90px; background-color: #fafafa;">
+        <div data-u-type="text" data-u-name="ImprovementLabel" style="left: 16px; top: 14px; width: 414px; height: 18px; color: #8e8e93; font-size: 11px; text-align: left;">患侧改善率（较上次）</div>
+        <div data-u-type="text" data-u-name="ImprovementText" style="left: 16px; top: 42px; width: 414px; height: 28px; color: #1456f0; font-size: 16px; text-align: left;">暂无记录</div>
+      </div>
+
+      <div data-u-type="div" data-u-name="ResultCard" style="left: 24px; top: 562px; width: 1370px; height: 370px; background-color: #f8fafc;">
+        <div data-u-type="text" data-u-name="ResultTitleText" style="left: 24px; top: 24px; width: 1322px; height: 24px; color: #222222; font-size: 14px; text-align: left;">本次测量记录</div>
+        <div data-u-type="text" data-u-name="ResultPatientText" style="left: 24px; top: 72px; width: 1322px; height: 24px; color: #45515e; font-size: 12px; text-align: left;">当前患者：未选择</div>
+        <div data-u-type="text" data-u-name="ResultSelectionText" style="left: 24px; top: 112px; width: 1322px; height: 24px; color: #45515e; font-size: 12px; text-align: left;">评估配置：肩关节 · AROM · 前屈 / 后伸</div>
+        <div data-u-type="text" data-u-name="ResultRangeText" style="left: 24px; top: 152px; width: 1322px; height: 24px; color: #45515e; font-size: 12px; text-align: left;">活动度：--</div>
+        <div data-u-type="text" data-u-name="ArchiveStateText" style="left: 24px; top: 192px; width: 1322px; height: 24px; color: #8e8e93; font-size: 12px; text-align: left;">归档状态：尚未归档</div>
+        <div data-u-type="text" data-u-name="ResultHintText" style="left: 24px; top: 252px; width: 1322px; height: 72px; color: #8e8e93; font-size: 12px; text-align: left;">开始采集后实时更新角度；暂停后点击“抓取极值并归档数据”写入报告数据库。未连接设备时角度保持为 0。</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div>
+<script>
+(function () {
+    var stage = document.getElementById('u-stage');
+    var boxes = stage.querySelectorAll('[data-u-gap],[data-u-pad]');
+    for (var i = 0; i !== boxes.length; i++) {
+        var g = boxes[i].getAttribute('data-u-gap');
+        var p = boxes[i].getAttribute('data-u-pad');
+        if (g) boxes[i].style.gap = g + 'px';
+        if (p) boxes[i].style.padding = p + 'px';
+    }
+    var texts = stage.querySelectorAll('[data-u-type="text"]');
+    for (var j = 0; j !== texts.length; j++) texts[j].textContent = texts[j].textContent.replace(/^[\s\uFEFF]+|[\s\uFEFF]+$/g, '');
+    var sliders = stage.querySelectorAll('[data-u-type="slider"]');
+    for (var k = 0; k !== sliders.length; k++) {
+        var v = parseFloat(sliders[k].getAttribute('data-u-value'));
+        if (isNaN(v)) v = 0.5;
+        if (v > 1) v = v / 100;
+        v = Math.max(0, Math.min(1, v));
+        sliders[k].style.setProperty('--u-val', (v * 100) + '%');
+    }
+})();
+</script>
+</body>
+</html>

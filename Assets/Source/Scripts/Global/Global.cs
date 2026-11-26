@@ -38,8 +38,6 @@ namespace LB
         //IconCollectionData字典
         public static Dictionary<string, Sprite> IconDic = new Dictionary<string, Sprite>();
 
-        public static string KeyInputConfigPath = "keyInputConfig.json";
-
         public static string EvalDataGroupPath = "evaluationSetting.json";
 
         public static string IniParserPath = "game.txt";

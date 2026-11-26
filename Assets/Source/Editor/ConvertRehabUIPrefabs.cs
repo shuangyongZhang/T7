@@ -5,6 +5,7 @@ using TMPro;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.UI;
+using LB;
 
 /// <summary>
 /// 使用 WebUI2UnityUI 包把 Assets/Source/HTML 下的 DSL 原型烘焙为项目中的 UI Prefab。
@@ -15,12 +16,20 @@ public static class ConvertRehabUIPrefabs
     private const string MainHtml = "Assets/Source/HTML/UIMainPanel.html";
     private const string PatientHtml = "Assets/Source/HTML/UIPatientInfoPanel.html";
     private const string SettingHtml = "Assets/Source/HTML/UISettingPanel.html";
+    private const string AssessmentHtml = "Assets/Source/HTML/UIAssessmentPanel.html";
+    private const string TrainingHtml = "Assets/Source/HTML/UITrainingPanel.html";
+    private const string ReportHtml = "Assets/Source/HTML/UIReportPanel.html";
+    private const string AssessmentReportTemplateHtml = "Assets/Source/HTML/UIAssessmentReportTemplate.html";
     private const string MainPrefab = "Assets/Resources/Prefabs/UI/UIMainPanel.prefab";
     private const string PatientPrefab = "Assets/Resources/Prefabs/UI/UIPatientInfoPanel.prefab";
     private const string SettingPrefab = "Assets/Resources/Prefabs/UI/UISettingPanel.prefab";
+    private const string AssessmentPrefab = "Assets/Resources/Prefabs/UI/UIAssessmentPanel.prefab";
+    private const string TrainingPrefab = "Assets/Resources/Prefabs/UI/UITrainingPanel.prefab";
+    private const string ReportPrefab = "Assets/Resources/Prefabs/UI/UIReportPanel.prefab";
+    private const string AssessmentReportTemplatePrefab = "Assets/Resources/Prefabs/UI/UIAssessmentReportTemplate.prefab";
     private const string CloseSpritePath = "Assets/3rdPlugins/JahroConsole/Resources/Sprites/close-sprite.png";
 
-    [MenuItem("Tools/转换康复站UI/重建患者与设置界面 Prefab")]
+    [MenuItem("Tools/转换康复站UI/重建全部康复站界面 Prefab")]
     public static void RebuildAll()
     {
         BakeOne(MainHtml, MainPrefab,
@@ -33,6 +42,16 @@ public static class ConvertRehabUIPrefabs
             },
             new string[0]);
 
+        RebuildPatientAndSetting();
+        RebuildModules();
+        AssetDatabase.SaveAssets();
+        AssetDatabase.Refresh();
+        Debug.Log("[ConvertRehabUIPrefabs] 康复站全部界面 Prefab 已从 WebUI2UnityUI 原型重建完成。");
+    }
+
+    [MenuItem("Tools/转换康复站UI/重建患者与设置界面 Prefab")]
+    public static void RebuildPatientAndSetting()
+    {
         BakeOne(PatientHtml, PatientPrefab,
             new string[]
             {
@@ -65,7 +84,39 @@ public static class ConvertRehabUIPrefabs
 
         AssetDatabase.SaveAssets();
         AssetDatabase.Refresh();
-        Debug.Log("[ConvertRehabUIPrefabs] 患者与设置界面 Prefab 已从 WebUI2UnityUI 原型重建完成。");
+        Debug.Log("[ConvertRehabUIPrefabs] 患者与设置界面 Prefab 已重建。");
+    }
+
+    [MenuItem("Tools/转换康复站UI/重建评估训练报告 Prefab")]
+    public static void RebuildModules()
+    {
+        BakeOne(AssessmentHtml, AssessmentPrefab,
+            new string[] { "CanvasPanel/MeasureCard/GaugeArea/GaugeTickTemplate" },
+            new string[0]);
+
+        BakeOne(TrainingHtml, TrainingPrefab,
+            new string[] { "CanvasPanel/WaveCard/WaveArea/WaveBarTemplate" },
+            new string[0]);
+
+        BakeOne(ReportHtml, ReportPrefab,
+            new string[]
+            {
+                "ConsolePanel/ReportRowsContent/ReportRowTemplate",
+                "ConsolePanel/ReportPager/PageNumberTemplate",
+                "ConsolePanel/ReportPager/PageEllipsisTemplate",
+                "ConsolePanel/EmptyListState",
+                "CanvasPanel/DetailCard/AssessmentScroll",
+                "CanvasPanel/DetailCard/TrainingPlaceholder"
+            },
+            new string[0]);
+
+        BakeOne(AssessmentReportTemplateHtml, AssessmentReportTemplatePrefab,
+            new string[0],
+            new string[0]);
+
+        AssetDatabase.SaveAssets();
+        AssetDatabase.Refresh();
+        Debug.Log("[ConvertRehabUIPrefabs] 评估、训练、报告界面 Prefab 已重建。");
     }
 
     private static void BakeOne(string htmlPath, string prefabPath, string[] inactivePaths, string[] rawImagePaths)
@@ -200,6 +251,7 @@ public static class ConvertRehabUIPrefabs
         string rowTemplatePath = null;
         if (prefabPath == PatientPrefab) rowTemplatePath = "CanvasPanel/PatientRowsContent/PatientRowTemplate";
         else if (prefabPath == SettingPrefab) rowTemplatePath = "WorkPanel/DoctorPanel/DoctorRowsContent/DoctorRowTemplate";
+        else if (prefabPath == ReportPrefab) rowTemplatePath = "ConsolePanel/ReportRowsContent/ReportRowTemplate";
         if (!string.IsNullOrEmpty(rowTemplatePath))
         {
             Transform rowNode = root.transform.Find(rowTemplatePath);
@@ -237,11 +289,58 @@ public static class ConvertRehabUIPrefabs
             else Debug.LogWarning("[ConvertRehabUIPrefabs] 未找到 NavRail 节点，未应用垂直布局");
         }
 
+        if (prefabPath == AssessmentReportTemplatePrefab) AttachReportCharts(root);
+
         RestoreInputConstraints(root, prefabPath);
 
         PrefabUtility.SaveAsPrefabAsset(root, prefabPath);
         UnityEngine.Object.DestroyImmediate(canvasGo);
         Debug.Log("[ConvertRehabUIPrefabs] 已写入 Prefab: " + prefabPath);
+    }
+
+    private static void AttachReportCharts(GameObject root)
+    {
+        const string content = "ReportContent/";
+        AddRomRangeChart(root, content + "RomCardA/RomRangeChart");
+        AddRomRangeChart(root, content + "RomCardB/RomRangeChart");
+        AddRomRangeChart(root, content + "RomCardC/RomRangeChart");
+        AddRomRangeChart(root, content + "RomCardD/RomRangeChart");
+        AddReportChart(root, content + "StrengthRadarCard/StrengthRadarChart", ReportChartGraphic.ChartKind.StrengthRadar);
+        AddReportChart(root, content + "BaselineCard/BaselineChart", ReportChartGraphic.ChartKind.BaselineLine);
+    }
+
+    private static void AddRomRangeChart(GameObject root, string path)
+    {
+        Transform node = root.transform.Find(path);
+        if (node == null)
+        {
+            Debug.LogWarning("[ConvertRehabUIPrefabs] 未找到 ROM 三维图表节点: " + path);
+            return;
+        }
+        Image image = node.GetComponent<Image>();
+        if (image != null) UnityEngine.Object.DestroyImmediate(image);
+        ReportChartGraphic oldChart = node.GetComponent<ReportChartGraphic>();
+        if (oldChart != null) UnityEngine.Object.DestroyImmediate(oldChart);
+        RomRangeChart chart = node.GetComponent<RomRangeChart>();
+        if (chart == null) chart = node.gameObject.AddComponent<RomRangeChart>();
+        chart.raycastTarget = false;
+    }
+
+    private static void AddReportChart(GameObject root, string path, ReportChartGraphic.ChartKind kind)
+    {
+        Transform node = root.transform.Find(path);
+        if (node == null)
+        {
+            Debug.LogWarning("[ConvertRehabUIPrefabs] 未找到报告图表节点: " + path);
+            return;
+        }
+        Image image = node.GetComponent<Image>();
+        if (image != null) UnityEngine.Object.DestroyImmediate(image);
+        ReportChartGraphic chart = node.GetComponent<ReportChartGraphic>();
+        if (chart == null) chart = node.gameObject.AddComponent<ReportChartGraphic>();
+        chart.Kind = kind;
+        chart.color = Color.white;
+        chart.raycastTarget = false;
     }
 
     // WebUI2UnityUI 烘焙出的输入框全是无约束 Standard，这里按旧版 prefab 的约束逐字段恢复，

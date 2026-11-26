@@ -44,10 +44,6 @@ namespace LB
 
         private void OnGUI()
         {
-#if UNITY_EDITOR
-            if (SerialPortModule.Instance.IsConnected())
-                SerialPortModule.Instance.BluetoothHelper.DrawGUI();
-#endif
             GUI.Label(new Rect(0, 0, 1920, 100),
                 "  BETA_LOGO  BETA_LOGO  BETA_LOGO  BETA_LOGO  BETA_LOGO  BETA_LOGO  BETA_LOGO  BETA_LOGO  ", style);
         }

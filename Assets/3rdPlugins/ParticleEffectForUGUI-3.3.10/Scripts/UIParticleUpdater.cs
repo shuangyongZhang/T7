@@ -235,7 +235,7 @@ namespace Coffee.UIExtensions
                     if (hash != 0)
                     {
                         var m = MeshHelper.GetTemporaryMesh();
-                        r.BakeMesh(m, camera, true);
+                        r.BakeMesh(m, camera, ParticleSystemBakeMeshOptions.BakeRotationAndScale);
                         MeshHelper.Push(i * 2, hash, m, matrix);
                     }
 
@@ -256,7 +256,7 @@ namespace Coffee.UIExtensions
                         var m = MeshHelper.GetTemporaryMesh();
                         try
                         {
-                            r.BakeTrailsMesh(m, camera, true);
+                            r.BakeTrailsMesh(m, camera, ParticleSystemBakeMeshOptions.BakeRotationAndScale);
                             MeshHelper.Push(i * 2 + 1, hash, m, matrix);
                         }
                         catch

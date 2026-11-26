@@ -117,6 +117,8 @@ namespace LB
 #endif
 
             UpgrageDB();
+            CreateRehabReportTable();
+            CreateRehabReportSampleTable();
         }
 
 
@@ -434,7 +436,107 @@ namespace LB
         }
         #endregion
 
+        #region RehabReport
+        public void CreateRehabReportTable()
+        {
+            if (dbManager != null)
+            {
+                dbManager.CreateTable<RehabReport>();
+            }
+        }
 
+        public void CreateRehabReportSampleTable()
+        {
+            if (dbManager != null)
+            {
+                dbManager.CreateTable<RehabReportSample>();
+            }
+        }
+
+        public bool InsertRehabReport(RehabReport report, IReadOnlyList<RehabSample> samples)
+        {
+            if (dbManager == null) return false;
+            dbManager.BeginTransaction();
+            try
+            {
+                long reportID;
+                dbManager.Insert(report, out reportID);
+                report.ReportID = (int)reportID;
+                if (samples != null && samples.Count > 0)
+                {
+                    List<RehabReportSample> rows = new List<RehabReportSample>(samples.Count);
+                    for (int i = 0; i < samples.Count; i++)
+                    {
+                        RehabSample sample = samples[i];
+                        if (sample == null || !sample.IsValid) continue;
+                        rows.Add(new RehabReportSample
+                        {
+                            ReportID = report.ReportID,
+                            SampleIndex = i,
+                            TimestampSeconds = sample.TimestampSeconds,
+                            PositionX = sample.PositionMeters.x,
+                            PositionY = sample.PositionMeters.y,
+                            PositionZ = sample.PositionMeters.z,
+                            JointAngleX = sample.JointAnglesDegrees.x,
+                            JointAngleY = sample.JointAnglesDegrees.y,
+                            JointAngleZ = sample.JointAnglesDegrees.z,
+                            ForceX = sample.ForceNewtons.x,
+                            ForceY = sample.ForceNewtons.y,
+                            ForceZ = sample.ForceNewtons.z,
+                            TorqueX = sample.TorqueNewtonMeters.x,
+                            TorqueY = sample.TorqueNewtonMeters.y,
+                            TorqueZ = sample.TorqueNewtonMeters.z,
+                            CurrentAngleDegrees = sample.CurrentAngleDegrees,
+                            SpeedMetersPerSecond = sample.SpeedMetersPerSecond
+                        });
+                    }
+                    dbManager.InsertAll(rows);
+                }
+                dbManager.Commit();
+                return true;
+            }
+            catch (Exception e)
+            {
+                dbManager.Rollback();
+                Log.Info(e.Message);
+                return false;
+            }
+        }
+
+        public List<RehabReportSample> QueryRehabReportSamples(int reportID)
+        {
+            try
+            {
+                if (dbManager != null)
+                {
+                    return dbManager.Query<RehabReportSample>(
+                        "SELECT * FROM RehabReportSample WHERE ReportID = ? ORDER BY SampleIndex ASC", reportID);
+                }
+            }
+            catch (Exception e)
+            {
+                Log.Info(e.Message);
+            }
+            return null;
+        }
+
+        public List<RehabReport> QueryRehabReports(string patientID)
+        {
+            try
+            {
+                if (dbManager != null)
+                {
+                    return dbManager.Query<RehabReport>(
+                        "SELECT * FROM RehabReport WHERE PatientID = ? ORDER BY CreateTime DESC, ReportID DESC", patientID);
+                }
+            }
+            catch (Exception e)
+            {
+                Log.Info(e.Message);
+            }
+            return null;
+        }
+        #endregion
 
 
     }

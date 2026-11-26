@@ -1,7 +1,6 @@
 using System;
 using System.IO;
 using System.Collections.Generic;
-using System.Text.RegularExpressions;
 using HT.Framework;
 using TMPro;
 using UnityEngine;
@@ -102,13 +101,8 @@ namespace LB
         private AdminInfo curAdmin;
         private GameObject selectedDoctorRow;
         private int curPage;
-        private const int PageSize = 7;
+        private const int PageSize = 16;
         private string versionType = "";
-        private UnityTimer.Timer versionTimer;
-        private bool hasChecked;
-
-        private const string Pattern = "(\\d+\\.\\d{3})\\.([A-Za-z]{2,3}\\d{2})?\\d{8}-([A-Za-z]+)";
-        private static readonly Regex VersionRegex = new Regex(Pattern);
 
         public override void OnInit()
         {
@@ -124,6 +118,15 @@ namespace LB
             addSexDropdown.AddOptions(sexOptions);
             infoSexDropdown.ClearOptions();
             infoSexDropdown.AddOptions(sexOptions);
+
+            addSexDropdown.onValueChanged.AddListener(index =>
+            {
+                addAvatarImage.sprite = (Sex)index == Sex.Female ? Global.IconDic["femaleDoctor"] : Global.IconDic["maleDoctor"];
+            });
+            infoSexDropdown.onValueChanged.AddListener(index =>
+            {
+                infoAvatarImage.sprite = (Sex)index == Sex.Female ? Global.IconDic["femaleDoctor"] : Global.IconDic["maleDoctor"];
+            });
 
             generalButton.onClick.AddListener(OnOpenGeneralPanel);
             hospitalButton.onClick.AddListener(OnOpenHospitalPanel);
@@ -172,6 +175,7 @@ namespace LB
             telephoneText.text = "联系电话：177 1241 0781 / 025-52313235";
             addressText.text = "地址：南京高淳经济开发区双高路86号医疗器械产业园24号";
             websiteText.text = "网站：www.jslvbai.com";
+            deviceText.text = "硬件版本：通讯未接入";
 
             musicSlider.minValue = 0f;
             musicSlider.maxValue = 100f;
@@ -192,9 +196,6 @@ namespace LB
                 soundVolumeText.text = Mathf.RoundToInt(value).ToString();
                 Main.m_Audio.OneShootVolume = Main.m_Audio.SingleVolume = Main.m_Audio.MultipleVolume = value / 100f;
             });
-
-            versionTimer = UnityTimer.Timer.Register(0.5f, ComparativeVersion, null, true);
-            versionTimer.Pause();
         }
 
         private void SetTabButtonSelected(Button button, bool selected)
@@ -218,7 +219,6 @@ namespace LB
             SetTabButtonSelected(generalButton, true);
             SetTabButtonSelected(hospitalButton, false);
             SetTabButtonSelected(doctorButton, false);
-            versionTimer?.Resume();
         }
 
         private void OnOpenHospitalPanel()
@@ -232,7 +232,6 @@ namespace LB
             SetTabButtonSelected(generalButton, false);
             SetTabButtonSelected(hospitalButton, true);
             SetTabButtonSelected(doctorButton, false);
-            versionTimer?.Pause();
 
             if (Global.CurHospitalInfo != null)
             {
@@ -266,7 +265,6 @@ namespace LB
             SetTabButtonSelected(generalButton, false);
             SetTabButtonSelected(hospitalButton, false);
             SetTabButtonSelected(doctorButton, true);
-            versionTimer?.Pause();
 
             adminInfos = DBManagerModule.Instance.QueryAllAdminInfos() ?? new List<AdminInfo>();
             if (curAdmin != null && adminInfos.FindIndex(a => a.Account == curAdmin.Account) < 0) curAdmin = null;
@@ -275,8 +273,7 @@ namespace LB
 
         private void OnOpenHelp()
         {
-            string helpName = ConfigDataManager.Instance.IsCompensation ? "help_c.pdf" : "help.pdf";
-            Application.OpenURL(Application.streamingAssetsPath + "/" + helpName);
+            Application.OpenURL(Application.streamingAssetsPath + "/help.pdf");
         }
 
         private void RefreshDoctorRows(bool followSelection = false)
@@ -732,7 +729,6 @@ namespace LB
             base.OnClose();
             HideModalOnMain(doctorAddPanel);
             HideModalOnMain(doctorEditPanel);
-            versionTimer?.Pause();
             SaveConfigModule.Instance.SetUserData("musicVolume", Mathf.RoundToInt(musicSlider.value));
             SaveConfigModule.Instance.SetUserData("soundVolume", Mathf.RoundToInt(soundSlider.value));
             SaveConfigModule.Instance.SaveUserData();
@@ -741,6 +737,8 @@ namespace LB
         public override void OnDestroy()
         {
             base.OnDestroy();
+            addSexDropdown.onValueChanged.RemoveAllListeners();
+            infoSexDropdown.onValueChanged.RemoveAllListeners();
             generalButton.onClick.RemoveAllListeners();
             hospitalButton.onClick.RemoveAllListeners();
             doctorButton.onClick.RemoveAllListeners();
@@ -763,48 +761,5 @@ namespace LB
             soundSlider.onValueChanged.RemoveAllListeners();
         }
 
-        private int CompareVersion(string version1, string version2)
-        {
-            char[] a = version1.ToCharArray();
-            char[] b = version2.ToCharArray();
-            int index = 0;
-            while (index < 3)
-            {
-                if (a[index] > b[index]) return 1;
-                if (a[index] < b[index]) return -1;
-                index++;
-            }
-            return 0;
-        }
-
-        private void ComparativeVersion()
-        {
-            if (string.IsNullOrEmpty(SerialPortModule.Instance.DeviceVersion))
-            {
-                SerialPortModule.Instance.CheckDeviceVer();
-                return;
-            }
-            if (hasChecked) return;
-
-            Match match = VersionRegex.Match(SerialPortModule.Instance.DeviceVersion);
-            if (!match.Success) return;
-
-            if (versionType != match.Groups[3].Value)
-            {
-                deviceText.text = string.Format("硬件版本：V{0} \n<color=red>{1}版本类型不兼容</color>", match.Groups[1].Value, match.Groups[3].Value);
-                hasChecked = true;
-                return;
-            }
-
-            int result = CompareVersion(Application.version, match.Groups[1].Value);
-            if (result == 0)
-                deviceText.text = "硬件版本：V" + match.Groups[1].Value;
-            else if (result > 0)
-                deviceText.text = string.Format("硬件版本：<color=red>V{0} \n(硬件版本低于软件版本)</color>", match.Groups[1].Value);
-            else
-                deviceText.text = string.Format("硬件版本：<color=red>V{0} \n(硬件版本高于软件版本)</color>", match.Groups[1].Value);
-
-            hasChecked = true;
-        }
     }
 }

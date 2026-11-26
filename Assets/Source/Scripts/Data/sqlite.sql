@@ -1,5 +1,5 @@
 --记录数据库版本 升级表需要
-DROP TABLE DB_VERSION;
+DROP TABLE IF EXISTS DB_VERSION;
 CREATE TABLE DB_VERSION
 (
     ID INTEGER PRIMARY KEY,
@@ -8,7 +8,7 @@ CREATE TABLE DB_VERSION
 INSERT INTO DB_VERSION(ID,Version) VALUES ( 1, '1.0');
 
 --医院信息
-DROP TABLE HospitalInfo;
+DROP TABLE IF EXISTS HospitalInfo;
 CREATE TABLE HospitalInfo(
     ID INTEGER PRIMARY KEY AUTOINCREMENT,
     Code VARCHAR(32),
@@ -22,7 +22,7 @@ CREATE TABLE HospitalInfo(
 );
 INSERT INTO HospitalInfo(ID,Code,Name,Dept,Address,Desc,Telephone) VALUES ( 1, '', '南京康复医院', '康复科', '', '', '');
 --管理员
-DROP TABLE AdminInfo;
+DROP TABLE IF EXISTS AdminInfo;
 CREATE TABLE AdminInfo(
     Account VARCHAR(32) PRIMARY KEY NOT NULL,
     Password VARCHAR(32) NOT NULL,
@@ -41,7 +41,7 @@ update AdminInfo set Role=1 where Account= "1";
 --INSERT INTO AdminInfo(Account,Password,Dept,Telephone,Role) VALUES ( 'admin', '1234', "康复部",'13564984964',1);
 --update AdminInfo set CreateTime=datetime('now','localtime') where Account= "admin";
 --患者详情
-DROP TABLE PatientInfo;
+DROP TABLE IF EXISTS PatientInfo;
 CREATE TABLE PatientInfo(
     ID VARCHAR(32) PRIMARY KEY NOT NULL,
     Name VARCHAR(16) NOT NULL,
@@ -68,66 +68,38 @@ CREATE TABLE PatientInfo(
 --INSERT INTO PatientInfo(ID,Name,Sex,Doctor,Diagnose,Age,AdmissionDate) VALUES ( '0006','刘大', 1,  '罗翔', '',  '58',  '2021/11/1');
 --INSERT INTO PatientInfo(ID,Name,Sex,Doctor,Diagnose,Age,AdmissionDate) VALUES ( '0008','许仙', 1,  '法海', '',  '96',  '2021/11/1');
 
---患者报告
-DROP TABLE PatientReport;
-CREATE TABLE PatientReport(
+--康复评估与训练报告
+DROP TABLE IF EXISTS RehabReport;
+CREATE TABLE RehabReport(
     ReportID INTEGER PRIMARY KEY AUTOINCREMENT,
-    ReportName VARCHAR(32) NOT NULL,
+    Title VARCHAR(64) NOT NULL,
     PatientID VARCHAR(32) NOT NULL,
-    ReportType SMALLINT NOT NULL,
-    TrainPart SMALLINT NOT NULL,
-    TrainParam VARCHAR(256) NOT NULL,
-    UpperData BLOB,
-    LowerData BLOB,
-    DoctorAdvice VARCHAR(256),
-    StartTime DATE NOT NULL DEFAULT (datetime('now', 'localtime')),
-    EndTime DATE NOT NULL DEFAULT (datetime('now', 'localtime')),
-    CreateTime DATE NOT NULL DEFAULT (datetime('now', 'localtime'))
+    Kind SMALLINT NOT NULL,
+    Joint SMALLINT NOT NULL,
+    PayloadJson VARCHAR(1024) NOT NULL,
+    StartTime DATE NOT NULL,
+    EndTime DATE NOT NULL,
+    CreateTime DATE NOT NULL
 );
 
-
--- DROP TABLE TrainPresetSetting;
--- CREATE TABLE TrainPresetSetting(
---     Name VARCHAR(32) PRIMARY KEY NOT NULL,
---     Part SMALLINT NOT NULL,
---     Direction SMALLINT NOT NULL,
---     EnduranceMode SMALLINT NOT NULL,
---     TotalTime SMALLINT NOT NULL,
---     TotalRotations SMALLINT NOT NULL,
---     DurationTime SMALLINT NOT NULL,
---     RestTime SMALLINT NOT NULL,
---     AutoReverse SMALLINT NOT NULL,
---     TargetSpeed SMALLINT NOT NULL,
---     PassiveSpeed SMALLINT NOT NULL,
---     AssistSpeed SMALLINT NOT NULL,
---     AssistLevel SMALLINT NOT NULL,
---     ProgressiveResistance SMALLINT NOT NULL,
---     ProgressiveInterval SMALLINT NOT NULL,
---     Resistance SMALLINT NOT NULL,
---     MinResistance SMALLINT NOT NULL,
---     MaxResistance SMALLINT NOT NULL,
---     CreateTime DATE NOT NULL DEFAULT (datetime('now', 'localtime'))
--- );
-
-DROP TABLE GameHistory;
-CREATE TABLE GameHistory(
-    GameID INTEGER PRIMARY KEY NOT NULL,
-    Level VARCHAR(32) NOT NULL,
-    Time VARCHAR(32) NOT NULL,
-    Score VARCHAR(32) NOT NULL
+CREATE TABLE RehabReportSample(
+    SampleID INTEGER PRIMARY KEY AUTOINCREMENT,
+    ReportID INTEGER NOT NULL,
+    SampleIndex INTEGER NOT NULL,
+    TimestampSeconds REAL NOT NULL,
+    PositionX REAL NOT NULL,
+    PositionY REAL NOT NULL,
+    PositionZ REAL NOT NULL,
+    JointAngleX REAL NOT NULL,
+    JointAngleY REAL NOT NULL,
+    JointAngleZ REAL NOT NULL,
+    ForceX REAL NOT NULL,
+    ForceY REAL NOT NULL,
+    ForceZ REAL NOT NULL,
+    TorqueX REAL NOT NULL,
+    TorqueY REAL NOT NULL,
+    TorqueZ REAL NOT NULL,
+    CurrentAngleDegrees REAL NOT NULL,
+    SpeedMetersPerSecond REAL NOT NULL
 );
-
-DROP TABLE PrescriptionHistory;
-CREATE TABLE PrescriptionHistory(
-    ID INTEGER PRIMARY KEY AUTOINCREMENT,
-    Name VARCHAR(32) NOT NULL,
-    CreateTime DATE NOT NULL DEFAULT (datetime('now', 'localtime')),
-    GameTypesStr VARCHAR(256) NOT NULL,
-    TrainSettingStr VARCHAR(256) NOT NULL
-);
-
-DROP TABLE GameTopPlayer;
-CREATE TABLE GameTopPlayer(
-    GameID INTEGER PRIMARY KEY NOT NULL,
-    RankInfoStr VARCHAR(512) NOT NULL
-);
+CREATE INDEX IF NOT EXISTS IX_RehabReportSample_ReportID ON RehabReportSample(ReportID);
