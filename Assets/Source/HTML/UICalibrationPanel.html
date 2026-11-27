@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>减重辅助标定</title>
+<style>
+  html, body { margin: 0; padding: 0; background: #0a0a0a; }
+  body { font-family: "Microsoft YaHei", "PingFang SC", "Noto Sans CJK", sans-serif; }
+  [data-u-type] { box-sizing: border-box; }
+  [data-u-type][style*="left:"] { position: absolute; }
+  text, image { display: block; }
+  [data-u-type="text"] { display: flex; align-items: center; white-space: pre-wrap; line-height: 1.3; overflow: hidden; }
+  [data-u-type="image"] { background-image: repeating-linear-gradient(45deg, rgba(0,0,0,.06) 0 8px, transparent 0 16px); }
+  [data-u-type="button"] { display: block; border: 0; padding: 0; font-family: inherit; cursor: pointer; }
+  [data-u-type="input"] { display: block; border: 1px solid #cbd5e1; padding: 0 12px; }
+  [data-u-type="toggle"] { display: flex; align-items: center; }
+  [data-u-type="toggle"]::before { content: ""; width: 20px; height: 20px; margin-right: 10px; border: 2px solid #1456f0; border-radius: 4px; }
+  [data-u-type="toggle"][data-u-checked="true"]::before { background: #1456f0; }
+</style>
+</head>
+<body>
+<div id="u-stage">
+<div data-u-type="div" data-u-name="UICalibrationPanel" style="width: 1920px; height: 1080px; background-color: rgba(0,0,0,0.55);">
+  <div data-u-type="div" data-u-name="CalibrationCard" style="left: 360px; top: 110px; width: 1200px; height: 860px; background-color: #ffffff;"></div>
+  <div data-u-type="image" data-u-name="CalibrationIcon" style="left: 410px; top: 150px; width: 56px; height: 56px; background-color: #eff6ff;"></div>
+  <div data-u-type="text" data-u-name="CalibrationTitleText" style="left: 490px; top: 154px; width: 850px; height: 40px; color: #222222; font-size: 22px; text-align: left;">减重辅助标定</div>
+  <div data-u-type="text" data-u-name="CalibrationPatientText" style="left: 410px; top: 222px; width: 1100px; height: 28px; color: #45515e; font-size: 13px; text-align: left;">当前患者：未选择</div>
+
+  <div data-u-type="div" data-u-name="CalibrationSteps" style="left: 410px; top: 274px; width: 340px; height: 390px; background-color: #f8fafc;">
+    <div data-u-type="text" data-u-name="Step1Text" style="left: 20px; top: 20px; width: 300px; height: 54px; color: #1456f0; font-size: 13px; text-align: left;">1  佩戴减重绑带，训练手臂自然下垂</div>
+    <div data-u-type="text" data-u-name="Step2Text" style="left: 20px; top: 106px; width: 300px; height: 54px; color: #45515e; font-size: 13px; text-align: left;">2  执行减重归零并确认设备显示</div>
+    <div data-u-type="text" data-u-name="Step3Text" style="left: 20px; top: 192px; width: 300px; height: 54px; color: #45515e; font-size: 13px; text-align: left;">3  标定成功后进入上肢 ROM 评估</div>
+    <div data-u-type="text" data-u-name="Step4Text" style="left: 20px; top: 278px; width: 300px; height: 54px; color: #45515e; font-size: 13px; text-align: left;">4  完成并保存 ROM 评估后开放训练</div>
+  </div>
+
+  <div data-u-type="div" data-u-name="CalibrationInstructionCard" style="left: 790px; top: 274px; width: 720px; height: 390px; background-color: #f8fafc;">
+    <div data-u-type="text" data-u-name="CalibrationInstructionTitleText" style="left: 24px; top: 20px; width: 672px; height: 30px; color: #222222; font-size: 16px; text-align: left;">请按顺序完成标定</div>
+    <div data-u-type="div" data-u-name="CalibrationDiagram" style="left: 110px; top: 66px; width: 500px; height: 210px; background-color: rgba(0,0,0,0);"></div>
+    <div data-u-type="text" data-u-name="CalibrationInstructionText" style="left: 24px; top: 292px; width: 672px; height: 72px; color: #45515e; font-size: 12px; text-align: left;">先确认绑带佩戴与手臂自然下垂，再执行减重归零。未接入通讯时，必须由设备实际显示归零成功后人工确认。</div>
+  </div>
+
+  <div data-u-type="text" data-u-name="CalibrationStatusText" style="left: 410px; top: 694px; width: 1100px; height: 32px; color: #8e8e93; font-size: 12px; text-align: left;">等待佩戴确认</div>
+  <div data-u-type="toggle" data-u-name="DeviceZeroConfirmedToggle" data-u-checked="false" style="left: 410px; top: 744px; width: 720px; height: 32px; color: #45515e; font-size: 12px;">设备已实际显示归零成功（人工确认）</div>
+
+  <button data-u-type="button" data-u-name="ConfirmWearButton" style="left: 410px; top: 830px; width: 240px; height: 44px; background-color: #181e25; color: #ffffff; font-size: 13px;">已佩戴并自然下垂</button>
+  <button data-u-type="button" data-u-name="ZeroUnloadingButton" style="left: 674px; top: 830px; width: 200px; height: 44px; background-color: #eff6ff; color: #1456f0; font-size: 13px;">减重归零</button>
+  <button data-u-type="button" data-u-name="EnterRomButton" style="left: 898px; top: 830px; width: 240px; height: 44px; background-color: #16a34a; color: #ffffff; font-size: 13px;">进入上肢 ROM 评估</button>
+  <button data-u-type="button" data-u-name="CancelCalibrationButton" style="left: 1162px; top: 830px; width: 120px; height: 44px; background-color: #f0f0f0; color: #222222; font-size: 13px;">取消</button>
+  <button data-u-type="button" data-u-name="CloseCalibrationButton" style="left: 1490px; top: 154px; width: 28px; height: 28px; background-color: rgba(0,0,0,0); color: #8e8e93; font-size: 18px;"></button>
+</div>
+</div>
+<script>
+(function () {
+  var texts = document.querySelectorAll('[data-u-type="text"]');
+  for (var i = 0; i < texts.length; i++) texts[i].textContent = texts[i].textContent.trim();
+})();
+</script>
+</body>
+</html>

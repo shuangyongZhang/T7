@@ -55,6 +55,8 @@ namespace LB
         private DateTime sessionStart;
         private float refreshAccumulator;
         private RehabSessionRecorder recorder = new RehabSessionRecorder();
+        private bool completeCalibration;
+        private Action afterCalibration;
 
         public override void OnInit()
         {
@@ -85,6 +87,8 @@ namespace LB
         public override void OnOpen(params object[] args)
         {
             base.OnOpen(args);
+            completeCalibration = args != null && args.Length > 0 && args[0] is bool && (bool)args[0];
+            afterCalibration = args != null && args.Length > 1 ? args[1] as Action : null;
             ResetMeasurement();
             RefreshUI();
         }
@@ -168,6 +172,7 @@ namespace LB
                 return;
             }
 
+            if (!measuring && archived) ResetMeasurement();
             measuring = !measuring;
             if (measuring)
             {
@@ -258,6 +263,20 @@ namespace LB
             saveButton.interactable = false;
             RefreshUI();
             UINotifyDialogHelper.Current.ShowNotifyAutoHide("评估极值已归档，可在报告列表查看");
+
+            if (completeCalibration)
+            {
+                completeCalibration = false;
+                if (!CalibrationWorkflow.MarkCalibrated(Global.CurPatientInfo))
+                {
+                    UINotifyDialogHelper.Current.ShowPromptDialog("错误", "评估已归档，但患者标定状态写入失败", "确定");
+                    return;
+                }
+                UINotifyDialogHelper.Current.ShowNotifyAutoHide("标定流程已完成");
+                Action next = afterCalibration;
+                afterCalibration = null;
+                if (next != null) next();
+            }
         }
 
         private void RefreshUI()

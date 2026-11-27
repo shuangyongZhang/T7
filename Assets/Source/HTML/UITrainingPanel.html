@@ -29,6 +29,13 @@
     [data-u-type="slider"] { position: relative; border-radius: 999px; overflow: hidden; }
     [data-u-type="slider"]::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: var(--u-val, 50%); background: currentColor; }
     [data-u-type="slider"]::after { content: ""; position: absolute; top: 0; bottom: 0; left: var(--u-val, 50%); width: 4px; margin-left: -2px; background: #fff; opacity: .9; }
+    [data-u-type="slider"].resistance-slider { overflow: visible; }
+    [data-u-type="slider"].resistance-slider::before { display: none; }
+    [data-u-type="slider"].resistance-slider::after { display: none; }
+    [data-u-type="toggle"][data-u-switch="true"] { position: relative; display: block; border-radius: 999px; background: #d1d5db; }
+    [data-u-type="toggle"][data-u-switch="true"]::before { position: absolute; left: 4px; top: 4px; width: 12px; height: 12px; margin: 0; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.18); transition: left .15s; }
+    [data-u-type="toggle"][data-u-switch="true"][data-u-checked="true"] { background: #1456f0; }
+    [data-u-type="toggle"][data-u-switch="true"][data-u-checked="true"]::before { left: 24px; }
     [data-u-type="scroll"] { position: relative; overflow: auto; border: 1px dashed rgba(255,255,255,.22); }
     [data-u-type="scroll"]::before { content: "滚动区域 ScrollView"; position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,.28); font-size: 20px; }
 </style>
@@ -44,97 +51,115 @@
     </div>
     <div data-u-type="image" data-u-name="HeaderDivider" style="left: 20px; top: 62px; width: 310px; height: 1px; background-color: #f2f3f5;"></div>
 
-    <div data-u-type="div" data-u-name="ModeCard" style="left: 20px; top: 84px; width: 310px; height: 112px; background-color: #fafafa;">
-      <div data-u-type="text" data-u-name="ModeStepText" style="left: 16px; top: 14px; width: 278px; height: 20px; color: #222222; font-size: 13px; text-align: left;">01  训练主模式</div>
-      <button data-u-type="button" data-u-name="CpmButton" style="left: 16px; top: 48px; width: 86px; height: 36px; background-color: rgba(0,0,0,0); color: #45515e; font-size: 12px;">CPM 被动</button>
-      <button data-u-type="button" data-u-name="AssistButton" style="left: 112px; top: 48px; width: 86px; height: 36px; background-color: rgba(0,0,0,0); color: #45515e; font-size: 12px;">主动助力</button>
-      <button data-u-type="button" data-u-name="ResistButton" style="left: 208px; top: 48px; width: 86px; height: 36px; background-color: #ffffff; color: #1456f0; font-size: 12px;">智能抗阻</button>
+    <div data-u-type="div" data-u-name="TrainingGroupCard" style="left: 20px; top: 84px; width: 310px; height: 112px; background-color: #fafafa;">
+      <div data-u-type="text" data-u-name="TrainingGroupStepText" style="left: 16px; top: 14px; width: 278px; height: 20px; color: #222222; font-size: 13px; text-align: left;">01  训练分类</div>
+      <button data-u-type="button" data-u-name="ActiveGroupButton" style="left: 16px; top: 48px; width: 86px; height: 36px; background-color: #eff6ff; color: #1456f0; font-size: 12px;">主动</button>
+      <button data-u-type="button" data-u-name="PassiveGroupButton" style="left: 112px; top: 48px; width: 86px; height: 36px; background-color: rgba(0,0,0,0); color: #45515e; font-size: 12px;">被动</button>
+      <button data-u-type="button" data-u-name="IntelligentGroupButton" style="left: 208px; top: 48px; width: 86px; height: 36px; background-color: rgba(0,0,0,0); color: #45515e; font-size: 12px;">智能</button>
     </div>
 
-    <div data-u-type="div" data-u-name="DirectionCard" style="left: 20px; top: 208px; width: 310px; height: 220px; background-color: #fafafa;">
-      <div data-u-type="text" data-u-name="DirectionStepText" style="left: 16px; top: 14px; width: 278px; height: 20px; color: #222222; font-size: 13px; text-align: left;">02  运动方向（6 轴向）</div>
-      <button data-u-type="button" data-u-name="AbductionButton" style="left: 16px; top: 50px; width: 135px; height: 40px; background-color: #eff6ff; color: #1456f0; font-size: 12px;">冠状面外展</button>
-      <button data-u-type="button" data-u-name="FlexionButton" style="left: 159px; top: 50px; width: 135px; height: 40px; background-color: #ffffff; color: #45515e; font-size: 12px;">矢状面前屈</button>
-      <button data-u-type="button" data-u-name="HorizontalButton" style="left: 16px; top: 102px; width: 135px; height: 40px; background-color: #ffffff; color: #45515e; font-size: 12px;">水平面内收</button>
-      <button data-u-type="button" data-u-name="PronationButton" style="left: 159px; top: 102px; width: 135px; height: 40px; background-color: #ffffff; color: #45515e; font-size: 12px;">冠状轴旋前</button>
-      <button data-u-type="button" data-u-name="RotationButton" style="left: 16px; top: 154px; width: 135px; height: 40px; background-color: #ffffff; color: #45515e; font-size: 12px;">垂直轴旋转</button>
-      <button data-u-type="button" data-u-name="ExtensionButton" style="left: 159px; top: 154px; width: 135px; height: 40px; background-color: #ffffff; color: #45515e; font-size: 12px;">矢状轴屈伸</button>
+    <div data-u-type="div" data-u-name="ModeCard" style="left: 20px; top: 208px; width: 310px; height: 116px; background-color: #fafafa;">
+      <div data-u-type="text" data-u-name="ModeStepText" style="left: 16px; top: 14px; width: 278px; height: 20px; color: #222222; font-size: 13px; text-align: left;">02  训练模式</div>
+      <button data-u-type="button" data-u-name="ActiveButton" style="left: 16px; top: 52px; width: 86px; height: 40px; background-color: rgba(0,0,0,0); color: #45515e; font-size: 12px;">主动训练</button>
+      <button data-u-type="button" data-u-name="AssistButton" style="left: 112px; top: 52px; width: 86px; height: 40px; background-color: rgba(0,0,0,0); color: #45515e; font-size: 12px;">助力训练</button>
+      <button data-u-type="button" data-u-name="ResistButton" style="left: 208px; top: 52px; width: 86px; height: 40px; background-color: #eff6ff; color: #1456f0; font-size: 12px;">抗阻训练</button>
+      <button data-u-type="button" data-u-name="CpmButton" style="left: 16px; top: 52px; width: 86px; height: 40px; background-color: rgba(0,0,0,0); color: #45515e; font-size: 12px;">被动训练</button>
+      <button data-u-type="button" data-u-name="TeachingButton" style="left: 112px; top: 52px; width: 86px; height: 40px; background-color: rgba(0,0,0,0); color: #45515e; font-size: 12px;">示教训练</button>
     </div>
 
-    <div data-u-type="div" data-u-name="ParameterCard" style="left: 20px; top: 440px; width: 310px; height: 270px; background-color: #fafafa;">
-      <div data-u-type="text" data-u-name="ParameterTitleText" style="left: 16px; top: 14px; width: 278px; height: 20px; color: #222222; font-size: 13px; text-align: left;">03  智能抗阻细分配置</div>
-      <div data-u-type="text" data-u-name="ModelLabelText" style="left: 16px; top: 48px; width: 278px; height: 18px; color: #45515e; font-size: 11px; text-align: left;">力学模型：等速自适应</div>
-      <button data-u-type="button" data-u-name="IsotonicButton" style="left: 16px; top: 74px; width: 64px; height: 30px; background-color: rgba(0,0,0,0); color: #45515e; font-size: 11px;">等张</button>
-      <button data-u-type="button" data-u-name="IsokineticButton" style="left: 87px; top: 74px; width: 64px; height: 30px; background-color: #ffffff; color: #1456f0; font-size: 11px;">等速</button>
-      <button data-u-type="button" data-u-name="ElasticButton" style="left: 158px; top: 74px; width: 64px; height: 30px; background-color: rgba(0,0,0,0); color: #45515e; font-size: 11px;">弹性</button>
-      <button data-u-type="button" data-u-name="ViscousButton" style="left: 229px; top: 74px; width: 64px; height: 30px; background-color: rgba(0,0,0,0); color: #45515e; font-size: 11px;">黏滞</button>
-      <div data-u-type="text" data-u-name="ResistanceLabelText" style="left: 16px; top: 122px; width: 160px; height: 20px; color: #45515e; font-size: 12px; text-align: left;">阻力负荷等级</div>
-      <div data-u-type="text" data-u-name="ResistanceValueText" style="left: 176px; top: 122px; width: 118px; height: 20px; color: #222222; font-size: 12px; text-align: right;">等级 3 (20 N)</div>
-      <div data-u-type="slider" data-u-name="ResistanceSlider" data-u-value="0.6667" style="left: 16px; top: 154px; width: 278px; height: 8px; background-color: #e5e7eb; color: #1456f0;"></div>
-      <div data-u-type="text" data-u-name="DurationLabelText" style="left: 16px; top: 184px; width: 160px; height: 20px; color: #45515e; font-size: 12px; text-align: left;">训练设定时长</div>
-      <div data-u-type="text" data-u-name="DurationValueText" style="left: 176px; top: 184px; width: 118px; height: 20px; color: #222222; font-size: 12px; text-align: right;">20 分钟</div>
-      <div data-u-type="slider" data-u-name="DurationSlider" data-u-value="0.6" style="left: 16px; top: 216px; width: 278px; height: 8px; background-color: #e5e7eb; color: #1456f0;"></div>
-      <div data-u-type="text" data-u-name="ParameterHintText" style="left: 16px; top: 238px; width: 278px; height: 20px; color: #8e8e93; font-size: 10px; text-align: left;">参数仅用于本次训练会话，不向设备下发指令。</div>
+    <div data-u-type="div" data-u-name="GameListCard" style="left: 20px; top: 336px; width: 310px; height: 168px; background-color: #fafafa;">
+      <div data-u-type="text" data-u-name="GameListTitleText" style="left: 16px; top: 14px; width: 278px; height: 20px; color: #222222; font-size: 13px; text-align: left;">03  训练游戏</div>
+      <div data-u-type="scroll" data-u-name="TrainingGameScroll" data-u-dir="v" style="left: 16px; top: 48px; width: 278px; height: 104px; background-color: rgba(0,0,0,0);">
+        <div data-u-type="div" data-u-name="TrainingGameRowTemplate" style="left: 0px; top: 0px; width: 278px; height: 56px; background-color: #ffffff; border: 1px solid #e5e7eb;">
+          <div data-u-type="text" data-u-name="RowGameNameText" style="left: 12px; top: 12px; width: 174px; height: 32px; color: #222222; font-size: 12px; text-align: left;">游戏名称</div>
+          <button data-u-type="button" data-u-name="SelectTrainingGameButton" style="left: 196px; top: 12px; width: 70px; height: 32px; background-color: #eff6ff; color: #1456f0; font-size: 10px;">选择游戏</button>
+        </div>
+        <div data-u-type="text" data-u-name="TrainingGameEmptyText" style="left: 14px; top: 30px; width: 250px; height: 40px; color: #8e8e93; font-size: 11px; text-align: center;">等待游戏目录接口接入</div>
+      </div>
     </div>
 
-    <div data-u-type="div" data-u-name="ActionCard" style="left: 20px; top: 722px; width: 310px; height: 150px; background-color: #fafafa;">
-      <div data-u-type="text" data-u-name="ActionStepText" style="left: 16px; top: 14px; width: 278px; height: 20px; color: #222222; font-size: 13px; text-align: left;">04  启动管控</div>
-      <button data-u-type="button" data-u-name="StartButton" style="left: 16px; top: 48px; width: 172px; height: 44px; background-color: #181e25; color: #ffffff; font-size: 13px;">启动训练</button>
-      <button data-u-type="button" data-u-name="EmergencyStopButton" style="left: 198px; top: 48px; width: 96px; height: 44px; background-color: #dc2626; color: #ffffff; font-size: 13px;">急停</button>
-      <div data-u-type="text" data-u-name="TimerText" style="left: 16px; top: 104px; width: 278px; height: 24px; color: #222222; font-size: 14px; text-align: center;">00:00 / 20:00</div>
+    <div data-u-type="div" data-u-name="DirectionCard" style="left: 20px; top: 208px; width: 310px; height: 136px; background-color: #fafafa;">
+      <div data-u-type="text" data-u-name="DirectionStepText" style="left: 16px; top: 14px; width: 120px; height: 20px; color: #222222; font-size: 13px; text-align: left;">02  运动方向</div>
+      <div data-u-type="text" data-u-name="DirectionLimitLabel" style="left: 176px; top: 17px; width: 64px; height: 18px; color: #45515e; font-size: 10px; text-align: right;">限定方向</div>
+      <div data-u-type="toggle" data-u-name="DirectionLimitToggle" data-u-switch="true" data-u-checked="false" style="left: 254px; top: 14px; width: 40px; height: 20px; background-color: #d1d5db; color: #1456f0; font-size: 11px;"></div>
+      <button data-u-type="button" data-u-name="AbductionButton" style="left: 16px; top: 42px; width: 135px; height: 26px; background-color: #eff6ff; color: #1456f0; font-size: 11px;">冠状面</button>
+      <button data-u-type="button" data-u-name="HorizontalButton" style="left: 159px; top: 42px; width: 135px; height: 26px; background-color: #ffffff; color: #45515e; font-size: 11px;">水平面</button>
+      <button data-u-type="button" data-u-name="FlexionButton" style="left: 16px; top: 72px; width: 135px; height: 26px; background-color: #ffffff; color: #45515e; font-size: 11px;">矢状面</button>
+      <button data-u-type="button" data-u-name="PronationButton" style="left: 159px; top: 72px; width: 135px; height: 26px; background-color: #ffffff; color: #45515e; font-size: 11px;">冠状轴</button>
+      <button data-u-type="button" data-u-name="RotationButton" style="left: 16px; top: 102px; width: 135px; height: 26px; background-color: #ffffff; color: #45515e; font-size: 11px;">垂直轴</button>
+      <button data-u-type="button" data-u-name="ExtensionButton" style="left: 159px; top: 102px; width: 135px; height: 26px; background-color: #ffffff; color: #45515e; font-size: 11px;">矢状轴</button>
     </div>
 
-    <div data-u-type="div" data-u-name="DeviceCard" style="left: 20px; top: 892px; width: 310px; height: 100px; background-color: #f8fafc;">
-      <div data-u-type="text" data-u-name="DeviceStateText" style="left: 16px; top: 14px; width: 278px; height: 20px; color: #45515e; font-size: 12px; text-align: left;">设备状态：检测中</div>
-      <div data-u-type="text" data-u-name="PatientStateText" style="left: 16px; top: 44px; width: 278px; height: 20px; color: #45515e; font-size: 12px; text-align: left;">当前患者：未选择</div>
-      <div data-u-type="text" data-u-name="SafetyHintText" style="left: 16px; top: 70px; width: 278px; height: 20px; color: #8e8e93; font-size: 10px; text-align: left;">急停仅停止软件会话，不替代设备硬件急停。</div>
+    <div data-u-type="div" data-u-name="ParameterCard" style="left: 20px; top: 356px; width: 310px; height: 148px; background-color: #fafafa;">
+      <div data-u-type="text" data-u-name="ParameterTitleText" style="left: 16px; top: 10px; width: 278px; height: 18px; color: #222222; font-size: 13px; text-align: left;">03  训练参数</div>
+      <div data-u-type="text" data-u-name="ResistanceLabelText" style="left: 16px; top: 32px; width: 90px; height: 14px; color: #45515e; font-size: 10px; text-align: left;">阻力负荷</div>
+      <div data-u-type="text" data-u-name="ResistanceValueText" style="left: 112px; top: 32px; width: 182px; height: 14px; color: #222222; font-size: 10px; text-align: right;">等级 3</div>
+      <div data-u-type="text" data-u-name="ResistancePassiveText" style="left: 16px; top: 50px; width: 28px; height: 14px; color: #45515e; font-size: 9px; text-align: center;">被动</div>
+      <div data-u-type="text" data-u-name="ResistanceAssistText" style="left: 44px; top: 50px; width: 166px; height: 14px; color: #45515e; font-size: 10px; text-align: center;">助力</div>
+      <div data-u-type="text" data-u-name="ResistanceActiveText" style="left: 210px; top: 50px; width: 28px; height: 14px; color: #45515e; font-size: 9px; text-align: center;">主动</div>
+      <div data-u-type="text" data-u-name="ResistanceResistText" style="left: 238px; top: 50px; width: 56px; height: 14px; color: #45515e; font-size: 10px; text-align: center;">抗阻</div>
+      <div data-u-type="slider" data-u-name="ResistanceSlider" data-u-value="0.2222" class="resistance-slider" style="left: 16px; top: 68px; width: 278px; height: 10px; background-color: #e5e7eb; background-image: linear-gradient(90deg, #45b97c 0 10%, #27b3a2 10% 70%, #287fd8 70% 80%, #1e3a8a 80% 100%); color: #1456f0;"></div>
+      <div data-u-type="text" data-u-name="DurationLabelText" style="left: 16px; top: 98px; width: 160px; height: 14px; color: #45515e; font-size: 10px; text-align: left;">训练时长（分钟）</div>
+      <div data-u-type="text" data-u-name="DurationCurrentText" style="left: 194px; top: 98px; width: 100px; height: 14px; color: #222222; font-size: 10px; text-align: right;">20 分钟</div>
+      <div data-u-type="text" data-u-name="DurationMinText" style="left: 16px; top: 114px; width: 80px; height: 14px; color: #8e8e93; font-size: 10px; text-align: left;">5分钟</div>
+      <div data-u-type="text" data-u-name="DurationMaxText" style="left: 214px; top: 114px; width: 80px; height: 14px; color: #8e8e93; font-size: 10px; text-align: right;">30分钟</div>
+      <div data-u-type="slider" data-u-name="DurationSlider" data-u-value="0.6" style="left: 16px; top: 132px; width: 278px; height: 8px; background-color: #d1d5db; color: #1456f0;"></div>
+    </div>
+
+    <div data-u-type="div" data-u-name="ActionCard" style="left: 20px; top: 516px; width: 310px; height: 188px; background-color: #fafafa;">
+      <div data-u-type="text" data-u-name="ActionStepText" style="left: 16px; top: 14px; width: 278px; height: 20px; color: #222222; font-size: 13px; text-align: left;">04  控制行动</div>
+      <button data-u-type="button" data-u-name="StartButton" style="left: 16px; top: 48px; width: 278px; height: 44px; background-color: #181e25; color: #ffffff; font-size: 13px;">启动训练</button>
+      <button data-u-type="button" data-u-name="EmergencyStopButton" style="left: 16px; top: 104px; width: 278px; height: 44px; background-color: #dc2626; color: #ffffff; font-size: 12px;">急停</button>
+      <div data-u-type="text" data-u-name="TimerText" style="left: 16px; top: 158px; width: 278px; height: 18px; color: #8e8e93; font-size: 10px; text-align: center;">00:00 / 20:00</div>
+    </div>
+
+    <div data-u-type="div" data-u-name="SessionCard" style="left: 20px; top: 724px; width: 310px; height: 196px; background-color: #f8fafc;">
+      <div data-u-type="text" data-u-name="TrainingStateText" style="left: 16px; top: 16px; width: 278px; height: 24px; color: #222222; font-size: 13px; text-align: left;">等待开始训练</div>
+      <div data-u-type="text" data-u-name="ElapsedText" style="left: 16px; top: 52px; width: 278px; height: 20px; color: #45515e; font-size: 12px; text-align: left;">训练时长：00:00</div>
+      <div data-u-type="text" data-u-name="SampleCountText" style="left: 16px; top: 84px; width: 278px; height: 20px; color: #45515e; font-size: 12px; text-align: left;">有效采样：0</div>
+      <div data-u-type="text" data-u-name="DeviceStateText" style="left: 16px; top: 116px; width: 278px; height: 20px; color: #8e8e93; font-size: 11px; text-align: left;">设备状态：检测中</div>
+      <div data-u-type="text" data-u-name="SessionHintText" style="left: 16px; top: 148px; width: 278px; height: 32px; color: #8e8e93; font-size: 11px; text-align: left;">选择患者后开始训练，归档结果可在报告列表查看。</div>
     </div>
     <div data-u-type="image" data-u-name="ConsoleDivider" style="left: 349px; top: 0px; width: 1px; height: 1024px; background-color: #f2f3f5;"></div>
   </div>
 
   <div data-u-type="div" data-u-name="CanvasPanel" style="left: 434px; top: 56px; width: 1486px; height: 1024px; background-color: #f8fafc;">
-    <div data-u-type="div" data-u-name="AngleCard" style="left: 20px; top: 20px; width: 900px; height: 320px; background-color: #ffffff;">
-      <div data-u-type="text" data-u-name="AngleTitleText" style="left: 24px; top: 20px; width: 600px; height: 24px; color: #222222; font-size: 14px; text-align: left;">上肢关节角度实时监控</div>
-      <div data-u-type="text" data-u-name="AngleSubtitleText" style="left: 24px; top: 50px; width: 600px; height: 20px; color: #45515e; font-size: 11px; text-align: left;">当前方向：冠状面外展</div>
-      <div data-u-type="div" data-u-name="ArmArea" style="left: 24px; top: 84px; width: 852px; height: 212px; background-color: #f8fafc;">
-        <div data-u-type="image" data-u-name="ArmBase" style="left: 326px; top: 164px; width: 200px; height: 12px; background-color: #94a3b8;"></div>
-        <div data-u-type="image" data-u-name="ArmUpper" style="left: 416px; top: 86px; width: 150px; height: 12px; background-color: #1456f0;"></div>
-        <div data-u-type="image" data-u-name="ArmLower" style="left: 556px; top: 86px; width: 130px; height: 10px; background-color: #181e25;"></div>
-        <div data-u-type="image" data-u-name="ShoulderJoint" style="left: 412px; top: 82px; width: 20px; height: 20px; background-color: #1456f0;"></div>
-        <div data-u-type="image" data-u-name="ElbowJoint" style="left: 556px; top: 84px; width: 16px; height: 16px; background-color: #181e25;"></div>
-        <div data-u-type="image" data-u-name="HandJoint" style="left: 678px; top: 85px; width: 16px; height: 16px; background-color: #181e25;"></div>
-        <div data-u-type="text" data-u-name="ArmAngleText" style="left: 24px; top: 16px; width: 180px; height: 24px; color: #1456f0; font-size: 14px; text-align: left;">0.0°</div>
-      </div>
-    </div>
+    <div data-u-type="div" data-u-name="TrainingCard" style="left: 20px; top: 20px; width: 1446px; height: 984px; background-color: #ffffff;">
+      <div data-u-type="text" data-u-name="TrainingTitleText" style="left: 24px; top: 24px; width: 780px; height: 28px; color: #222222; font-size: 16px; text-align: left;">训练配置与记录</div>
+      <div data-u-type="text" data-u-name="TrainingSubtitleText" style="left: 24px; top: 58px; width: 780px; height: 20px; color: #45515e; font-size: 12px; text-align: left;">按训练分类选择模式与游戏 · 连接设备后记录真实训练数据</div>
 
-    <div data-u-type="div" data-u-name="TelemetryCard" style="left: 936px; top: 20px; width: 490px; height: 320px; background-color: #ffffff;">
-      <div data-u-type="text" data-u-name="TelemetryTitleText" style="left: 20px; top: 20px; width: 450px; height: 24px; color: #222222; font-size: 14px; text-align: left;">实时训练指标</div>
-      <div data-u-type="div" data-u-name="AngleMetric" style="left: 20px; top: 64px; width: 214px; height: 96px; background-color: #fafafa;">
-        <div data-u-type="text" data-u-name="AngleMetricLabel" style="left: 14px; top: 12px; width: 186px; height: 18px; color: #8e8e93; font-size: 11px; text-align: left;">当前关节角度</div>
-        <div data-u-type="text" data-u-name="LiveAngleText" style="left: 14px; top: 38px; width: 186px; height: 34px; color: #1456f0; font-size: 24px; text-align: left;">0.0°</div>
+      <div data-u-type="div" data-u-name="SelectionSummaryCard" style="left: 24px; top: 120px; width: 1398px; height: 300px; background-color: #f8fafc;">
+        <div data-u-type="text" data-u-name="SelectionSummaryTitleText" style="left: 24px; top: 24px; width: 1350px; height: 24px; color: #222222; font-size: 14px; text-align: left;">当前训练配置</div>
+        <div data-u-type="text" data-u-name="TrainingGroupSummaryText" style="left: 24px; top: 72px; width: 1350px; height: 28px; color: #45515e; font-size: 13px; text-align: left;">训练分类：主动训练</div>
+        <div data-u-type="text" data-u-name="TrainingModeSummaryText" style="left: 24px; top: 112px; width: 1350px; height: 28px; color: #45515e; font-size: 13px; text-align: left;">训练模式：抗阻训练</div>
+        <div data-u-type="text" data-u-name="TrainingGameSummaryText" style="left: 24px; top: 152px; width: 1350px; height: 28px; color: #45515e; font-size: 13px; text-align: left;">训练游戏：游戏接口待接入</div>
+        <div data-u-type="text" data-u-name="TrainingDirectionSummaryText" style="left: 24px; top: 192px; width: 1350px; height: 28px; color: #45515e; font-size: 13px; text-align: left;">运动方向：冠状面外展</div>
+        <div data-u-type="text" data-u-name="TrainingDurationSummaryText" style="left: 24px; top: 232px; width: 1350px; height: 28px; color: #45515e; font-size: 13px; text-align: left;">训练时长：20 分钟</div>
       </div>
-      <div data-u-type="div" data-u-name="SpeedMetric" style="left: 250px; top: 64px; width: 220px; height: 96px; background-color: #fafafa;">
-        <div data-u-type="text" data-u-name="SpeedMetricLabel" style="left: 14px; top: 12px; width: 192px; height: 18px; color: #8e8e93; font-size: 11px; text-align: left;">实时角速度</div>
-        <div data-u-type="text" data-u-name="LiveSpeedText" style="left: 14px; top: 38px; width: 192px; height: 34px; color: #222222; font-size: 24px; text-align: left;">0.0°/s</div>
-      </div>
-      <div data-u-type="div" data-u-name="RangeMetric" style="left: 20px; top: 176px; width: 214px; height: 96px; background-color: #fafafa;">
-        <div data-u-type="text" data-u-name="RangeMetricLabel" style="left: 14px; top: 12px; width: 186px; height: 18px; color: #8e8e93; font-size: 11px; text-align: left;">本次角度范围</div>
-        <div data-u-type="text" data-u-name="LiveRangeText" style="left: 14px; top: 38px; width: 186px; height: 34px; color: #222222; font-size: 18px; text-align: left;">-- ~ --</div>
-      </div>
-      <div data-u-type="div" data-u-name="SampleMetric" style="left: 250px; top: 176px; width: 220px; height: 96px; background-color: #fafafa;">
-        <div data-u-type="text" data-u-name="SampleMetricLabel" style="left: 14px; top: 12px; width: 192px; height: 18px; color: #8e8e93; font-size: 11px; text-align: left;">有效采样</div>
-        <div data-u-type="text" data-u-name="SampleCountText" style="left: 14px; top: 38px; width: 192px; height: 34px; color: #222222; font-size: 24px; text-align: left;">0</div>
-      </div>
-    </div>
 
-    <div data-u-type="div" data-u-name="WaveCard" style="left: 20px; top: 356px; width: 1446px; height: 648px; background-color: #ffffff;">
-      <div data-u-type="text" data-u-name="WaveTitleText" style="left: 24px; top: 20px; width: 900px; height: 24px; color: #222222; font-size: 14px; text-align: left;">连续关节角度波形</div>
-      <div data-u-type="text" data-u-name="WaveLegendText" style="left: 1000px; top: 20px; width: 400px; height: 24px; color: #1456f0; font-size: 11px; text-align: right;">● 实际角度采样</div>
-      <div data-u-type="div" data-u-name="WaveArea" style="left: 24px; top: 72px; width: 1398px; height: 540px; background-color: #0f172a;">
-        <div data-u-type="image" data-u-name="WaveBarTemplate" style="left: 0px; top: 0px; width: 8px; height: 40px; background-color: #60a5fa;"></div>
-        <div data-u-type="text" data-u-name="WaveEmptyText" style="left: 399px; top: 246px; width: 600px; height: 48px; color: #94a3b8; font-size: 14px; text-align: center;">开始训练后显示真实角度波形</div>
+      <div data-u-type="div" data-u-name="DurationMetric" style="left: 24px; top: 448px; width: 446px; height: 90px; background-color: #fafafa;">
+        <div data-u-type="text" data-u-name="DurationMetricLabel" style="left: 16px; top: 14px; width: 414px; height: 18px; color: #8e8e93; font-size: 11px; text-align: left;">训练时长</div>
+        <div data-u-type="text" data-u-name="DurationValueText" style="left: 16px; top: 42px; width: 414px; height: 28px; color: #222222; font-size: 16px; text-align: left;">20 分钟</div>
+      </div>
+      <div data-u-type="div" data-u-name="ResistanceMetric" style="left: 486px; top: 448px; width: 446px; height: 90px; background-color: #fafafa;">
+        <div data-u-type="text" data-u-name="ResistanceMetricLabel" style="left: 16px; top: 14px; width: 414px; height: 18px; color: #8e8e93; font-size: 11px; text-align: left;">阻力负荷</div>
+        <div data-u-type="text" data-u-name="ResistanceMetricText" style="left: 16px; top: 42px; width: 414px; height: 28px; color: #222222; font-size: 16px; text-align: left;">等级 3</div>
+      </div>
+      <div data-u-type="div" data-u-name="GameMetric" style="left: 948px; top: 448px; width: 446px; height: 90px; background-color: #fafafa;">
+        <div data-u-type="text" data-u-name="GameMetricLabel" style="left: 16px; top: 14px; width: 414px; height: 18px; color: #8e8e93; font-size: 11px; text-align: left;">已选游戏</div>
+        <div data-u-type="text" data-u-name="GameMetricText" style="left: 16px; top: 42px; width: 414px; height: 28px; color: #1456f0; font-size: 16px; text-align: left;">未选择</div>
+      </div>
+
+      <div data-u-type="div" data-u-name="ResultCard" style="left: 24px; top: 562px; width: 1370px; height: 370px; background-color: #f8fafc;">
+        <div data-u-type="text" data-u-name="ResultTitleText" style="left: 24px; top: 24px; width: 1322px; height: 24px; color: #222222; font-size: 14px; text-align: left;">本次训练记录</div>
+        <div data-u-type="text" data-u-name="ResultPatientText" style="left: 24px; top: 72px; width: 1322px; height: 24px; color: #45515e; font-size: 12px; text-align: left;">当前患者：未选择</div>
+        <div data-u-type="text" data-u-name="ResultSelectionText" style="left: 24px; top: 112px; width: 1322px; height: 24px; color: #45515e; font-size: 12px; text-align: left;">训练配置：主动训练 · 抗阻训练 · 冠状面外展</div>
+        <div data-u-type="text" data-u-name="ResultRangeText" style="left: 24px; top: 152px; width: 1322px; height: 24px; color: #45515e; font-size: 12px; text-align: left;">活动度：--</div>
+        <div data-u-type="text" data-u-name="ArchiveStateText" style="left: 24px; top: 192px; width: 1322px; height: 24px; color: #8e8e93; font-size: 12px; text-align: left;">归档状态：尚未归档</div>
+        <div data-u-type="text" data-u-name="ResultHintText" style="left: 24px; top: 252px; width: 1322px; height: 72px; color: #8e8e93; font-size: 12px; text-align: left;">开始训练后实时记录真实样本；结束后自动写入报告数据库。未连接设备时不会生成训练数据。</div>
       </div>
     </div>
+  </div>
   </div>
 </div>
 

@@ -50,6 +50,7 @@ namespace LB
             jumpLoginButton.onClick.AddListener(OnJumpLoginClick);
             registerButton.onClick.AddListener(OnRegisterClick);
             closeBtn.onClick.AddListener(OnQuit);
+            Application.wantsToQuit += ExitResetWorkflow.OnWantsToQuit;
 
             // welcomeText.text = AppDefine.AppName + " V" + Application.version.Substring(0, 1);
 
@@ -140,12 +141,7 @@ namespace LB
         }
         private void OnQuit()
         {
-            UINotifyDialogHelper.Current.ShowPromptDialog("提示", "确认关闭应用?", "确定", "取消", (index) =>
-            {
-                Main.m_UI.OpenUI<UIStartLoading>("应用关闭中......").Forget();
-                Application.Quit();
-                return true;
-            });
+            ExitResetWorkflow.RequestExit();
         }
 
         private void OnRegisterClick()
@@ -250,6 +246,7 @@ namespace LB
             jumpLoginButton.onClick.RemoveAllListeners();
             registerButton.onClick.RemoveAllListeners();
             closeBtn.onClick.RemoveAllListeners();
+            Application.wantsToQuit -= ExitResetWorkflow.OnWantsToQuit;
 
         }
 

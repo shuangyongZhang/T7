@@ -53,6 +53,8 @@ CREATE TABLE PatientInfo(
     CardNum VARCHAR(32),
     Doctor VARCHAR(16) NOT NULL,
     Diagnose VARCHAR(256),
+    IsCalibrated BOOLEAN NOT NULL DEFAULT 0,
+    CalibrationTime DATE,
     AdmissionDate DATE NOT NULL DEFAULT (datetime('now', 'localtime')),
     CreateTime DATE NOT NULL DEFAULT (datetime('now', 'localtime'))
 );
@@ -103,3 +105,18 @@ CREATE TABLE RehabReportSample(
     SpeedMetersPerSecond REAL NOT NULL
 );
 CREATE INDEX IF NOT EXISTS IX_RehabReportSample_ReportID ON RehabReportSample(ReportID);
+
+--治疗方案与疗程方案共用
+DROP TABLE IF EXISTS TreatmentPlan;
+CREATE TABLE TreatmentPlan(
+    PlanID INTEGER PRIMARY KEY AUTOINCREMENT,
+    Name VARCHAR(64) NOT NULL,
+    Mode SMALLINT NOT NULL,
+    Direction VARCHAR(256),
+    IsDirectionRestricted BOOLEAN NOT NULL DEFAULT 0,
+    DurationMinutes SMALLINT NOT NULL,
+    ResistanceLevel SMALLINT NOT NULL DEFAULT 3,
+    GameItemsJson VARCHAR(8192),
+    CreateTime DATE NOT NULL,
+    UpdateTime DATE NOT NULL
+);

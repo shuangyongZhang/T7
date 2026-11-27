@@ -4,9 +4,22 @@ using HT.Framework;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+using XCharts.Runtime;
 
 namespace LB
 {
+    internal enum OverviewView
+    {
+        Summary,
+        Comparison
+    }
+
+    internal enum ReportView
+    {
+        Overview,
+        Reports
+    }
+
     [UIResource("UIReportPanel")]
     public class UIReport : UILogicResident
     {
@@ -14,7 +27,7 @@ namespace LB
         [InjectPath("ConsolePanel/PatientCard/PatientNameText")] private TMP_Text patientNameText;
         [InjectPath("ConsolePanel/PatientCard/PatientMRNText")] private TMP_Text patientMRNText;
         [InjectPath("ConsolePanel/PatientCard/PatientMetaText")] private TMP_Text patientMetaText;
-        [InjectPath("ConsolePanel/FilterTabs/AllFilterButton")] private Button allFilterButton;
+        [InjectPath("ConsolePanel/FilterTabs/OverviewButton")] private Button overviewButton;
         [InjectPath("ConsolePanel/FilterTabs/TrainingFilterButton")] private Button trainingFilterButton;
         [InjectPath("ConsolePanel/FilterTabs/AssessmentFilterButton")] private Button assessmentFilterButton;
         [InjectPath("ConsolePanel/RefreshButton")] private Button refreshButton;
@@ -27,12 +40,37 @@ namespace LB
         [InjectPath("ConsolePanel/ReportPager/NextPageButton")] private Button nextPageButton;
         [InjectPath("ConsolePanel/ReportPager/PageNumberTemplate")] private GameObject pageNumberTemplate;
         [InjectPath("ConsolePanel/ReportPager/PageEllipsisTemplate")] private GameObject pageEllipsisTemplate;
+        [InjectPath("CanvasPanel/HistoryOverviewPanel")] private GameObject historyOverviewPanel;
+        [InjectPath("CanvasPanel/HistoryOverviewPanel/OverviewViewTabs/SummaryViewButton")] private Button summaryViewButton;
+        [InjectPath("CanvasPanel/HistoryOverviewPanel/OverviewViewTabs/ComparisonViewButton")] private Button comparisonViewButton;
+        [InjectPath("CanvasPanel/HistoryOverviewPanel/SummaryViewPanel")] private GameObject summaryViewPanel;
+        [InjectPath("CanvasPanel/HistoryOverviewPanel/ComparisonViewPanel")] private GameObject comparisonViewPanel;
+        [InjectPath("CanvasPanel/HistoryOverviewPanel/SideFilterDropdown")] private TMP_Dropdown sideFilterDropdown;
+        [InjectPath("CanvasPanel/HistoryOverviewPanel/CategoryFilterDropdown")] private TMP_Dropdown categoryFilterDropdown;
+        [InjectPath("CanvasPanel/HistoryOverviewPanel/GameFilterDropdown")] private TMP_Dropdown gameFilterDropdown;
+        [InjectPath("CanvasPanel/HistoryOverviewPanel/StartDateInput")] private TMP_InputField startDateInput;
+        [InjectPath("CanvasPanel/HistoryOverviewPanel/EndDateInput")] private TMP_InputField endDateInput;
+        [InjectPath("CanvasPanel/HistoryOverviewPanel/SummaryViewPanel/TrainingCountCard/TrainingCountValueText")] private TMP_Text trainingCountValueText;
+        [InjectPath("CanvasPanel/HistoryOverviewPanel/SummaryViewPanel/TrainingTimeCard/TrainingTimeValueText")] private TMP_Text trainingTimeValueText;
+        [InjectPath("CanvasPanel/HistoryOverviewPanel/SummaryViewPanel/TreatmentModeCard/TreatmentModeValueText")] private TMP_Text treatmentModeValueText;
+        [InjectPath("CanvasPanel/HistoryOverviewPanel/SummaryViewPanel/TreatmentModeBreakdownCard/TreatmentModePassiveValueText")] private TMP_Text treatmentModePassiveValueText;
+        [InjectPath("CanvasPanel/HistoryOverviewPanel/SummaryViewPanel/TreatmentModeBreakdownCard/TreatmentModeAssistValueText")] private TMP_Text treatmentModeAssistValueText;
+        [InjectPath("CanvasPanel/HistoryOverviewPanel/SummaryViewPanel/TreatmentModeBreakdownCard/TreatmentModeActiveValueText")] private TMP_Text treatmentModeActiveValueText;
+        [InjectPath("CanvasPanel/HistoryOverviewPanel/SummaryViewPanel/TreatmentModeBreakdownCard/TreatmentModeResistValueText")] private TMP_Text treatmentModeResistValueText;
+        [InjectPath("CanvasPanel/HistoryOverviewPanel/SummaryViewPanel/SummaryPieCard/SummaryPieChart")] private PieChart summaryPieChart;
+        [InjectPath("CanvasPanel/HistoryOverviewPanel/ComparisonViewPanel/ComparisonLineCard/ComparisonLineChart")] private LineChart comparisonLineChart;
+        [InjectPath("CanvasPanel/HistoryOverviewPanel/HistoryOverviewStatusText")] private TMP_Text historyOverviewStatusText;
+        [InjectPath("CanvasPanel/HistoryOverviewPanel/RefreshOverviewButton")] private Button refreshOverviewButton;
+
+        [InjectPath("CanvasPanel/DetailCard")] private GameObject detailCard;
         [InjectPath("CanvasPanel/DetailCard/DetailTitleText")] private TMP_Text detailTitleText;
         [InjectPath("CanvasPanel/DetailCard/DetailTypeText")] private TMP_Text detailTypeText;
         [InjectPath("CanvasPanel/DetailCard/DetailDateText")] private TMP_Text detailDateText;
+        [InjectPath("CanvasPanel/DetailCard/ExportWordButton")] private Button exportWordButton;
+        [InjectPath("CanvasPanel/DetailCard/PrintButton")] private Button printButton;
         [InjectPath("CanvasPanel/DetailCard/AssessmentScroll")] private ScrollRect assessmentScroll;
         [InjectPath("CanvasPanel/DetailCard/AssessmentScroll/Viewport/Content")] private RectTransform assessmentContent;
-        [InjectPath("CanvasPanel/DetailCard/TrainingPlaceholder")] private GameObject trainingPlaceholder;
+        [InjectPath("CanvasPanel/DetailCard/TrainingDetailPanel")] private GameObject trainingDetailPanel;
         [InjectPath("CanvasPanel/DetailCard/EmptyDetail")] private GameObject emptyDetail;
 
         private const int PageSize = 4;
@@ -49,7 +87,13 @@ namespace LB
 
         private List<RehabReport> reports;
         private Dictionary<int, List<Vector3>> romPointCache = new Dictionary<int, List<Vector3>>();
+        private Dictionary<int, TrainingReportPayload> trainingPayloadCache = new Dictionary<int, TrainingReportPayload>();
+        private Dictionary<int, AssessmentReportPayload> assessmentPayloadCache = new Dictionary<int, AssessmentReportPayload>();
         private RehabReportKind? filter;
+        private ReportView view = ReportView.Overview;
+        private OverviewView overviewView = OverviewView.Summary;
+        private List<string> gameFilterIds = new List<string>();
+        private static readonly string[] ComparisonMetricNames = { "减重", "运动距离", "最大速度", "平均速度", "主动参与度" };
         private RehabReport selectedReport;
         private GameObject selectedRow;
         private int curPage;
@@ -82,24 +126,43 @@ namespace LB
         public override void OnInit()
         {
             base.OnInit();
-            allFilterButton.onClick.AddListener(() => SelectFilter(null));
+            overviewButton.onClick.AddListener(ShowOverview);
+            summaryViewButton.onClick.AddListener(ShowSummaryView);
+            comparisonViewButton.onClick.AddListener(ShowComparisonView);
             trainingFilterButton.onClick.AddListener(() => SelectFilter(RehabReportKind.Training));
             assessmentFilterButton.onClick.AddListener(() => SelectFilter(RehabReportKind.Assessment));
             refreshButton.onClick.AddListener(RefreshReports);
+            refreshOverviewButton.onClick.AddListener(RefreshOverview);
+            exportWordButton.onClick.AddListener(OnExportWord);
+            printButton.onClick.AddListener(OnPrint);
+            sideFilterDropdown.onValueChanged.AddListener(_ => RefreshOverview());
+            categoryFilterDropdown.onValueChanged.AddListener(_ => RefreshOverview());
+            gameFilterDropdown.onValueChanged.AddListener(_ => RefreshOverview());
+            startDateInput.onValueChanged.AddListener(_ => RefreshOverview());
+            endDateInput.onValueChanged.AddListener(_ => RefreshOverview());
             prevPageButton.onClick.AddListener(() => TurnPage(-1));
             nextPageButton.onClick.AddListener(() => TurnPage(1));
-            CreateAssessmentReportInstance();
         }
 
         public override void OnOpen(params object[] args)
         {
             base.OnOpen(args);
             curPage = 0;
+            SetDefaultDateRange();
             RefreshReports();
+            ShowOverview(false);
         }
 
-        private void CreateAssessmentReportInstance()
+        private void SetDefaultDateRange()
         {
+            DateTime today = DateTime.Now.Date;
+            startDateInput.SetTextWithoutNotify(today.AddMonths(-3).ToString("yyyy-MM-dd"));
+            endDateInput.SetTextWithoutNotify(today.ToString("yyyy-MM-dd"));
+        }
+
+        private void EnsureAssessmentReportInstance()
+        {
+            if (assessmentReportInstance != null) return;
             GameObject prefab = Resources.Load<GameObject>("Prefabs/UI/UIAssessmentReportTemplate");
             if (prefab == null)
             {
@@ -254,12 +317,83 @@ namespace LB
             reportContentBaseHeight = reportContentRect != null ? reportContentRect.rect.height : 2380f;
         }
 
+        private void ShowOverview()
+        {
+            ShowOverview(true);
+        }
+
+        private void ShowOverview(bool refresh)
+        {
+            view = ReportView.Overview;
+            historyOverviewPanel.SetActive(true);
+            detailCard.SetActive(false);
+            rowsContent.gameObject.SetActive(false);
+            emptyListState.SetActive(false);
+            listCountText.gameObject.SetActive(false);
+            reportPager.gameObject.SetActive(false);
+            SetSelected(overviewButton, true);
+            SetSelected(trainingFilterButton, false);
+            SetSelected(assessmentFilterButton, false);
+            ShowSummaryView(refresh);
+        }
+
+        private void ShowSummaryView()
+        {
+            ShowSummaryView(true);
+        }
+
+        private void ShowSummaryView(bool refresh)
+        {
+            if (view != ReportView.Overview)
+            {
+                ShowOverview(refresh);
+                return;
+            }
+            overviewView = OverviewView.Summary;
+            ApplyOverviewView();
+            if (refresh) RefreshOverview();
+        }
+
+        private void ShowComparisonView()
+        {
+            if (view != ReportView.Overview) ShowOverview(false);
+            overviewView = OverviewView.Comparison;
+            ApplyOverviewView();
+            RefreshOverview();
+        }
+
+        private void ApplyOverviewView()
+        {
+            bool summary = overviewView == OverviewView.Summary;
+            summaryViewPanel.SetActive(summary);
+            comparisonViewPanel.SetActive(!summary);
+            SetSelected(summaryViewButton, summary);
+            SetSelected(comparisonViewButton, !summary);
+            List<string> options = summary
+                ? new List<string> { "模式", "方向" }
+                : new List<string>(ComparisonMetricNames);
+            categoryFilterDropdown.ClearOptions();
+            categoryFilterDropdown.AddOptions(options);
+            categoryFilterDropdown.SetValueWithoutNotify(0);
+        }
+
+        private void ShowReportList()
+        {
+            view = ReportView.Reports;
+            historyOverviewPanel.SetActive(false);
+            detailCard.SetActive(true);
+            rowsContent.gameObject.SetActive(true);
+            listCountText.gameObject.SetActive(true);
+            reportPager.gameObject.SetActive(true);
+            SetSelected(overviewButton, false);
+        }
+
         private void SelectFilter(RehabReportKind? value)
         {
+            ShowReportList();
             filter = value;
             curPage = 0;
             if (selectedReport != null && filter != null && selectedReport.Kind != filter.Value) selectedReport = null;
-            SetSelected(allFilterButton, filter == null);
             SetSelected(trainingFilterButton, filter == RehabReportKind.Training);
             SetSelected(assessmentFilterButton, filter == RehabReportKind.Assessment);
             RenderRows(true);
@@ -271,6 +405,8 @@ namespace LB
                 ? new List<RehabReport>()
                 : DBManagerModule.Instance.QueryRehabReports(Global.CurPatientInfo.ID) ?? new List<RehabReport>();
             romPointCache.Clear();
+            trainingPayloadCache.Clear();
+            assessmentPayloadCache.Clear();
             reports.Sort((a, b) =>
             {
                 int timeCompare = b.CreateTime.CompareTo(a.CreateTime);
@@ -299,16 +435,18 @@ namespace LB
                 else assessmentCount++;
             }
             reportCountText.text = reports.Count + " 份报告";
-            SetButtonText(allFilterButton, "全部 (" + reports.Count + ")");
             SetButtonText(trainingFilterButton, "训练 (" + trainingCount + ")");
             SetButtonText(assessmentFilterButton, "评估 (" + assessmentCount + ")");
 
             if (selectedReport != null && reports.FindIndex(r => r.ReportID == selectedReport.ReportID) < 0) selectedReport = null;
-            RenderRows(true);
+            RefreshGameFilterOptions();
+            if (view == ReportView.Overview) RefreshOverview();
+            else RenderRows(true);
         }
 
         private void RenderRows(bool followSelection)
         {
+            if (view == ReportView.Overview) return;
             List<RehabReport> visible = new List<RehabReport>();
             if (reports != null)
             {
@@ -384,6 +522,7 @@ namespace LB
         {
             selectedReport = report;
             selectedRow = row;
+            UpdateReportActionButtons();
             HighlightSelectedRow();
 
             if (report == null)
@@ -392,7 +531,7 @@ namespace LB
                 detailTypeText.text = "报告内容将在这里显示";
                 detailDateText.text = "--";
                 assessmentScroll.gameObject.SetActive(false);
-                trainingPlaceholder.SetActive(false);
+                trainingDetailPanel.SetActive(false);
                 emptyDetail.SetActive(true);
                 return;
             }
@@ -400,10 +539,12 @@ namespace LB
             detailTitleText.text = report.Title;
             detailTypeText.text = report.Kind == RehabReportKind.Training ? "训练报告" : "关节活动范围评估报告";
             detailDateText.text = report.CreateTime == default(DateTime) ? "--" : report.CreateTime.ToString("yyyy-MM-dd HH:mm");
-            assessmentScroll.gameObject.SetActive(true);
-            trainingPlaceholder.SetActive(false);
+            detailCard.SetActive(true);
+            assessmentScroll.gameObject.SetActive(report.Kind == RehabReportKind.Assessment);
+            trainingDetailPanel.SetActive(report.Kind == RehabReportKind.Training);
             emptyDetail.SetActive(false);
-            BindRehabReport(report);
+            if (report.Kind == RehabReportKind.Training) BindTrainingReport(report);
+            else BindRehabReport(report);
             Canvas.ForceUpdateCanvases();
             LayoutRebuilder.ForceRebuildLayoutImmediate(assessmentScroll.viewport);
             assessmentScroll.content.anchoredPosition = new Vector2(assessmentScroll.content.anchoredPosition.x, 0f);
@@ -411,8 +552,328 @@ namespace LB
             assessmentScroll.velocity = Vector2.zero;
         }
 
+        private void OnExportWord()
+        {
+            if (selectedReport != null) ReportExportService.ExportWord(selectedReport);
+        }
+
+        private void OnPrint()
+        {
+            if (selectedReport != null) ReportExportService.Print(selectedReport);
+        }
+
+        private void UpdateReportActionButtons()
+        {
+            bool enabled = selectedReport != null;
+            if (exportWordButton != null) exportWordButton.interactable = enabled;
+            if (printButton != null) printButton.interactable = enabled;
+        }
+
+        public void RefreshFromDatabase()
+        {
+            RefreshReports();
+        }
+
+        private void RefreshOverview()
+        {
+            if (view != ReportView.Overview || reports == null) return;
+            DateTime startDate;
+            DateTime endDate;
+            bool hasStart = DateTime.TryParseExact(startDateInput.text, "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out startDate);
+            bool hasEnd = DateTime.TryParseExact(endDateInput.text, "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out endDate);
+            if ((!string.IsNullOrEmpty(startDateInput.text) && !hasStart) || (!string.IsNullOrEmpty(endDateInput.text) && !hasEnd))
+            {
+                historyOverviewStatusText.text = "日期格式应为 yyyy-MM-dd";
+                return;
+            }
+
+            List<RehabReport> trainingReports = GetFilteredTrainingReports(startDate, hasStart, endDate, hasEnd);
+            if (overviewView == OverviewView.Summary)
+            {
+                float totalSeconds = 0f;
+                foreach (RehabReport report in trainingReports)
+                {
+                    TrainingReportPayload payload = GetTrainingPayload(report);
+                    if (payload != null) totalSeconds += payload.DurationSeconds;
+                }
+                trainingCountValueText.text = trainingReports.Count + " 次";
+                trainingTimeValueText.text = FormatDuration(totalSeconds);
+                UpdateTrainingModeSummary(trainingReports);
+                UpdateSummaryPie(trainingReports);
+                historyOverviewStatusText.text = trainingReports.Count > 0
+                    ? "已汇总 " + trainingReports.Count + " 次训练。"
+                    : "当前筛选范围内暂无训练数据";
+            }
+            else
+            {
+                int plottedCount = UpdateComparisonLine(trainingReports);
+                historyOverviewStatusText.text = plottedCount > 0
+                    ? "已绘制 " + plottedCount + " 个真实数据点。"
+                    : "当前筛选范围内暂无该类别的真实数据";
+            }
+        }
+
+        private List<RehabReport> GetFilteredTrainingReports(DateTime startDate, bool hasStart, DateTime endDate, bool hasEnd)
+        {
+            List<RehabReport> result = new List<RehabReport>();
+            foreach (RehabReport report in reports)
+            {
+                if (report.Kind != RehabReportKind.Training) continue;
+                DateTime date = report.CreateTime.Date;
+                if (hasStart && date < startDate.Date) continue;
+                if (hasEnd && date > endDate.Date) continue;
+                TrainingReportPayload payload = GetTrainingPayload(report);
+                if (payload == null) continue;
+                if (sideFilterDropdown.value == 0 && (!payload.HasAffectedSide || payload.AffectedSide != AffectedSide.LEFT)) continue;
+                if (sideFilterDropdown.value == 1 && (!payload.HasAffectedSide || payload.AffectedSide != AffectedSide.RIGHT)) continue;
+                if (gameFilterDropdown.value > 0 && gameFilterDropdown.value - 1 < gameFilterIds.Count &&
+                    payload.GameId != gameFilterIds[gameFilterDropdown.value - 1]) continue;
+                result.Add(report);
+            }
+            return result;
+        }
+
+        private void RefreshGameFilterOptions()
+        {
+            string selectedId = gameFilterDropdown.value > 0 && gameFilterDropdown.value - 1 < gameFilterIds.Count
+                ? gameFilterIds[gameFilterDropdown.value - 1]
+                : null;
+            List<string> ids = new List<string>();
+            foreach (RehabReport report in reports)
+            {
+                if (report.Kind != RehabReportKind.Training) continue;
+                TrainingReportPayload payload = GetTrainingPayload(report);
+                if (payload == null || string.IsNullOrEmpty(payload.GameId) || ids.Contains(payload.GameId)) continue;
+                ids.Add(payload.GameId);
+            }
+            gameFilterIds = ids;
+            List<string> options = new List<string> { "全部游戏" };
+            foreach (string id in gameFilterIds)
+            {
+                string name = id;
+                foreach (GameDefinition game in GameServices.Games)
+                {
+                    if (game.Id != id) continue;
+                    if (!string.IsNullOrEmpty(game.DisplayName)) name = game.DisplayName;
+                    break;
+                }
+                options.Add(name);
+            }
+            gameFilterDropdown.ClearOptions();
+            gameFilterDropdown.AddOptions(options);
+            int selectedIndex = gameFilterIds.IndexOf(selectedId) + 1;
+            gameFilterDropdown.SetValueWithoutNotify(Mathf.Max(0, selectedIndex));
+        }
+
+        private void UpdateTrainingModeSummary(List<RehabReport> trainingReports)
+        {
+            string[] groups = { "被动", "助力", "主动", "抗阻" };
+            float[] minutes = new float[groups.Length];
+            foreach (RehabReport report in trainingReports)
+            {
+                TrainingReportPayload payload = GetTrainingPayload(report);
+                if (payload == null || string.IsNullOrEmpty(payload.Mode)) continue;
+                string group = TrainingCatalog.GetModeSummaryGroup(payload.Mode);
+                int index = Array.IndexOf(groups, group);
+                if (index >= 0) minutes[index] += payload.DurationSeconds / 60f;
+            }
+            List<string> activeModes = new List<string>();
+            for (int i = 0; i < groups.Length; i++)
+            {
+                if (minutes[i] > 0.0001f) activeModes.Add(groups[i]);
+            }
+            treatmentModeValueText.text = activeModes.Count > 0 ? string.Join("、", activeModes) : "--";
+            treatmentModePassiveValueText.text = minutes[0].ToString("F1") + " 分钟";
+            treatmentModeAssistValueText.text = minutes[1].ToString("F1") + " 分钟";
+            treatmentModeActiveValueText.text = minutes[2].ToString("F1") + " 分钟";
+            treatmentModeResistValueText.text = minutes[3].ToString("F1") + " 分钟";
+        }
+
+        private void UpdateSummaryPie(List<RehabReport> trainingReports)
+        {
+            if (summaryPieChart == null) return;
+            summaryPieChart.RemoveData();
+            Dictionary<string, float> values = new Dictionary<string, float>();
+            string[] groups = categoryFilterDropdown.value == 0
+                ? new[] { "被动", "助力", "主动", "抗阻" }
+                : new[] { "冠状面", "水平面", "矢状面", "冠状轴", "垂直轴", "矢状轴" };
+            foreach (string group in groups) values[group] = 0f;
+
+            foreach (RehabReport report in trainingReports)
+            {
+                TrainingReportPayload payload = GetTrainingPayload(report);
+                if (payload == null) continue;
+                float minutes = payload.DurationSeconds / 60f;
+                if (categoryFilterDropdown.value == 0)
+                {
+                    if (string.IsNullOrEmpty(payload.Mode)) continue;
+                    string group = TrainingCatalog.GetModeSummaryGroup(payload.Mode);
+                    if (!values.ContainsKey(group)) continue;
+                    values[group] += minutes;
+                }
+                else
+                {
+                    string[] directions = TrainingCatalog.ParseDirections(payload.Direction);
+                    if (directions.Length == 0) continue;
+                    float minutesPerDirection = minutes / directions.Length;
+                    foreach (string direction in directions)
+                    {
+                        string group = TrainingCatalog.GetDirectionSummaryGroup(direction);
+                        if (!values.ContainsKey(group)) values[group] = 0f;
+                        values[group] += minutesPerDirection;
+                    }
+                }
+            }
+
+            summaryPieChart.EnsureChartComponent<Title>().show = true;
+            summaryPieChart.EnsureChartComponent<Title>().text = categoryFilterDropdown.value == 0 ? "各模式训练时间" : "各方向训练时间";
+            Legend legend = summaryPieChart.EnsureChartComponent<Legend>();
+            legend.show = true;
+            legend.orient = Orient.Vertical;
+            bool hasData = false;
+            foreach (string group in groups)
+            {
+                if (values[group] <= 0.0001f) continue;
+                hasData = true;
+                break;
+            }
+            if (!hasData)
+            {
+                summaryPieChart.RefreshChart();
+                return;
+            }
+            Serie pie = summaryPieChart.AddSerie<Pie>("训练时间");
+            pie.radius[0] = 0.22f;
+            pie.radius[1] = 0.36f;
+            pie.center[0] = 0.38f;
+            pie.center[1] = 0.52f;
+            pie.EnsureComponent<LabelStyle>().show = false;
+            foreach (string group in groups)
+            {
+                if (values[group] > 0.0001f) summaryPieChart.AddData(0, values[group], group);
+            }
+            summaryPieChart.RefreshChart();
+        }
+
+        private int UpdateComparisonLine(List<RehabReport> trainingReports)
+        {
+            if (comparisonLineChart == null) return 0;
+            comparisonLineChart.RemoveData();
+            int metricIndex = Mathf.Clamp(categoryFilterDropdown.value, 0, ComparisonMetricNames.Length - 1);
+            string metricName = ComparisonMetricNames[metricIndex];
+            comparisonLineChart.EnsureChartComponent<Title>().show = true;
+            comparisonLineChart.EnsureChartComponent<Title>().text = metricName + "变化趋势";
+            comparisonLineChart.EnsureChartComponent<Tooltip>().show = true;
+            comparisonLineChart.EnsureChartComponent<Legend>().show = false;
+            XAxis xAxis = comparisonLineChart.EnsureChartComponent<XAxis>();
+            YAxis yAxis = comparisonLineChart.EnsureChartComponent<YAxis>();
+            xAxis.type = Axis.AxisType.Category;
+            yAxis.type = Axis.AxisType.Value;
+            xAxis.boundaryGap = true;
+            comparisonLineChart.AddSerie<Line>(metricName);
+
+            trainingReports.Sort((a, b) => a.CreateTime.CompareTo(b.CreateTime));
+            int plottedCount = 0;
+            foreach (RehabReport report in trainingReports)
+            {
+                TrainingReportPayload payload = GetTrainingPayload(report);
+                float value;
+                if (!TryGetComparisonValue(payload, metricIndex, out value)) continue;
+                comparisonLineChart.AddXAxisData(report.CreateTime.ToString("MM-dd"));
+                comparisonLineChart.AddData(0, value);
+                plottedCount++;
+            }
+            comparisonLineChart.RefreshChart();
+            return plottedCount;
+        }
+
+        private static bool TryGetComparisonValue(TrainingReportPayload payload, int metricIndex, out float value)
+        {
+            value = 0f;
+            if (payload == null) return false;
+            switch (metricIndex)
+            {
+                case 0:
+                    if (!payload.HasWeightReduction) return false;
+                    value = payload.WeightReductionValue;
+                    return true;
+                case 1:
+                    if (payload.Movement == null || !payload.Movement.HasData) return false;
+                    value = payload.Movement.DistanceMeters;
+                    return true;
+                case 2:
+                    if (payload.Movement == null || !payload.Movement.HasData) return false;
+                    value = payload.Movement.MaxSpeedMetersPerSecond;
+                    return true;
+                case 3:
+                    if (payload.Movement == null || !payload.Movement.HasData) return false;
+                    value = payload.Movement.AverageSpeedMetersPerSecond;
+                    return true;
+                default:
+                    if (TrainingCatalog.ParseMode(payload.Mode) != TrainingMode.Assist || payload.Baseline == null || !payload.Baseline.HasData) return false;
+                    value = payload.Baseline.ActiveParticipationPercent;
+                    return true;
+            }
+        }
+
+        private void BindTrainingReport(RehabReport report)
+        {
+            TrainingReportPayload payload = GetTrainingPayload(report);
+            if (payload == null)
+            {
+                SetTrainingText("ModeValueText", "--");
+                SetTrainingText("WeightReductionValueText", "--");
+                SetTrainingText("DirectionValueText", "--");
+                SetTrainingText("DirectionLimitedValueText", "--");
+                SetTrainingText("DistanceValueText", "--");
+                SetTrainingText("MaxSpeedValueText", "--");
+                SetTrainingText("DurationValueText", "--");
+                SetTrainingText("EnergyValueText", "--");
+                SetTrainingText("SuccessRateValueText", "--");
+                return;
+            }
+
+            SetTrainingText("ModeValueText", string.IsNullOrEmpty(payload.Mode)
+                ? "--"
+                : TrainingCatalog.GetModeName(TrainingCatalog.ParseMode(payload.Mode)));
+            SetTrainingText("WeightReductionValueText", payload.HasWeightReduction
+                ? payload.WeightReductionValue.ToString("F2") + " " + payload.WeightReductionUnit
+                : "--");
+            SetTrainingText("DirectionValueText", string.IsNullOrEmpty(payload.Direction)
+                ? "--"
+                : TrainingCatalog.GetDirectionNames(TrainingCatalog.ParseDirections(payload.Direction)));
+            SetTrainingText("DirectionLimitedValueText", payload.HasDirectionRestriction ? (payload.IsDirectionRestricted ? "是" : "否") : "--");
+            SetTrainingText("DistanceValueText", payload.Movement != null && payload.Movement.HasData ? payload.Movement.DistanceMeters.ToString("F2") + " m" : "--");
+            SetTrainingText("MaxSpeedValueText", payload.Movement != null && payload.Movement.HasData ? payload.Movement.MaxSpeedMetersPerSecond.ToString("F2") + " m/s" : "--");
+            SetTrainingText("DurationValueText", FormatDuration(payload.DurationSeconds));
+            SetTrainingText("EnergyValueText", payload.HasEnergy ? payload.EnergyValue.ToString("F2") + " " + payload.EnergyUnit : "--");
+            SetTrainingText("SuccessRateValueText", payload.HasSuccessRate ? payload.SuccessRatePercent.ToString("F1") + " %" : "--");
+            SetTrainingText("TrainingReportNoteText", "运动距离与速度来自真实轨迹样本；减重、能量和成功率需设备或游戏模块提供。方案 ID：" + payload.TreatmentPlanId + "，游戏 ID：" + (string.IsNullOrEmpty(payload.GameId) ? "待接入" : payload.GameId));
+        }
+
+        private void SetTrainingText(string nodeName, string value)
+        {
+            if (trainingDetailPanel == null) return;
+            foreach (TMP_Text text in trainingDetailPanel.GetComponentsInChildren<TMP_Text>(true))
+            {
+                if (text.name != nodeName) continue;
+                text.text = value;
+                return;
+            }
+        }
+
+        private static string FormatDuration(float seconds)
+        {
+            int total = Mathf.Max(0, Mathf.FloorToInt(seconds));
+            int hours = total / 3600;
+            int minutes = total / 60 % 60;
+            int secs = total % 60;
+            return hours > 0 ? hours + " 小时 " + minutes + " 分" : minutes + " 分 " + secs + " 秒";
+        }
+
         private void BindRehabReport(RehabReport report)
         {
+            EnsureAssessmentReportInstance();
             if (assessmentReportInstance == null) return;
             assessmentReportInstance.SetActive(true);
             PatientInfo patient = Global.CurPatientInfo;
@@ -427,7 +888,7 @@ namespace LB
             if (assessmentReportTitleText != null)
                 assessmentReportTitleText.text = report.Kind == RehabReportKind.Training ? "康复训练报告" : "康复评估报告";
 
-            List<RehabReport> romHistory = GetRecentAssessmentHistory();
+            List<RehabReport> romHistory = GetReportHistory(report, MaxRomCards);
             BindRomCards(romHistory);
             List<RehabReport> history = GetReportHistory(report, 4);
 
@@ -543,24 +1004,6 @@ namespace LB
                     : string.Format("最近 {0} 次评估 · 最多显示 4 次", visibleCount);
         }
 
-        private List<RehabReport> GetRecentAssessmentHistory()
-        {
-            List<RehabReport> history = new List<RehabReport>();
-            if (reports == null) return history;
-            foreach (RehabReport item in reports)
-            {
-                if (item.Kind == RehabReportKind.Assessment) history.Add(item);
-            }
-            history.Sort((a, b) =>
-            {
-                int timeCompare = b.CreateTime.CompareTo(a.CreateTime);
-                return timeCompare != 0 ? timeCompare : b.ReportID.CompareTo(a.ReportID);
-            });
-            if (history.Count > MaxRomCards) history.RemoveRange(MaxRomCards, history.Count - MaxRomCards);
-            history.Reverse();
-            return history;
-        }
-
         private List<RehabReport> GetReportHistory(RehabReport selected, int limit)
         {
             List<RehabReport> history = new List<RehabReport>();
@@ -667,7 +1110,7 @@ namespace LB
             return points;
         }
 
-        private static RehabRomMetrics GetRomMetrics(RehabReport report)
+        private RehabRomMetrics GetRomMetrics(RehabReport report)
         {
             AssessmentReportPayload assessment = GetAssessmentPayload(report);
             if (assessment != null && assessment.Rom != null) return assessment.Rom;
@@ -675,7 +1118,7 @@ namespace LB
             return training != null ? training.Rom : null;
         }
 
-        private static RehabStrengthMetrics GetStrengthMetrics(RehabReport report)
+        private RehabStrengthMetrics GetStrengthMetrics(RehabReport report)
         {
             AssessmentReportPayload assessment = GetAssessmentPayload(report);
             if (assessment != null && assessment.Strength != null) return assessment.Strength;
@@ -683,7 +1126,7 @@ namespace LB
             return training != null ? training.Strength : null;
         }
 
-        private static RehabBaselineMetrics GetBaselineMetrics(RehabReport report)
+        private RehabBaselineMetrics GetBaselineMetrics(RehabReport report)
         {
             AssessmentReportPayload assessment = GetAssessmentPayload(report);
             if (assessment != null && assessment.Baseline != null) return assessment.Baseline;
@@ -691,18 +1134,26 @@ namespace LB
             return training != null ? training.Baseline : null;
         }
 
-        private static AssessmentReportPayload GetAssessmentPayload(RehabReport report)
+        private AssessmentReportPayload GetAssessmentPayload(RehabReport report)
         {
             if (report == null || report.Kind != RehabReportKind.Assessment || string.IsNullOrEmpty(report.PayloadJson)) return null;
-            try { return JsonUtility.FromJson<AssessmentReportPayload>(report.PayloadJson); }
-            catch { return null; }
+            AssessmentReportPayload payload;
+            if (assessmentPayloadCache.TryGetValue(report.ReportID, out payload)) return payload;
+            try { payload = JsonUtility.FromJson<AssessmentReportPayload>(report.PayloadJson); }
+            catch { payload = null; }
+            assessmentPayloadCache[report.ReportID] = payload;
+            return payload;
         }
 
-        private static TrainingReportPayload GetTrainingPayload(RehabReport report)
+        private TrainingReportPayload GetTrainingPayload(RehabReport report)
         {
             if (report == null || report.Kind != RehabReportKind.Training || string.IsNullOrEmpty(report.PayloadJson)) return null;
-            try { return JsonUtility.FromJson<TrainingReportPayload>(report.PayloadJson); }
-            catch { return null; }
+            TrainingReportPayload payload;
+            if (trainingPayloadCache.TryGetValue(report.ReportID, out payload)) return payload;
+            try { payload = JsonUtility.FromJson<TrainingReportPayload>(report.PayloadJson); }
+            catch { payload = null; }
+            trainingPayloadCache[report.ReportID] = payload;
+            return payload;
         }
 
         private void HighlightSelectedRow()
@@ -746,7 +1197,7 @@ namespace LB
             return row != null ? row.gameObject : null;
         }
 
-        private static string GetMetricText(RehabReport report)
+        private string GetMetricText(RehabReport report)
         {
             if (report.Kind == RehabReportKind.Training)
             {
@@ -847,10 +1298,18 @@ namespace LB
 
         public override void OnDestroy()
         {
-            allFilterButton.onClick.RemoveAllListeners();
+            overviewButton.onClick.RemoveAllListeners();
+            summaryViewButton.onClick.RemoveAllListeners();
+            comparisonViewButton.onClick.RemoveAllListeners();
             trainingFilterButton.onClick.RemoveAllListeners();
             assessmentFilterButton.onClick.RemoveAllListeners();
             refreshButton.onClick.RemoveAllListeners();
+            refreshOverviewButton.onClick.RemoveAllListeners();
+            sideFilterDropdown.onValueChanged.RemoveAllListeners();
+            categoryFilterDropdown.onValueChanged.RemoveAllListeners();
+            gameFilterDropdown.onValueChanged.RemoveAllListeners();
+            startDateInput.onValueChanged.RemoveAllListeners();
+            endDateInput.onValueChanged.RemoveAllListeners();
             prevPageButton.onClick.RemoveAllListeners();
             nextPageButton.onClick.RemoveAllListeners();
             if (assessmentReportInstance != null)

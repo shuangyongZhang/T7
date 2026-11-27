@@ -94,6 +94,11 @@ namespace LB
             return RehabMetricsCalculator.CalculateRom(samples);
         }
 
+        public RehabMovementMetrics CalculateMovement()
+        {
+            return RehabMetricsCalculator.CalculateMovement(samples);
+        }
+
         public RehabTrajectoryMetrics CalculateTrajectory(IList<Vector3> referenceTrajectory)
         {
             if (referenceTrajectory == null) return null;
@@ -130,6 +135,33 @@ namespace LB
                 VolumeCc = width * height * depth,
                 HasData = true,
                 HasVolume = true
+            };
+        }
+
+        public static RehabMovementMetrics CalculateMovement(IList<RehabSample> samples)
+        {
+            if (samples == null || samples.Count == 0)
+            {
+                return new RehabMovementMetrics { HasData = false };
+            }
+
+            float distance = 0f;
+            float maxSpeed = 0f;
+            float speedSum = 0f;
+            for (int i = 0; i < samples.Count; i++)
+            {
+                RehabSample sample = samples[i];
+                if (i > 0) distance += Vector3.Distance(samples[i - 1].PositionMeters, sample.PositionMeters);
+                maxSpeed = Mathf.Max(maxSpeed, sample.SpeedMetersPerSecond);
+                speedSum += sample.SpeedMetersPerSecond;
+            }
+
+            return new RehabMovementMetrics
+            {
+                DistanceMeters = distance,
+                MaxSpeedMetersPerSecond = maxSpeed,
+                AverageSpeedMetersPerSecond = speedSum / samples.Count,
+                HasData = true
             };
         }
 

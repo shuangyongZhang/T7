@@ -20,6 +20,7 @@ namespace LB
         private async UniTask InitAsync()
         {
             await AppBootstrap.Instance.InitializeOnMain();
+            await Main.m_UI.PreloadingUI<UIReport>();
             // await Main.m_UI.PreloadingUI<UIPatientInfo>();
             await Main.m_UI.OpenUI<UIMain>();
             Main.m_UI.CloseUI<UIStartLoading>();

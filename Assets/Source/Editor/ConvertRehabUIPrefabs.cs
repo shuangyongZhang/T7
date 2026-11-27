@@ -6,6 +6,7 @@ using UnityEditor;
 using UnityEngine;
 using UnityEngine.UI;
 using LB;
+using XCharts.Runtime;
 
 /// <summary>
 /// 使用 WebUI2UnityUI 包把 Assets/Source/HTML 下的 DSL 原型烘焙为项目中的 UI Prefab。
@@ -19,6 +20,8 @@ public static class ConvertRehabUIPrefabs
     private const string AssessmentHtml = "Assets/Source/HTML/UIAssessmentPanel.html";
     private const string TrainingHtml = "Assets/Source/HTML/UITrainingPanel.html";
     private const string ReportHtml = "Assets/Source/HTML/UIReportPanel.html";
+    private const string CalibrationHtml = "Assets/Source/HTML/UICalibrationPanel.html";
+    private const string ExitResetHtml = "Assets/Source/HTML/UIExitResetPanel.html";
     private const string AssessmentReportTemplateHtml = "Assets/Source/HTML/UIAssessmentReportTemplate.html";
     private const string MainPrefab = "Assets/Resources/Prefabs/UI/UIMainPanel.prefab";
     private const string PatientPrefab = "Assets/Resources/Prefabs/UI/UIPatientInfoPanel.prefab";
@@ -26,8 +29,15 @@ public static class ConvertRehabUIPrefabs
     private const string AssessmentPrefab = "Assets/Resources/Prefabs/UI/UIAssessmentPanel.prefab";
     private const string TrainingPrefab = "Assets/Resources/Prefabs/UI/UITrainingPanel.prefab";
     private const string ReportPrefab = "Assets/Resources/Prefabs/UI/UIReportPanel.prefab";
+    private const string CalibrationPrefab = "Assets/Resources/Prefabs/UI/UICalibrationPanel.prefab";
+    private const string ExitResetPrefab = "Assets/Resources/Prefabs/UI/UIExitResetPanel.prefab";
     private const string AssessmentReportTemplatePrefab = "Assets/Resources/Prefabs/UI/UIAssessmentReportTemplate.prefab";
     private const string CloseSpritePath = "Assets/3rdPlugins/JahroConsole/Resources/Sprites/close-sprite.png";
+    private const string CompanyLogoPath = "Assets/Source/Images/APP/公共/公司logo.png";
+    private const string TrainingSliderTrackPath = "Assets/Source/Images/UI/training-slider-track.png";
+    private const string TrainingSliderKnobPath = "Assets/Source/Images/APP/New/bg.png";
+    private const string TrainingResistanceBarPath = "Assets/Source/Images/UI/training-resistance-bar.png";
+    private const string SelectionCheckmarkPath = "Assets/Source/Images/APP/确认1.png";
 
     [MenuItem("Tools/转换康复站UI/重建全部康复站界面 Prefab")]
     public static void RebuildAll()
@@ -38,7 +48,8 @@ public static class ConvertRehabUIPrefabs
                 "NavRail/NavAssessmentButton/ActiveIndicator",
                 "NavRail/NavTrainingButton/ActiveIndicator",
                 "NavRail/NavReportButton/ActiveIndicator",
-                "NavRail/NavSettingButton/ActiveIndicator"
+                "NavRail/NavSettingButton/ActiveIndicator",
+                "HeaderBar/BrandLogoBox/BrandLogoText"
             },
             new string[0]);
 
@@ -69,6 +80,10 @@ public static class ConvertRehabUIPrefabs
                 "WorkPanel/DoctorPanel/DoctorRowsContent/DoctorRowTemplate",
                 "WorkPanel/DoctorPanel/DoctorPager/PageNumberTemplate",
                 "WorkPanel/DoctorPanel/DoctorPager/PageEllipsisTemplate",
+                "WorkPanel/TreatmentPlanPanel",
+                "WorkPanel/TreatmentPlanPanel/TreatmentPlanRowsContent/TreatmentPlanRowTemplate",
+                "TreatmentPlanEditorPanel/PlanGameCard/PlanGameScroll/Viewport/Content/PlanGameRowTemplate",
+                "TreatmentPlanEditorPanel",
                 "DoctorAddPanel",
                 "DoctorEditPanel",
                 "WorkPanel/HospitalPanel",
@@ -87,6 +102,50 @@ public static class ConvertRehabUIPrefabs
         Debug.Log("[ConvertRehabUIPrefabs] 患者与设置界面 Prefab 已重建。");
     }
 
+    [MenuItem("Tools/转换康复站UI/重建训练界面 Prefab")]
+    public static void RebuildTraining()
+    {
+        BakeOne(TrainingHtml, TrainingPrefab,
+            new string[]
+            {
+                "ConsolePanel/GameListCard/TrainingGameScroll/Viewport/Content/TrainingGameRowTemplate",
+                "ConsolePanel/ModeCard/CpmButton",
+                "ConsolePanel/ModeCard/TeachingButton",
+                "ConsolePanel/DirectionCard",
+                "ConsolePanel/ParameterCard"
+            },
+            new string[0]);
+
+        AssetDatabase.SaveAssets();
+        AssetDatabase.Refresh();
+        Debug.Log("[ConvertRehabUIPrefabs] 训练界面 Prefab 已重建。");
+    }
+
+    [MenuItem("Tools/转换康复站UI/重建报告界面 Prefab")]
+    public static void RebuildReport()
+    {
+        BakeOne(ReportHtml, ReportPrefab,
+            new string[]
+            {
+                "ConsolePanel/ReportRowsContent/ReportRowTemplate",
+                "ConsolePanel/ReportPager/PageNumberTemplate",
+                "ConsolePanel/ReportPager/PageEllipsisTemplate",
+                "ConsolePanel/EmptyListState",
+                "CanvasPanel/DetailCard/AssessmentScroll",
+                "CanvasPanel/DetailCard/TrainingDetailPanel",
+                "CanvasPanel/HistoryOverviewPanel/ComparisonViewPanel"
+            },
+            new string[0]);
+
+        BakeOne(AssessmentReportTemplateHtml, AssessmentReportTemplatePrefab,
+            new string[0],
+            new string[0]);
+
+        AssetDatabase.SaveAssets();
+        AssetDatabase.Refresh();
+        Debug.Log("[ConvertRehabUIPrefabs] 报告界面 Prefab 已重建。");
+    }
+
     [MenuItem("Tools/转换康复站UI/重建评估训练报告 Prefab")]
     public static void RebuildModules()
     {
@@ -94,9 +153,7 @@ public static class ConvertRehabUIPrefabs
             new string[] { "CanvasPanel/MeasureCard/GaugeArea/GaugeTickTemplate" },
             new string[0]);
 
-        BakeOne(TrainingHtml, TrainingPrefab,
-            new string[] { "CanvasPanel/WaveCard/WaveArea/WaveBarTemplate" },
-            new string[0]);
+        RebuildTraining();
 
         BakeOne(ReportHtml, ReportPrefab,
             new string[]
@@ -106,13 +163,17 @@ public static class ConvertRehabUIPrefabs
                 "ConsolePanel/ReportPager/PageEllipsisTemplate",
                 "ConsolePanel/EmptyListState",
                 "CanvasPanel/DetailCard/AssessmentScroll",
-                "CanvasPanel/DetailCard/TrainingPlaceholder"
+                "CanvasPanel/DetailCard/TrainingDetailPanel",
+                "CanvasPanel/HistoryOverviewPanel/ComparisonViewPanel"
             },
             new string[0]);
 
         BakeOne(AssessmentReportTemplateHtml, AssessmentReportTemplatePrefab,
             new string[0],
             new string[0]);
+
+        BakeOne(CalibrationHtml, CalibrationPrefab, new string[0], new string[0]);
+        BakeOne(ExitResetHtml, ExitResetPrefab, new string[0], new string[0]);
 
         AssetDatabase.SaveAssets();
         AssetDatabase.Refresh();
@@ -168,13 +229,6 @@ public static class ConvertRehabUIPrefabs
             throw new InvalidOperationException("烘焙未生成预期根节点: " + rootName);
         }
 
-        foreach (string path in inactivePaths)
-        {
-            Transform node = root.transform.Find(path);
-            if (node != null) node.gameObject.SetActive(false);
-            else Debug.LogWarning("[ConvertRehabUIPrefabs] 未找到需隐藏节点: " + path);
-        }
-
         foreach (string path in rawImagePaths)
         {
             Transform node = root.transform.Find(path);
@@ -191,6 +245,8 @@ public static class ConvertRehabUIPrefabs
                 rawImage.color = Color.white;
             }
         }
+
+        if (prefabPath == MainPrefab) ApplyCompanyLogo(root);
 
         // 让 Slider 的填充条与背景条左对齐、同高，避免前景/背景错位
         foreach (Slider slider in root.GetComponentsInChildren<Slider>(true))
@@ -248,6 +304,9 @@ public static class ConvertRehabUIPrefabs
             if (slider.handleRect != null) slider.handleRect.sizeDelta = new Vector2(16, 8);
         }
 
+        if (prefabPath == TrainingPrefab) StyleTrainingControls(root);
+        ApplySelectionCheckmarks(root);
+
         string rowTemplatePath = null;
         if (prefabPath == PatientPrefab) rowTemplatePath = "CanvasPanel/PatientRowsContent/PatientRowTemplate";
         else if (prefabPath == SettingPrefab) rowTemplatePath = "WorkPanel/DoctorPanel/DoctorRowsContent/DoctorRowTemplate";
@@ -290,12 +349,169 @@ public static class ConvertRehabUIPrefabs
         }
 
         if (prefabPath == AssessmentReportTemplatePrefab) AttachReportCharts(root);
+        if (prefabPath == ReportPrefab) AttachOverviewCharts(root);
+        if (prefabPath == CalibrationPrefab) AddResetDiagram(root, "CalibrationInstructionCard/CalibrationDiagram");
+        if (prefabPath == ExitResetPrefab) AddResetPhoto(root, "ResetPhoto");
 
         RestoreInputConstraints(root, prefabPath);
+
+        foreach (string path in inactivePaths)
+        {
+            Transform node = root.transform.Find(path);
+            if (node != null) node.gameObject.SetActive(false);
+            else Debug.LogWarning("[ConvertRehabUIPrefabs] 未找到需隐藏节点: " + path);
+        }
 
         PrefabUtility.SaveAsPrefabAsset(root, prefabPath);
         UnityEngine.Object.DestroyImmediate(canvasGo);
         Debug.Log("[ConvertRehabUIPrefabs] 已写入 Prefab: " + prefabPath);
+    }
+
+    private static void ApplySelectionCheckmarks(GameObject root)
+    {
+        Sprite checkmark = AssetDatabase.LoadAssetAtPath<Sprite>(SelectionCheckmarkPath);
+        if (checkmark == null)
+        {
+            Debug.LogWarning("[ConvertRehabUIPrefabs] 未找到选择勾选图: " + SelectionCheckmarkPath);
+            return;
+        }
+
+        foreach (TMP_Dropdown dropdown in root.GetComponentsInChildren<TMP_Dropdown>(true))
+        {
+            Transform node = dropdown.transform.Find("Template/Viewport/Content/Item/Item Checkmark");
+            Image image = node != null ? node.GetComponent<Image>() : null;
+            if (image != null) SetSelectionCheckmark(image, checkmark);
+        }
+
+        foreach (Toggle toggle in root.GetComponentsInChildren<Toggle>(true))
+        {
+            Image image = toggle.graphic as Image;
+            if (image == null || image.sprite != null) continue;
+            if (image.color.r > 0.05f || image.color.g > 0.05f || image.color.b > 0.05f) continue;
+            SetSelectionCheckmark(image, checkmark);
+        }
+    }
+
+    private static void SetSelectionCheckmark(Image image, Sprite checkmark)
+    {
+        image.sprite = checkmark;
+        image.color = Color.white;
+        image.preserveAspect = true;
+        image.raycastTarget = false;
+    }
+
+    private static void StyleTrainingControls(GameObject root)
+    {
+        Sprite sliderTrack = AssetDatabase.LoadAssetAtPath<Sprite>(TrainingSliderTrackPath);
+        Sprite sliderKnob = AssetDatabase.LoadAssetAtPath<Sprite>(TrainingSliderKnobPath);
+        Sprite resistanceBar = AssetDatabase.LoadAssetAtPath<Sprite>(TrainingResistanceBarPath);
+
+        Transform resistanceNode = root.transform.Find("ConsolePanel/ParameterCard/ResistanceSlider");
+        if (resistanceNode != null)
+        {
+            Slider slider = resistanceNode.GetComponent<Slider>();
+            StyleTrainingSlider(slider, resistanceBar, sliderKnob, Color.white, true);
+            slider.minValue = 1f;
+            slider.maxValue = 10f;
+            slider.wholeNumbers = true;
+            slider.value = 3f;
+        }
+
+        Transform durationNode = root.transform.Find("ConsolePanel/ParameterCard/DurationSlider");
+        if (durationNode != null)
+        {
+            Slider slider = durationNode.GetComponent<Slider>();
+            StyleTrainingSlider(slider, sliderTrack, sliderKnob, new Color(0.82f, 0.835f, 0.86f, 1f), false);
+            slider.minValue = 5f;
+            slider.maxValue = 30f;
+            slider.wholeNumbers = true;
+            slider.value = 20f;
+        }
+
+        Transform toggleNode = root.transform.Find("ConsolePanel/DirectionCard/DirectionLimitToggle");
+        if (toggleNode == null) return;
+        Toggle toggle = toggleNode.GetComponent<Toggle>();
+        Transform labelNode = toggleNode.Find("Label");
+        if (labelNode != null) UnityEngine.Object.DestroyImmediate(labelNode.gameObject);
+        Transform trackNode = toggleNode.Find("Background");
+        if (toggle == null || trackNode == null) return;
+        Image track = trackNode.GetComponent<Image>();
+        Transform knobNode = trackNode.Find("Checkmark");
+        if (knobNode == null && toggle.graphic != null) knobNode = toggle.graphic.transform;
+        if (track == null || knobNode == null) return;
+
+        track.sprite = sliderTrack;
+        track.color = new Color(0.82f, 0.835f, 0.86f, 1f);
+        track.raycastTarget = true;
+        RectTransform trackRect = track.rectTransform;
+        trackRect.anchorMin = Vector2.zero;
+        trackRect.anchorMax = Vector2.one;
+        trackRect.offsetMin = Vector2.zero;
+        trackRect.offsetMax = Vector2.zero;
+
+        knobNode.name = "Knob";
+        Image knob = knobNode.GetComponent<Image>();
+        knob.sprite = sliderKnob;
+        knob.color = Color.white;
+        knob.raycastTarget = false;
+        RectTransform knobRect = knob.rectTransform;
+        knobRect.anchorMin = new Vector2(0.5f, 0.5f);
+        knobRect.anchorMax = new Vector2(0.5f, 0.5f);
+        knobRect.sizeDelta = new Vector2(12f, 12f);
+        knobRect.anchoredPosition = new Vector2(-12f, 0f);
+
+        toggle.transition = Selectable.Transition.None;
+        toggle.targetGraphic = track;
+        toggle.graphic = null;
+        toggle.isOn = false;
+    }
+
+    private static void StyleTrainingSlider(Slider slider, Sprite trackSprite, Sprite handleSprite, Color trackColor, bool hideFill)
+    {
+        if (slider == null) return;
+        slider.transition = Selectable.Transition.None;
+        Transform backgroundNode = slider.transform.Find("Background");
+        Transform fillNode = slider.transform.Find("Fill Area/Fill");
+        Image background = backgroundNode != null ? backgroundNode.GetComponent<Image>() : null;
+        Image fill = fillNode != null ? fillNode.GetComponent<Image>() : null;
+        Image handle = slider.handleRect != null ? slider.handleRect.GetComponent<Image>() : null;
+
+        if (background != null)
+        {
+            background.sprite = trackSprite;
+            background.color = trackColor;
+            background.raycastTarget = true;
+            slider.targetGraphic = background;
+        }
+        if (fill != null)
+        {
+            fill.sprite = trackSprite;
+            fill.color = trackColor;
+            fill.raycastTarget = false;
+            if (hideFill) fill.gameObject.SetActive(false);
+        }
+        if (handle != null)
+        {
+            handle.sprite = handleSprite;
+            handle.color = Color.white;
+            handle.raycastTarget = true;
+            RectTransform handleRect = handle.rectTransform;
+            handleRect.anchorMin = new Vector2(handleRect.anchorMin.x, 0.5f);
+            handleRect.anchorMax = new Vector2(handleRect.anchorMax.x, 0.5f);
+            handleRect.pivot = new Vector2(0.5f, 0.5f);
+            handleRect.offsetMin = Vector2.zero;
+            handleRect.offsetMax = Vector2.zero;
+            handleRect.sizeDelta = new Vector2(24f, 24f);
+        }
+        Transform slideArea = slider.transform.Find("Handle Slide Area");
+        if (slideArea != null)
+        {
+            RectTransform slideRect = slideArea.GetComponent<RectTransform>();
+            slideRect.anchorMin = new Vector2(0f, 0.5f);
+            slideRect.anchorMax = new Vector2(1f, 0.5f);
+            slideRect.anchoredPosition = Vector2.zero;
+            slideRect.sizeDelta = new Vector2(-24f, 0f);
+        }
     }
 
     private static void AttachReportCharts(GameObject root)
@@ -324,6 +540,97 @@ public static class ConvertRehabUIPrefabs
         RomRangeChart chart = node.GetComponent<RomRangeChart>();
         if (chart == null) chart = node.gameObject.AddComponent<RomRangeChart>();
         chart.raycastTarget = false;
+    }
+
+    private static void AttachOverviewCharts(GameObject root)
+    {
+        AddOverviewPieChart(root, "CanvasPanel/HistoryOverviewPanel/SummaryViewPanel/SummaryPieCard/SummaryPieChart");
+        AddOverviewLineChart(root, "CanvasPanel/HistoryOverviewPanel/ComparisonViewPanel/ComparisonLineCard/ComparisonLineChart");
+    }
+
+    private static void AddOverviewPieChart(GameObject root, string path)
+    {
+        Transform node = root.transform.Find(path);
+        if (node == null) return;
+        Image image = node.GetComponent<Image>();
+        if (image != null) UnityEngine.Object.DestroyImmediate(image);
+        PieChart chart = node.GetComponent<PieChart>();
+        if (chart == null) chart = node.gameObject.AddComponent<PieChart>();
+        chart.Init();
+        chart.raycastTarget = false;
+    }
+
+    private static void AddOverviewLineChart(GameObject root, string path)
+    {
+        Transform node = root.transform.Find(path);
+        if (node == null) return;
+        Image image = node.GetComponent<Image>();
+        if (image != null) UnityEngine.Object.DestroyImmediate(image);
+        LineChart chart = node.GetComponent<LineChart>();
+        if (chart == null) chart = node.gameObject.AddComponent<LineChart>();
+        chart.Init();
+        chart.raycastTarget = false;
+    }
+
+    private static void AddResetDiagram(GameObject root, string path)
+    {
+        Transform node = root.transform.Find(path);
+        if (node == null)
+        {
+            Debug.LogWarning("[ConvertRehabUIPrefabs] 未找到复位示意图节点: " + path);
+            return;
+        }
+        Image image = node.GetComponent<Image>();
+        if (image != null) UnityEngine.Object.DestroyImmediate(image);
+        UIResetDiagram diagram = node.GetComponent<UIResetDiagram>();
+        if (diagram == null) diagram = node.gameObject.AddComponent<UIResetDiagram>();
+        diagram.raycastTarget = false;
+        diagram.color = Color.white;
+    }
+
+    private static void AddResetPhoto(GameObject root, string path)
+    {
+        Transform node = root.transform.Find(path);
+        if (node == null)
+        {
+            Debug.LogWarning("[ConvertRehabUIPrefabs] 未找到复位照片节点: " + path);
+            return;
+        }
+        Image image = node.GetComponent<Image>();
+        if (image == null) image = node.gameObject.AddComponent<Image>();
+        Sprite sprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Resources/Images/ExitResetReference.jpg");
+        if (sprite == null)
+        {
+            Debug.LogWarning("[ConvertRehabUIPrefabs] 未找到复位照片资源: Assets/Resources/Images/ExitResetReference.jpg");
+            return;
+        }
+        image.sprite = sprite;
+        image.color = Color.white;
+        image.preserveAspect = true;
+        image.raycastTarget = false;
+    }
+
+    private static void ApplyCompanyLogo(GameObject root)
+    {
+        Transform logo = root.transform.Find("HeaderBar/BrandLogoBox");
+        if (logo == null)
+        {
+            Debug.LogWarning("[ConvertRehabUIPrefabs] 未找到公司 Logo 节点: HeaderBar/BrandLogoBox");
+            return;
+        }
+
+        Image image = logo.GetComponent<Image>();
+        if (image == null) image = logo.gameObject.AddComponent<Image>();
+        Sprite sprite = AssetDatabase.LoadAssetAtPath<Sprite>(CompanyLogoPath);
+        if (sprite == null)
+        {
+            Debug.LogWarning("[ConvertRehabUIPrefabs] 未找到公司 Logo 资源: " + CompanyLogoPath);
+            return;
+        }
+
+        image.sprite = sprite;
+        image.color = Color.white;
+        image.preserveAspect = true;
     }
 
     private static void AddReportChart(GameObject root, string path, ReportChartGraphic.ChartKind kind)

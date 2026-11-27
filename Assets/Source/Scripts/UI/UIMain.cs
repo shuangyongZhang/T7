@@ -80,6 +80,7 @@ namespace LB
             reportButton.onClick.AddListener(OnReport);
             logoutButton.onClick.AddListener(OnLogout);
             quitButton.onClick.AddListener(OnQuit);
+            Application.wantsToQuit += ExitResetWorkflow.OnWantsToQuit;
 
             Main.m_Event.Subscribe<EventPatientChanged>(OnPatientChanged);
             Main.m_Event.Subscribe<EventUIOpened>(OnUIOpened);
@@ -134,6 +135,7 @@ namespace LB
             quitButton.onClick.RemoveAllListeners();
             Main.m_Event.Unsubscribe<EventPatientChanged>(OnPatientChanged);
             Main.m_Event.Unsubscribe<EventUIOpened>(OnUIOpened);
+            Application.wantsToQuit -= ExitResetWorkflow.OnWantsToQuit;
         }
 
         public override void OnUpdate()
@@ -141,18 +143,18 @@ namespace LB
             base.OnUpdate();
         }
 
-        public void OpenModularWindow(Type window)
+        public void OpenModularWindow(Type window, params object[] args)
         {
-            SwitchModularWindow(window);
+            SwitchModularWindow(window, args);
         }
 
-        public void SwitchModularWindow(Type window)
+        public void SwitchModularWindow(Type window, params object[] args)
         {
             if (currentWindow == window && Main.m_UI.GetOpenedUI(currentWindow) != null) return;
             if (!isWindowOpened) return;
             isWindowOpened = false;
             if (currentWindow != null) Main.m_UI.CloseUI(currentWindow);
-            Main.m_UI.OpenUI(window).Forget();
+            Main.m_UI.OpenUI(window, args).Forget();
             NotifyButtonOn(window);
             currentWindow = window;
         }
@@ -228,6 +230,11 @@ namespace LB
 
         private void OnAssessment()
         {
+            if (Global.CurPatientInfo == null)
+            {
+                UINotifyDialogHelper.Current.ShowNotifyAutoHide("请先选择患者");
+                return;
+            }
             OpenModularWindow(typeof(UIAssessment));
         }
 
@@ -258,12 +265,7 @@ namespace LB
 
         private void OnQuit()
         {
-            UINotifyDialogHelper.Current.ShowPromptDialog("提示", "确认关闭应用?", "确定", "取消", index =>
-            {
-                Main.m_UI.OpenUI<UIStartLoading>("应用关闭中......").Forget();
-                Application.Quit();
-                return true;
-            });
+            ExitResetWorkflow.RequestExit();
         }
     }
 }

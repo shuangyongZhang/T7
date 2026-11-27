@@ -68,6 +68,10 @@ namespace LB
         [MaxLength(256)]
         public string Diagnose { get; set; }
 
+        [NotNull]
+        public bool IsCalibrated { get; set; }
+        public DateTime CalibrationTime { get; set; }
+
         public DateTime CreateTime { get; set; }
 
         public PatientInfo Clone()

@@ -23,11 +23,50 @@ namespace LB
     [UIResource("UISettingPanel")]
     public class UISetting : UILogicResident
     {
+        [InjectPath("MenuPanel/TreatmentPlanButton")] private Button treatmentPlanButton;
+        [InjectPath("MenuPanel/TreatmentPlanButton/Icon")] private Image treatmentPlanIcon;
         [InjectPath("MenuPanel/GeneralButton")] private Button generalButton;
         [InjectPath("MenuPanel/HospitalButton")] private Button hospitalButton;
         [InjectPath("MenuPanel/DoctorButton")] private Button doctorButton;
         [InjectPath("MenuPanel/HospitalButton/LockImage")] private Image hospitalLockImage;
         [InjectPath("MenuPanel/DoctorButton/LockImage")] private Image doctorLockImage;
+
+        [InjectPath("WorkPanel/TreatmentPlanPanel")] private GameObject treatmentPlanPanel;
+        [InjectPath("WorkPanel/TreatmentPlanPanel/TreatmentPlanRowsContent")] private RectTransform treatmentPlanRowsContent;
+        [InjectPath("WorkPanel/TreatmentPlanPanel/TreatmentPlanRowsContent/TreatmentPlanRowTemplate")] private GameObject treatmentPlanRowTemplate;
+        [InjectPath("WorkPanel/TreatmentPlanPanel/TreatmentPlanEmptyState")] private GameObject treatmentPlanEmptyState;
+        [InjectPath("WorkPanel/TreatmentPlanPanel/OpenAddPlanButton")] private Button openAddPlanButton;
+        [InjectPath("WorkPanel/TreatmentPlanPanel/OpenAddPlanButton/OpenAddPlanIcon")] private Image openAddPlanIcon;
+
+        [InjectPath("TreatmentPlanEditorPanel")] private GameObject treatmentPlanEditorPanel;
+        [InjectPath("TreatmentPlanEditorPanel/ClosePlanEditorButton")] private Button closePlanEditorButton;
+        [InjectPath("TreatmentPlanEditorPanel/PlanNameInputField")] private TMP_InputField planNameInput;
+        [InjectPath("TreatmentPlanEditorPanel/PlanModeCpmButton")] private Button planModeCpmButton;
+        [InjectPath("TreatmentPlanEditorPanel/PlanModeAssistButton")] private Button planModeAssistButton;
+        [InjectPath("TreatmentPlanEditorPanel/PlanModeActiveButton")] private Button planModeActiveButton;
+        [InjectPath("TreatmentPlanEditorPanel/PlanModeResistButton")] private Button planModeResistButton;
+        [InjectPath("TreatmentPlanEditorPanel/PlanDirectionLimitDropdown")] private TMP_Dropdown planDirectionLimitDropdown;
+        [InjectPath("TreatmentPlanEditorPanel/PlanDuration3Button")] private Button planDuration3Button;
+        [InjectPath("TreatmentPlanEditorPanel/PlanDuration5Button")] private Button planDuration5Button;
+        [InjectPath("TreatmentPlanEditorPanel/PlanDuration10Button")] private Button planDuration10Button;
+        [InjectPath("TreatmentPlanEditorPanel/PlanDuration15Button")] private Button planDuration15Button;
+        [InjectPath("TreatmentPlanEditorPanel/PlanDuration20Button")] private Button planDuration20Button;
+        [InjectPath("TreatmentPlanEditorPanel/PlanDuration25Button")] private Button planDuration25Button;
+        [InjectPath("TreatmentPlanEditorPanel/PlanDuration30Button")] private Button planDuration30Button;
+        [InjectPath("TreatmentPlanEditorPanel/PlanDirectionAbductionButton")] private Button planDirectionAbductionButton;
+        [InjectPath("TreatmentPlanEditorPanel/PlanDirectionFlexionButton")] private Button planDirectionFlexionButton;
+        [InjectPath("TreatmentPlanEditorPanel/PlanDirectionHorizontalButton")] private Button planDirectionHorizontalButton;
+        [InjectPath("TreatmentPlanEditorPanel/PlanDirectionPronationButton")] private Button planDirectionPronationButton;
+        [InjectPath("TreatmentPlanEditorPanel/PlanDirectionRotationButton")] private Button planDirectionRotationButton;
+        [InjectPath("TreatmentPlanEditorPanel/PlanDirectionExtensionButton")] private Button planDirectionExtensionButton;
+        [InjectPath("TreatmentPlanEditorPanel/PlanGameCard/PlanGameDropdown")] private TMP_Dropdown planGameDropdown;
+        [InjectPath("TreatmentPlanEditorPanel/PlanGameCard/PlanGameScroll")] private ScrollRect planGameScroll;
+        [InjectPath("TreatmentPlanEditorPanel/PlanGameCard/PlanGameScroll/Viewport/Content")] private RectTransform planGameRowsContent;
+        [InjectPath("TreatmentPlanEditorPanel/PlanGameCard/PlanGameScroll/Viewport/Content/PlanGameRowTemplate")] private GameObject planGameRowTemplate;
+        [InjectPath("TreatmentPlanEditorPanel/PlanGameCard/PlanGameScroll/Viewport/Content/PlanGameEmptyText")] private GameObject planGameEmptyText;
+        [InjectPath("TreatmentPlanEditorPanel/PlanGameCard/PlanAddGameButton")] private Button planAddGameButton;
+        [InjectPath("TreatmentPlanEditorPanel/CancelPlanEditorButton")] private Button cancelPlanEditorButton;
+        [InjectPath("TreatmentPlanEditorPanel/SavePlanButton")] private Button savePlanButton;
 
         [InjectPath("WorkPanel/GeneralPanel")] private GameObject generalPanel;
         [InjectPath("WorkPanel/GeneralPanel/MusicSlider")] private Slider musicSlider;
@@ -101,6 +140,14 @@ namespace LB
         private AdminInfo curAdmin;
         private GameObject selectedDoctorRow;
         private int curPage;
+        private List<TreatmentPlan> treatmentPlans;
+        private TreatmentPlan editingPlan;
+        private HashSet<string> editingDirections = new HashSet<string>();
+        private TrainingMode pendingMode = TrainingMode.Assist;
+        private int pendingDuration = 20;
+        private List<TreatmentPlanItem> editingGames = new List<TreatmentPlanItem>();
+        private List<GameDefinition> availableGames = new List<GameDefinition>();
+        private GameObject selectedPlanRow;
         private const int PageSize = 16;
         private string versionType = "";
 
@@ -128,6 +175,9 @@ namespace LB
                 infoAvatarImage.sprite = (Sex)index == Sex.Female ? Global.IconDic["femaleDoctor"] : Global.IconDic["maleDoctor"];
             });
 
+            treatmentPlanButton.onClick.AddListener(OnOpenTreatmentPlanPanel);
+            SetIcon(treatmentPlanIcon, "treatmentPlan");
+            SetIcon(openAddPlanIcon, "add");
             generalButton.onClick.AddListener(OnOpenGeneralPanel);
             hospitalButton.onClick.AddListener(OnOpenHospitalPanel);
             doctorButton.onClick.AddListener(OnOpenDoctorPanel);
@@ -149,6 +199,49 @@ namespace LB
             forbidButton.onClick.AddListener(OnForbidAdmin);
             permitButton.onClick.AddListener(OnPermitAdmin);
 
+            openAddPlanButton.onClick.AddListener(() => OpenPlanEditor(null));
+            closePlanEditorButton.onClick.AddListener(ClosePlanEditor);
+            cancelPlanEditorButton.onClick.AddListener(ClosePlanEditor);
+            savePlanButton.onClick.AddListener(SaveTreatmentPlan);
+            planDuration3Button.onClick.AddListener(() => SelectPlanDuration(3));
+            planDuration5Button.onClick.AddListener(() => SelectPlanDuration(5));
+            planDuration10Button.onClick.AddListener(() => SelectPlanDuration(10));
+            planDuration15Button.onClick.AddListener(() => SelectPlanDuration(15));
+            planDuration20Button.onClick.AddListener(() => SelectPlanDuration(20));
+            planDuration25Button.onClick.AddListener(() => SelectPlanDuration(25));
+            planDuration30Button.onClick.AddListener(() => SelectPlanDuration(30));
+            planDirectionAbductionButton.onClick.AddListener(() => TogglePlanDirection("abduction"));
+            planDirectionFlexionButton.onClick.AddListener(() => TogglePlanDirection("flexion"));
+            planDirectionHorizontalButton.onClick.AddListener(() => TogglePlanDirection("horizontal"));
+            planDirectionPronationButton.onClick.AddListener(() => TogglePlanDirection("pronation"));
+            planDirectionRotationButton.onClick.AddListener(() => TogglePlanDirection("rotation"));
+            planDirectionExtensionButton.onClick.AddListener(() => TogglePlanDirection("extension"));
+            planModeCpmButton.onClick.AddListener(() => SelectPlanMode(TrainingMode.Cpm));
+            planModeAssistButton.onClick.AddListener(() => SelectPlanMode(TrainingMode.Assist));
+            planModeActiveButton.onClick.AddListener(() => SelectPlanMode(TrainingMode.Active));
+            planModeResistButton.onClick.AddListener(() => SelectPlanMode(TrainingMode.Resist));
+            planAddGameButton.onClick.AddListener(AddPlanGame);
+            planDirectionLimitDropdown.ClearOptions();
+            planDirectionLimitDropdown.AddOptions(new List<string> { "非限制方向", "限制方向" });
+
+            planDirectionLimitDropdown.onValueChanged.AddListener(_ =>
+            {
+                if (planDirectionLimitDropdown.value == 1 && editingDirections.Count > 1)
+                {
+                    string first = null;
+                    foreach (string direction in TrainingCatalog.DirectionIds)
+                    {
+                        if (!editingDirections.Contains(direction)) continue;
+                        first = direction;
+                        break;
+                    }
+                    editingDirections.Clear();
+                    if (first != null) editingDirections.Add(first);
+                }
+                RefreshPlanEditorSelection();
+                RefreshPlanGameOptions();
+            });
+
             InitGeneralSettingPanel();
         }
 
@@ -162,7 +255,15 @@ namespace LB
             hospitalLockImage.gameObject.SetActive(!isAdmin);
             doctorLockImage.gameObject.SetActive(!isAdmin);
 
-            OnOpenGeneralPanel();
+            if (args != null && args.Length > 0 && args[0] as string == "addTreatmentPlan")
+            {
+                OnOpenTreatmentPlanPanel();
+                OpenPlanEditor(null);
+            }
+            else
+            {
+                OnOpenGeneralPanel();
+            }
         }
 
         private void InitGeneralSettingPanel()
@@ -212,23 +313,45 @@ namespace LB
         private void OnOpenGeneralPanel()
         {
             generalPanel.SetActive(true);
+            treatmentPlanPanel.SetActive(false);
             hospitalPanel.SetActive(false);
             doctorPanel.SetActive(false);
             HideModalOnMain(doctorAddPanel);
             HideModalOnMain(doctorEditPanel);
+            HideModalOnMain(treatmentPlanEditorPanel);
+            SetTabButtonSelected(treatmentPlanButton, false);
             SetTabButtonSelected(generalButton, true);
             SetTabButtonSelected(hospitalButton, false);
             SetTabButtonSelected(doctorButton, false);
+        }
+
+        private void OnOpenTreatmentPlanPanel()
+        {
+            generalPanel.SetActive(false);
+            treatmentPlanPanel.SetActive(true);
+            hospitalPanel.SetActive(false);
+            doctorPanel.SetActive(false);
+            HideModalOnMain(doctorAddPanel);
+            HideModalOnMain(doctorEditPanel);
+            HideModalOnMain(treatmentPlanEditorPanel);
+            SetTabButtonSelected(treatmentPlanButton, true);
+            SetTabButtonSelected(generalButton, false);
+            SetTabButtonSelected(hospitalButton, false);
+            SetTabButtonSelected(doctorButton, false);
+            treatmentPlans = DBManagerModule.Instance.QueryAllTreatmentPlans() ?? new List<TreatmentPlan>();
+            RefreshTreatmentPlanRows();
         }
 
         private void OnOpenHospitalPanel()
         {
             if (!hospitalButton.interactable) return;
             generalPanel.SetActive(false);
+            treatmentPlanPanel.SetActive(false);
             hospitalPanel.SetActive(true);
             doctorPanel.SetActive(false);
             HideModalOnMain(doctorAddPanel);
             HideModalOnMain(doctorEditPanel);
+            SetTabButtonSelected(treatmentPlanButton, false);
             SetTabButtonSelected(generalButton, false);
             SetTabButtonSelected(hospitalButton, true);
             SetTabButtonSelected(doctorButton, false);
@@ -258,10 +381,12 @@ namespace LB
         {
             if (!doctorButton.interactable) return;
             generalPanel.SetActive(false);
+            treatmentPlanPanel.SetActive(false);
             hospitalPanel.SetActive(false);
             doctorPanel.SetActive(true);
             HideModalOnMain(doctorAddPanel);
             HideModalOnMain(doctorEditPanel);
+            SetTabButtonSelected(treatmentPlanButton, false);
             SetTabButtonSelected(generalButton, false);
             SetTabButtonSelected(hospitalButton, false);
             SetTabButtonSelected(doctorButton, true);
@@ -269,6 +394,316 @@ namespace LB
             adminInfos = DBManagerModule.Instance.QueryAllAdminInfos() ?? new List<AdminInfo>();
             if (curAdmin != null && adminInfos.FindIndex(a => a.Account == curAdmin.Account) < 0) curAdmin = null;
             RefreshDoctorRows(true);
+        }
+
+        private void RefreshTreatmentPlanRows()
+        {
+            for (int i = treatmentPlanRowsContent.childCount - 1; i >= 0; i--)
+            {
+                Transform child = treatmentPlanRowsContent.GetChild(i);
+                if (child == treatmentPlanRowTemplate.transform) continue;
+                child.gameObject.SetActive(false);
+                UnityEngine.Object.DestroyImmediate(child.gameObject);
+            }
+            selectedPlanRow = null;
+            treatmentPlanEmptyState.SetActive(treatmentPlans == null || treatmentPlans.Count == 0);
+
+            if (treatmentPlans == null) return;
+            RectTransform templateRect = treatmentPlanRowTemplate.GetComponent<RectTransform>();
+            for (int i = 0; i < treatmentPlans.Count; i++)
+            {
+                TreatmentPlan plan = treatmentPlans[i];
+                GameObject row = UnityEngine.Object.Instantiate(treatmentPlanRowTemplate, treatmentPlanRowsContent);
+                row.name = "TreatmentPlanRow_" + i;
+                row.SetActive(true);
+                RectTransform rect = row.GetComponent<RectTransform>();
+                if (rect != null && templateRect != null)
+                    rect.anchoredPosition = new Vector2(templateRect.anchoredPosition.x, templateRect.anchoredPosition.y - i * 58f);
+
+                List<TrainingMode> modes = plan.GetModes();
+                List<string> modeNames = new List<string>();
+                foreach (TrainingMode planMode in modes) modeNames.Add(TrainingCatalog.GetModeName(planMode));
+                List<TreatmentPlanItem> games = plan.GetGameItems();
+                int totalMinutes = 0;
+                foreach (TreatmentPlanItem item in games) totalMinutes += item.DurationMinutes;
+                SetChildText(row, "RowPlanNameText", plan.Name);
+                SetChildText(row, "RowPlanModeText", modeNames.Count > 0 ? string.Join("、", modeNames) : "--");
+                SetChildText(row, "RowPlanGamesText", games.Count + " 个游戏");
+                SetChildText(row, "RowPlanDurationText", totalMinutes + " 分钟");
+                SetChildText(row, "RowPlanUpdateText", plan.UpdateTime == default(DateTime) ? "--" : plan.UpdateTime.ToString("yyyy-MM-dd HH:mm"));
+
+                TreatmentPlan captured = plan;
+                Button rowButton = row.GetComponent<Button>();
+                if (rowButton == null) rowButton = row.AddComponent<Button>();
+                rowButton.transition = Selectable.Transition.None;
+                rowButton.targetGraphic = row.GetComponent<Image>();
+                rowButton.onClick.RemoveAllListeners();
+                rowButton.onClick.AddListener(() =>
+                {
+                    selectedPlanRow = row;
+                    HighlightTreatmentPlanRow();
+                });
+
+                Transform editNode = row.transform.Find("EditPlanButton");
+                if (editNode != null)
+                {
+                    Button editButton = editNode.GetComponent<Button>();
+                    editButton.onClick.RemoveAllListeners();
+                    editButton.onClick.AddListener(() => OpenPlanEditor(captured));
+                }
+            }
+        }
+
+        private void HighlightTreatmentPlanRow()
+        {
+            for (int i = 0; i < treatmentPlanRowsContent.childCount; i++)
+            {
+                Transform child = treatmentPlanRowsContent.GetChild(i);
+                if (child == treatmentPlanRowTemplate.transform) continue;
+                Image image = child.GetComponent<Image>();
+                if (image != null) image.color = child.gameObject == selectedPlanRow ? new Color(0.937f, 0.965f, 1f, 1f) : Color.white;
+            }
+        }
+
+        private void OpenPlanEditor(TreatmentPlan plan)
+        {
+            editingPlan = plan != null ? plan : new TreatmentPlan
+            {
+                Name = "",
+                CreateTime = DateTime.Now,
+                UpdateTime = DateTime.Now
+            };
+            editingDirections = new HashSet<string> { "abduction" };
+            pendingMode = TrainingMode.Assist;
+            pendingDuration = 20;
+            editingGames = editingPlan.GetGameItems();
+            planNameInput.text = editingPlan.Name ?? "";
+            planDirectionLimitDropdown.SetValueWithoutNotify(0);
+            RefreshPlanGameOptions();
+            RefreshPlanGameRows();
+            RefreshPlanEditorSelection();
+            ShowModalOnMain(treatmentPlanEditorPanel);
+        }
+
+        private void ClosePlanEditor()
+        {
+            HideModalOnMain(treatmentPlanEditorPanel);
+            editingPlan = null;
+            editingDirections.Clear();
+            editingGames.Clear();
+        }
+
+        private void SelectPlanMode(TrainingMode mode)
+        {
+            pendingMode = mode;
+            RefreshPlanEditorSelection();
+            RefreshPlanGameOptions();
+        }
+
+        private void SelectPlanDuration(int minutes)
+        {
+            pendingDuration = minutes;
+            RefreshPlanEditorSelection();
+        }
+
+        private void TogglePlanDirection(string direction)
+        {
+            if (planDirectionLimitDropdown.value == 1)
+            {
+                editingDirections.Clear();
+                editingDirections.Add(direction);
+            }
+            else if (editingDirections.Contains(direction))
+            {
+                if (editingDirections.Count > 1) editingDirections.Remove(direction);
+            }
+            else editingDirections.Add(direction);
+            RefreshPlanEditorSelection();
+            RefreshPlanGameOptions();
+        }
+
+        private void RefreshPlanEditorSelection()
+        {
+            SetSelected(planDuration3Button, pendingDuration == 3);
+            SetSelected(planDuration5Button, pendingDuration == 5);
+            SetSelected(planDuration10Button, pendingDuration == 10);
+            SetSelected(planDuration15Button, pendingDuration == 15);
+            SetSelected(planDuration20Button, pendingDuration == 20);
+            SetSelected(planDuration25Button, pendingDuration == 25);
+            SetSelected(planDuration30Button, pendingDuration == 30);
+            SetSelected(planDirectionAbductionButton, editingDirections.Contains("abduction"));
+            SetSelected(planDirectionFlexionButton, editingDirections.Contains("flexion"));
+            SetSelected(planDirectionHorizontalButton, editingDirections.Contains("horizontal"));
+            SetSelected(planDirectionPronationButton, editingDirections.Contains("pronation"));
+            SetSelected(planDirectionRotationButton, editingDirections.Contains("rotation"));
+            SetSelected(planDirectionExtensionButton, editingDirections.Contains("extension"));
+            SetSelected(planModeCpmButton, pendingMode == TrainingMode.Cpm);
+            SetSelected(planModeAssistButton, pendingMode == TrainingMode.Assist);
+            SetSelected(planModeActiveButton, pendingMode == TrainingMode.Active);
+            SetSelected(planModeResistButton, pendingMode == TrainingMode.Resist);
+        }
+
+        private void RefreshPlanGameOptions()
+        {
+            string selectedId = availableGames.Count > 0 && planGameDropdown.value >= 0 && planGameDropdown.value < availableGames.Count
+                ? availableGames[planGameDropdown.value].Id
+                : null;
+            availableGames = new List<GameDefinition>();
+            foreach (GameDefinition game in GameServices.Games)
+            {
+                if (!MatchesPlanGame(game, pendingMode, planDirectionLimitDropdown.value == 1, editingDirections)) continue;
+                if (editingGames.Exists(item => item.GameId == game.Id)) continue;
+                availableGames.Add(game);
+            }
+            List<string> names = new List<string>();
+            foreach (GameDefinition game in availableGames)
+                names.Add(string.IsNullOrEmpty(game.DisplayName) ? game.Id : game.DisplayName);
+            if (names.Count == 0)
+                names.Add(GameServices.Catalog == null ? "等待游戏目录接口接入" : "当前筛选无匹配游戏");
+            planGameDropdown.ClearOptions();
+            planGameDropdown.AddOptions(names);
+            int selectedIndex = availableGames.FindIndex(game => game.Id == selectedId);
+            planGameDropdown.SetValueWithoutNotify(Mathf.Max(0, selectedIndex));
+        }
+
+        private static bool MatchesPlanGame(GameDefinition game, TrainingMode mode, bool directionRestricted, HashSet<string> directions)
+        {
+            if (game == null || string.IsNullOrEmpty(game.Id) || game.Modes == null || Array.IndexOf(game.Modes, mode) < 0) return false;
+            return !directionRestricted || directions.Contains(game.Direction);
+        }
+
+        private void AddPlanGame()
+        {
+            if (editingPlan == null) return;
+            if (availableGames.Count == 0)
+            {
+                UINotifyDialogHelper.Current.ShowNotifyAutoHide(GameServices.Catalog == null
+                    ? "游戏目录接口尚未接入，暂无可添加游戏"
+                    : "当前训练模式与方向没有匹配游戏");
+                return;
+            }
+            GameDefinition game = availableGames[Mathf.Clamp(planGameDropdown.value, 0, availableGames.Count - 1)];
+            if (editingGames.Exists(item => item.GameId == game.Id))
+            {
+                UINotifyDialogHelper.Current.ShowNotifyAutoHide("该游戏已在方案中");
+                return;
+            }
+            bool restricted = planDirectionLimitDropdown.value == 1;
+            string direction = game.Direction;
+            if (restricted && !editingDirections.Contains(direction))
+            {
+                UINotifyDialogHelper.Current.ShowNotifyAutoHide("游戏运动方向与当前限定方向不一致");
+                return;
+            }
+            editingGames.Add(new TreatmentPlanItem
+            {
+                GameId = game.Id,
+                DisplayName = game.DisplayName,
+                Mode = (int)pendingMode,
+                Direction = direction,
+                IsDirectionRestricted = restricted,
+                DurationMinutes = pendingDuration,
+                ResistanceLevel = 3
+            });
+            RefreshPlanGameOptions();
+            RefreshPlanGameRows();
+        }
+
+        private void RefreshPlanGameRows()
+        {
+            if (planGameRowsContent == null) return;
+            for (int i = planGameRowsContent.childCount - 1; i >= 0; i--)
+            {
+                Transform child = planGameRowsContent.GetChild(i);
+                if (child == planGameRowTemplate.transform || child == planGameEmptyText.transform) continue;
+                child.gameObject.SetActive(false);
+                UnityEngine.Object.DestroyImmediate(child.gameObject);
+            }
+            planGameEmptyText.SetActive(editingGames.Count == 0);
+            RectTransform templateRect = planGameRowTemplate.GetComponent<RectTransform>();
+            for (int i = 0; i < editingGames.Count; i++)
+            {
+                TreatmentPlanItem item = editingGames[i];
+                GameObject row = UnityEngine.Object.Instantiate(planGameRowTemplate, planGameRowsContent);
+                row.name = "PlanGameRow_" + i;
+                row.SetActive(true);
+                RectTransform rect = row.GetComponent<RectTransform>();
+                if (rect != null && templateRect != null)
+                    rect.anchoredPosition = new Vector2(templateRect.anchoredPosition.x, templateRect.anchoredPosition.y - i * 30f);
+                SetChildText(row, "RowGameNameText", string.IsNullOrEmpty(item.DisplayName) ? item.GameId : item.DisplayName);
+                string directionText = item.IsDirectionRestricted
+                    ? "限制 · " + TrainingCatalog.GetDirectionName(item.Direction)
+                    : "非限制方向";
+                SetChildText(row, "RowGameConfigText", TrainingCatalog.GetModeName((TrainingMode)item.Mode) + " · " + directionText + " · " + item.DurationMinutes + " 分钟");
+                TreatmentPlanItem captured = item;
+                Transform removeNode = row.transform.Find("RemovePlanGameButton");
+                if (removeNode != null)
+                {
+                    Button removeButton = removeNode.GetComponent<Button>();
+                    removeButton.onClick.RemoveAllListeners();
+                    removeButton.onClick.AddListener(() =>
+                    {
+                        editingGames.Remove(captured);
+                        RefreshPlanGameOptions();
+                        RefreshPlanGameRows();
+                    });
+                }
+            }
+            planGameRowsContent.sizeDelta = new Vector2(planGameRowsContent.sizeDelta.x, Mathf.Max(102f, editingGames.Count * 30f + 8f));
+            if (planGameScroll != null) planGameScroll.verticalNormalizedPosition = 1f;
+        }
+
+        private void SaveTreatmentPlan()
+        {
+            if (editingPlan == null) return;
+            if (string.IsNullOrWhiteSpace(planNameInput.text))
+            {
+                UINotifyDialogHelper.Current.ShowPromptDialog("提示", "请输入治疗方案名称", "确定");
+                return;
+            }
+            if (editingGames.Count == 0)
+            {
+                UINotifyDialogHelper.Current.ShowPromptDialog("提示", "请至少添加一个游戏", "确定");
+                return;
+            }
+
+            editingPlan.Name = planNameInput.text.Trim();
+            editingPlan.UpdateTime = DateTime.Now;
+            editingPlan.SetGameItems(editingGames);
+
+            bool success = editingPlan.PlanID > 0
+                ? DBManagerModule.Instance.UpdateTreatmentPlan(editingPlan)
+                : DBManagerModule.Instance.InsertTreatmentPlan(editingPlan);
+            if (!success)
+            {
+                UINotifyDialogHelper.Current.ShowPromptDialog("错误", "治疗方案保存失败", "确定");
+                return;
+            }
+            ClosePlanEditor();
+            treatmentPlans = DBManagerModule.Instance.QueryAllTreatmentPlans() ?? new List<TreatmentPlan>();
+            RefreshTreatmentPlanRows();
+            UINotifyDialogHelper.Current.ShowNotifyAutoHide("治疗方案已保存");
+        }
+
+        private static void SetSelected(Button button, bool selected)
+        {
+            if (button == null) return;
+            Image image = button.GetComponent<Image>();
+            if (image != null) image.color = selected ? new Color(0.937f, 0.965f, 1f, 1f) : Color.white;
+            TMP_Text label = button.GetComponentInChildren<TMP_Text>();
+            if (label != null) label.color = selected ? new Color(0.078f, 0.337f, 0.941f, 1f) : new Color(0.271f, 0.318f, 0.369f, 1f);
+        }
+
+        private static void SetIcon(Image image, string key)
+        {
+            if (image == null) return;
+            Sprite sprite;
+            if (Global.IconDic.TryGetValue(key, out sprite))
+            {
+                image.sprite = sprite;
+                image.color = Color.white;
+                image.preserveAspect = true;
+            }
         }
 
         private void OnOpenHelp()
@@ -729,6 +1164,7 @@ namespace LB
             base.OnClose();
             HideModalOnMain(doctorAddPanel);
             HideModalOnMain(doctorEditPanel);
+            HideModalOnMain(treatmentPlanEditorPanel);
             SaveConfigModule.Instance.SetUserData("musicVolume", Mathf.RoundToInt(musicSlider.value));
             SaveConfigModule.Instance.SetUserData("soundVolume", Mathf.RoundToInt(soundSlider.value));
             SaveConfigModule.Instance.SaveUserData();
@@ -739,6 +1175,7 @@ namespace LB
             base.OnDestroy();
             addSexDropdown.onValueChanged.RemoveAllListeners();
             infoSexDropdown.onValueChanged.RemoveAllListeners();
+            treatmentPlanButton.onClick.RemoveAllListeners();
             generalButton.onClick.RemoveAllListeners();
             hospitalButton.onClick.RemoveAllListeners();
             doctorButton.onClick.RemoveAllListeners();
@@ -746,6 +1183,30 @@ namespace LB
             saveHospitalButton.onClick.RemoveAllListeners();
             selectLogoButton.onClick.RemoveAllListeners();
             deleteLogoButton.onClick.RemoveAllListeners();
+            openAddPlanButton.onClick.RemoveAllListeners();
+            closePlanEditorButton.onClick.RemoveAllListeners();
+            cancelPlanEditorButton.onClick.RemoveAllListeners();
+            savePlanButton.onClick.RemoveAllListeners();
+            planModeCpmButton.onClick.RemoveAllListeners();
+            planModeAssistButton.onClick.RemoveAllListeners();
+            planModeActiveButton.onClick.RemoveAllListeners();
+            planModeResistButton.onClick.RemoveAllListeners();
+            planAddGameButton.onClick.RemoveAllListeners();
+            planGameDropdown.onValueChanged.RemoveAllListeners();
+            planDuration3Button.onClick.RemoveAllListeners();
+            planDuration5Button.onClick.RemoveAllListeners();
+            planDuration10Button.onClick.RemoveAllListeners();
+            planDuration15Button.onClick.RemoveAllListeners();
+            planDuration20Button.onClick.RemoveAllListeners();
+            planDuration25Button.onClick.RemoveAllListeners();
+            planDuration30Button.onClick.RemoveAllListeners();
+            planDirectionAbductionButton.onClick.RemoveAllListeners();
+            planDirectionFlexionButton.onClick.RemoveAllListeners();
+            planDirectionHorizontalButton.onClick.RemoveAllListeners();
+            planDirectionPronationButton.onClick.RemoveAllListeners();
+            planDirectionRotationButton.onClick.RemoveAllListeners();
+            planDirectionExtensionButton.onClick.RemoveAllListeners();
+            planDirectionLimitDropdown.onValueChanged.RemoveAllListeners();
             openAddPanelButton.onClick.RemoveAllListeners();
             prevPageButton.onClick.RemoveAllListeners();
             nextPageButton.onClick.RemoveAllListeners();

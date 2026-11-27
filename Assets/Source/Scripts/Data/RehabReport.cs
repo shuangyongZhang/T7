@@ -71,6 +71,15 @@ namespace LB
     }
 
     [Serializable]
+    public class RehabMovementMetrics
+    {
+        public float DistanceMeters;
+        public float MaxSpeedMetersPerSecond;
+        public float AverageSpeedMetersPerSecond;
+        public bool HasData;
+    }
+
+    [Serializable]
     public class TrainingReportPayload
     {
         public string Mode;
@@ -79,6 +88,21 @@ namespace LB
         public int ResistanceLevel;
         public float DurationSeconds;
         public int SampleCount;
+        public string GameId;
+        public int TreatmentPlanId;
+        public bool HasAffectedSide;
+        public AffectedSide AffectedSide;
+        public bool HasDirectionRestriction;
+        public bool IsDirectionRestricted;
+        public RehabMovementMetrics Movement;
+        public bool HasWeightReduction;
+        public float WeightReductionValue;
+        public string WeightReductionUnit;
+        public bool HasEnergy;
+        public float EnergyValue;
+        public string EnergyUnit;
+        public bool HasSuccessRate;
+        public float SuccessRatePercent;
         public RehabRomMetrics Rom;
         public RehabStrengthMetrics Strength;
         public RehabBaselineMetrics Baseline;

@@ -35,9 +35,9 @@
     </div>
 
     <div data-u-type="div" data-u-name="FilterTabs" style="left: 20px; top: 216px; width: 310px; height: 44px; background-color: #f0f0f0;">
-      <button data-u-type="button" data-u-name="AllFilterButton" style="left: 0px; top: 0px; width: 100px; height: 44px; background-color: #eef5ff; color: #1456f0; font-size: 12px;">全部 (0)</button>
-      <button data-u-type="button" data-u-name="TrainingFilterButton" style="left: 104px; top: 0px; width: 100px; height: 44px; background-color: #f0f0f0; color: #45515e; font-size: 12px;">训练 (0)</button>
-      <button data-u-type="button" data-u-name="AssessmentFilterButton" style="left: 208px; top: 0px; width: 102px; height: 44px; background-color: #f0f0f0; color: #45515e; font-size: 12px;">评估 (0)</button>
+      <button data-u-type="button" data-u-name="OverviewButton" style="left: 0px; top: 0px; width: 100px; height: 44px; background-color: #eef5ff; color: #1456f0; font-size: 11px;">总览</button>
+      <button data-u-type="button" data-u-name="TrainingFilterButton" style="left: 104px; top: 0px; width: 100px; height: 44px; background-color: #f0f0f0; color: #45515e; font-size: 11px;">训练 (0)</button>
+      <button data-u-type="button" data-u-name="AssessmentFilterButton" style="left: 208px; top: 0px; width: 102px; height: 44px; background-color: #f0f0f0; color: #45515e; font-size: 11px;">评估 (0)</button>
     </div>
 
     <div data-u-type="div" data-u-name="ReportRowsContent" style="left: 20px; top: 280px; width: 310px; height: 640px; background-color: #ffffff;">
@@ -68,19 +68,126 @@
   </div>
 
   <div data-u-type="div" data-u-name="CanvasPanel" style="left: 434px; top: 56px; width: 1486px; height: 1024px; background-color: #f8fafc;">
+
+    <div data-u-type="div" data-u-name="HistoryOverviewPanel" style="left: 20px; top: 20px; width: 1446px; height: 984px; background-color: #ffffff;">
+      <div data-u-type="text" data-u-name="HistoryOverviewTitleText" style="left: 24px; top: 20px; width: 900px; height: 32px; color: #222222; font-size: 18px; text-align: left;">历史数据总览</div>
+      <div data-u-type="text" data-u-name="HistoryOverviewDescText" style="left: 24px; top: 58px; width: 1200px; height: 24px; color: #8e8e93; font-size: 11px; text-align: left;">按患侧、游戏和日期范围筛选训练记录，在数据汇总与数据比较之间切换。</div>
+      <div data-u-type="div" data-u-name="OverviewViewTabs" style="left: 24px; top: 96px; width: 320px; height: 40px; background-color: #f0f0f0;">
+        <button data-u-type="button" data-u-name="SummaryViewButton" style="left: 0px; top: 0px; width: 156px; height: 40px; background-color: #eff6ff; color: #1456f0; font-size: 12px;">数据汇总</button>
+        <button data-u-type="button" data-u-name="ComparisonViewButton" style="left: 160px; top: 0px; width: 156px; height: 40px; background-color: #f0f0f0; color: #45515e; font-size: 12px;">数据比较</button>
+      </div>
+      <div data-u-type="text" data-u-name="SideFilterLabel" style="left: 24px; top: 158px; width: 80px; height: 36px; color: #45515e; font-size: 12px; text-align: left;">患侧</div>
+      <select data-u-type="dropdown" data-u-name="SideFilterDropdown" style="left: 104px; top: 154px; width: 150px; height: 36px; background-color: #ffffff; color: #222222; font-size: 12px;"><option>左侧</option><option>右侧</option></select>
+      <div data-u-type="text" data-u-name="CategoryFilterLabel" style="left: 274px; top: 158px; width: 80px; height: 36px; color: #45515e; font-size: 12px; text-align: left;">类别</div>
+      <select data-u-type="dropdown" data-u-name="CategoryFilterDropdown" style="left: 354px; top: 154px; width: 150px; height: 36px; background-color: #ffffff; color: #222222; font-size: 12px;"><option>模式</option><option>方向</option></select>
+      <div data-u-type="text" data-u-name="GameFilterLabel" style="left: 524px; top: 158px; width: 80px; height: 36px; color: #45515e; font-size: 12px; text-align: left;">游戏</div>
+      <select data-u-type="dropdown" data-u-name="GameFilterDropdown" style="left: 604px; top: 154px; width: 210px; height: 36px; background-color: #ffffff; color: #222222; font-size: 12px;"><option>全部游戏</option></select>
+      <div data-u-type="text" data-u-name="DateRangeLabel" style="left: 834px; top: 158px; width: 90px; height: 36px; color: #45515e; font-size: 12px; text-align: left;">日期范围</div>
+      <input data-u-type="input" data-u-name="StartDateInput" placeholder="开始日期 yyyy-MM-dd" style="left: 924px; top: 154px; width: 220px; height: 36px; background-color: #ffffff; color: #222222; font-size: 12px; text-align: left;" />
+      <input data-u-type="input" data-u-name="EndDateInput" placeholder="结束日期 yyyy-MM-dd" style="left: 1160px; top: 154px; width: 220px; height: 36px; background-color: #ffffff; color: #222222; font-size: 12px; text-align: left;" />
+
+      <div data-u-type="div" data-u-name="SummaryViewPanel" style="left: 24px; top: 214px; width: 1398px; height: 700px; background-color: rgba(0,0,0,0);">
+        <div data-u-type="div" data-u-name="TrainingCountCard" style="left: 0px; top: 0px; width: 430px; height: 92px; background-color: #f8fafc;">
+          <div data-u-type="text" data-u-name="TrainingCountLabelText" style="left: 18px; top: 14px; width: 394px; height: 20px; color: #8e8e93; font-size: 11px; text-align: left;">训练次数</div>
+          <div data-u-type="text" data-u-name="TrainingCountValueText" style="left: 18px; top: 42px; width: 394px; height: 34px; color: #1456f0; font-size: 24px; text-align: left;">0 次</div>
+        </div>
+        <div data-u-type="div" data-u-name="TrainingTimeCard" style="left: 450px; top: 0px; width: 430px; height: 92px; background-color: #f8fafc;">
+          <div data-u-type="text" data-u-name="TrainingTimeLabelText" style="left: 18px; top: 14px; width: 394px; height: 20px; color: #8e8e93; font-size: 11px; text-align: left;">训练时间</div>
+          <div data-u-type="text" data-u-name="TrainingTimeValueText" style="left: 18px; top: 42px; width: 394px; height: 34px; color: #222222; font-size: 24px; text-align: left;">0 分钟</div>
+        </div>
+        <div data-u-type="div" data-u-name="TreatmentModeCard" style="left: 900px; top: 0px; width: 498px; height: 92px; background-color: #f8fafc;">
+          <div data-u-type="text" data-u-name="TreatmentModeLabel" style="left: 18px; top: 14px; width: 462px; height: 20px; color: #8e8e93; font-size: 11px; text-align: left;">治疗模式</div>
+          <div data-u-type="text" data-u-name="TreatmentModeValueText" style="left: 18px; top: 42px; width: 462px; height: 34px; color: #222222; font-size: 13px; text-align: left;">被动 -- · 助力 -- · 主动 -- · 抗阻 --</div>
+        </div>
+        <div data-u-type="div" data-u-name="SummaryPieCard" style="left: 0px; top: 116px; width: 850px; height: 530px; background-color: #ffffff; border: 1px solid #e5e7eb;">
+          <div data-u-type="text" data-u-name="SummaryPieTitleText" style="left: 20px; top: 16px; width: 810px; height: 28px; color: #222222; font-size: 14px; text-align: left;">训练时间分布</div>
+          <div data-u-type="div" data-u-name="SummaryPieChart" style="left: 20px; top: 56px; width: 810px; height: 430px; background-color: rgba(0,0,0,0);"></div>
+          <div data-u-type="text" data-u-name="SummaryPieHintText" style="left: 20px; top: 492px; width: 810px; height: 24px; color: #8e8e93; font-size: 10px; text-align: left;">方向时长按会话配置均分，接入方向分段采样后改为真实分段时长。</div>
+        </div>
+        <div data-u-type="div" data-u-name="TreatmentModeBreakdownCard" style="left: 870px; top: 116px; width: 528px; height: 530px; background-color: #ffffff; border: 1px solid #e5e7eb;">
+          <div data-u-type="text" data-u-name="TreatmentModeBreakdownTitleText" style="left: 20px; top: 16px; width: 488px; height: 28px; color: #222222; font-size: 14px; text-align: left;">治疗模式时长</div>
+          <div data-u-type="text" data-u-name="TreatmentModePassiveLabelText" style="left: 20px; top: 72px; width: 180px; height: 28px; color: #45515e; font-size: 13px; text-align: left;">被动</div>
+          <div data-u-type="text" data-u-name="TreatmentModePassiveValueText" style="left: 220px; top: 72px; width: 288px; height: 28px; color: #1456f0; font-size: 14px; text-align: right;">--</div>
+          <div data-u-type="text" data-u-name="TreatmentModeAssistLabelText" style="left: 20px; top: 152px; width: 180px; height: 28px; color: #45515e; font-size: 13px; text-align: left;">助力</div>
+          <div data-u-type="text" data-u-name="TreatmentModeAssistValueText" style="left: 220px; top: 152px; width: 288px; height: 28px; color: #1456f0; font-size: 14px; text-align: right;">--</div>
+          <div data-u-type="text" data-u-name="TreatmentModeActiveLabelText" style="left: 20px; top: 232px; width: 180px; height: 28px; color: #45515e; font-size: 13px; text-align: left;">主动</div>
+          <div data-u-type="text" data-u-name="TreatmentModeActiveValueText" style="left: 220px; top: 232px; width: 288px; height: 28px; color: #1456f0; font-size: 14px; text-align: right;">--</div>
+          <div data-u-type="text" data-u-name="TreatmentModeResistLabelText" style="left: 20px; top: 312px; width: 180px; height: 28px; color: #45515e; font-size: 13px; text-align: left;">抗阻</div>
+          <div data-u-type="text" data-u-name="TreatmentModeResistValueText" style="left: 220px; top: 312px; width: 288px; height: 28px; color: #1456f0; font-size: 14px; text-align: right;">--</div>
+          <div data-u-type="text" data-u-name="TreatmentModeBreakdownHintText" style="left: 20px; top: 430px; width: 488px; height: 60px; color: #8e8e93; font-size: 11px; text-align: left;">仅统计当前筛选范围内、模式字段完整的训练记录；缺失模式不补零。</div>
+        </div>
+      </div>
+
+      <div data-u-type="div" data-u-name="ComparisonViewPanel" style="left: 24px; top: 214px; width: 1398px; height: 700px; background-color: rgba(0,0,0,0);">
+        <div data-u-type="div" data-u-name="ComparisonLineCard" style="left: 0px; top: 0px; width: 1398px; height: 646px; background-color: #ffffff; border: 1px solid #e5e7eb;">
+          <div data-u-type="text" data-u-name="ComparisonLineTitleText" style="left: 20px; top: 16px; width: 1358px; height: 28px; color: #222222; font-size: 14px; text-align: left;">指标变化趋势</div>
+          <div data-u-type="div" data-u-name="ComparisonLineChart" style="left: 20px; top: 56px; width: 1358px; height: 540px; background-color: rgba(0,0,0,0);"></div>
+          <div data-u-type="text" data-u-name="ComparisonLineHintText" style="left: 20px; top: 606px; width: 1358px; height: 24px; color: #8e8e93; font-size: 10px; text-align: left;">仅显示有真实数据的训练记录；缺失指标不补零。</div>
+        </div>
+      </div>
+      <div data-u-type="text" data-u-name="HistoryOverviewStatusText" style="left: 24px; top: 934px; width: 1100px; height: 28px; color: #8e8e93; font-size: 12px; text-align: left;">等待查询</div>
+      <button data-u-type="button" data-u-name="RefreshOverviewButton" style="left: 1200px; top: 930px; width: 222px; height: 40px; background-color: #181e25; color: #ffffff; font-size: 12px;">刷新总览</button>
+    </div>
+
     <div data-u-type="div" data-u-name="DetailCard" style="left: 20px; top: 20px; width: 1446px; height: 984px; background-color: #ffffff;">
-      <div data-u-type="text" data-u-name="DetailTitleText" style="left: 24px; top: 18px; width: 940px; height: 30px; color: #222222; font-size: 16px; text-align: left;">请选择报告</div>
-      <div data-u-type="text" data-u-name="DetailTypeText" style="left: 24px; top: 52px; width: 940px; height: 20px; color: #8e8e93; font-size: 11px; text-align: left;">报告内容将在这里显示</div>
-      <div data-u-type="text" data-u-name="DetailDateText" style="left: 1080px; top: 22px; width: 340px; height: 24px; color: #8e8e93; font-size: 11px; text-align: right;">--</div>
+      <div data-u-type="text" data-u-name="DetailTitleText" style="left: 24px; top: 18px; width: 760px; height: 30px; color: #222222; font-size: 16px; text-align: left;">请选择报告</div>
+      <div data-u-type="text" data-u-name="DetailTypeText" style="left: 24px; top: 52px; width: 760px; height: 20px; color: #8e8e93; font-size: 11px; text-align: left;">报告内容将在这里显示</div>
+      <div data-u-type="text" data-u-name="DetailDateText" style="left: 800px; top: 22px; width: 270px; height: 24px; color: #8e8e93; font-size: 11px; text-align: right;">--</div>
+      <button data-u-type="button" data-u-name="ExportWordButton" style="left: 1090px; top: 16px; width: 150px; height: 36px; background-color: #181e25; color: #ffffff; font-size: 12px;">导出 Word</button>
+      <button data-u-type="button" data-u-name="PrintButton" style="left: 1250px; top: 16px; width: 170px; height: 36px; background-color: #2f74c0; color: #ffffff; font-size: 12px;">打印</button>
       <div data-u-type="image" data-u-name="DetailHeaderDivider" style="left: 24px; top: 84px; width: 1398px; height: 1px; background-color: #f2f3f5;"></div>
 
       <div data-u-type="scroll" data-u-name="AssessmentScroll" data-u-dir="v" style="left: 24px; top: 96px; width: 1398px; height: 860px; background-color: #f3f4f6;">
         <div data-u-type="div" data-u-name="AssessmentContent" style="left: 0px; top: 0px; width: 1398px; height: 1904px; background-color: rgba(0,0,0,0);"></div>
       </div>
 
-      <div data-u-type="div" data-u-name="TrainingPlaceholder" style="left: 24px; top: 96px; width: 1398px; height: 860px; background-color: #f8fafc;">
-        <div data-u-type="text" data-u-name="TrainingPlaceholderTitleText" style="left: 160px; top: 330px; width: 1078px; height: 36px; color: #45515e; font-size: 20px; text-align: center;">训练报告内容待定</div>
-        <div data-u-type="text" data-u-name="TrainingPlaceholderHintText" style="left: 160px; top: 386px; width: 1078px; height: 48px; color: #8e8e93; font-size: 13px; text-align: center;">当前报告已选中，训练报告详情界面将在后续版本接入。</div>
+      <div data-u-type="div" data-u-name="TrainingDetailPanel" style="left: 24px; top: 96px; width: 1398px; height: 860px; background-color: #f8fafc;">
+        <div data-u-type="text" data-u-name="TrainingDetailTitleText" style="left: 24px; top: 20px; width: 1200px; height: 32px; color: #222222; font-size: 18px; text-align: left;">康复训练报告</div>
+        <div data-u-type="text" data-u-name="TrainingDetailHintText" style="left: 24px; top: 60px; width: 1320px; height: 24px; color: #8e8e93; font-size: 11px; text-align: left;">以下为本次训练归档参数与真实采样指标，未采集项显示“--”。</div>
+
+        <div data-u-type="div" data-u-name="TrainingMetricModeCard" style="left: 24px; top: 112px; width: 430px; height: 120px; background-color: #ffffff;">
+          <div data-u-type="text" data-u-name="ModeLabelText" style="left: 18px; top: 14px; width: 394px; height: 20px; color: #8e8e93; font-size: 11px; text-align: left;">训练模式</div>
+          <div data-u-type="text" data-u-name="ModeValueText" style="left: 18px; top: 48px; width: 394px; height: 44px; color: #222222; font-size: 20px; text-align: left;">--</div>
+        </div>
+        <div data-u-type="div" data-u-name="TrainingMetricWeightReductionCard" style="left: 474px; top: 112px; width: 430px; height: 120px; background-color: #ffffff;">
+          <div data-u-type="text" data-u-name="WeightReductionLabelText" style="left: 18px; top: 14px; width: 394px; height: 20px; color: #8e8e93; font-size: 11px; text-align: left;">减重</div>
+          <div data-u-type="text" data-u-name="WeightReductionValueText" style="left: 18px; top: 48px; width: 394px; height: 44px; color: #222222; font-size: 20px; text-align: left;">--</div>
+        </div>
+        <div data-u-type="div" data-u-name="TrainingMetricDirectionCard" style="left: 924px; top: 112px; width: 430px; height: 120px; background-color: #ffffff;">
+          <div data-u-type="text" data-u-name="DirectionLabelText" style="left: 18px; top: 14px; width: 394px; height: 20px; color: #8e8e93; font-size: 11px; text-align: left;">运动方向</div>
+          <div data-u-type="text" data-u-name="DirectionValueText" style="left: 18px; top: 48px; width: 394px; height: 44px; color: #222222; font-size: 16px; text-align: left;">--</div>
+        </div>
+
+        <div data-u-type="div" data-u-name="TrainingMetricDirectionLimitedCard" style="left: 24px; top: 252px; width: 430px; height: 120px; background-color: #ffffff;">
+          <div data-u-type="text" data-u-name="DirectionLimitedLabelText" style="left: 18px; top: 14px; width: 394px; height: 20px; color: #8e8e93; font-size: 11px; text-align: left;">是否限定方向</div>
+          <div data-u-type="text" data-u-name="DirectionLimitedValueText" style="left: 18px; top: 48px; width: 394px; height: 44px; color: #222222; font-size: 20px; text-align: left;">--</div>
+        </div>
+        <div data-u-type="div" data-u-name="TrainingMetricDistanceCard" style="left: 474px; top: 252px; width: 430px; height: 120px; background-color: #ffffff;">
+          <div data-u-type="text" data-u-name="DistanceLabelText" style="left: 18px; top: 14px; width: 394px; height: 20px; color: #8e8e93; font-size: 11px; text-align: left;">运动距离 / 里程</div>
+          <div data-u-type="text" data-u-name="DistanceValueText" style="left: 18px; top: 48px; width: 394px; height: 44px; color: #222222; font-size: 20px; text-align: left;">--</div>
+        </div>
+        <div data-u-type="div" data-u-name="TrainingMetricMaxSpeedCard" style="left: 924px; top: 252px; width: 430px; height: 120px; background-color: #ffffff;">
+          <div data-u-type="text" data-u-name="MaxSpeedLabelText" style="left: 18px; top: 14px; width: 394px; height: 20px; color: #8e8e93; font-size: 11px; text-align: left;">最大速度</div>
+          <div data-u-type="text" data-u-name="MaxSpeedValueText" style="left: 18px; top: 48px; width: 394px; height: 44px; color: #222222; font-size: 20px; text-align: left;">--</div>
+        </div>
+
+        <div data-u-type="div" data-u-name="TrainingMetricDurationCard" style="left: 24px; top: 392px; width: 430px; height: 120px; background-color: #ffffff;">
+          <div data-u-type="text" data-u-name="DurationLabelText" style="left: 18px; top: 14px; width: 394px; height: 20px; color: #8e8e93; font-size: 11px; text-align: left;">训练时长</div>
+          <div data-u-type="text" data-u-name="DurationValueText" style="left: 18px; top: 48px; width: 394px; height: 44px; color: #222222; font-size: 20px; text-align: left;">--</div>
+        </div>
+        <div data-u-type="div" data-u-name="TrainingMetricEnergyCard" style="left: 474px; top: 392px; width: 430px; height: 120px; background-color: #ffffff;">
+          <div data-u-type="text" data-u-name="EnergyLabelText" style="left: 18px; top: 14px; width: 394px; height: 20px; color: #8e8e93; font-size: 11px; text-align: left;">能量</div>
+          <div data-u-type="text" data-u-name="EnergyValueText" style="left: 18px; top: 48px; width: 394px; height: 44px; color: #222222; font-size: 20px; text-align: left;">--</div>
+        </div>
+        <div data-u-type="div" data-u-name="TrainingMetricSuccessRateCard" style="left: 924px; top: 392px; width: 430px; height: 120px; background-color: #ffffff;">
+          <div data-u-type="text" data-u-name="SuccessRateLabelText" style="left: 18px; top: 14px; width: 394px; height: 20px; color: #8e8e93; font-size: 11px; text-align: left;">成功率</div>
+          <div data-u-type="text" data-u-name="SuccessRateValueText" style="left: 18px; top: 48px; width: 394px; height: 44px; color: #222222; font-size: 20px; text-align: left;">--</div>
+        </div>
+
+        <div data-u-type="div" data-u-name="TrainingReportNoteCard" style="left: 24px; top: 542px; width: 1330px; height: 180px; background-color: #ffffff;">
+          <div data-u-type="text" data-u-name="TrainingReportNoteLabelText" style="left: 18px; top: 16px; width: 1294px; height: 22px; color: #8e8e93; font-size: 11px; text-align: left;">报告说明</div>
+          <div data-u-type="text" data-u-name="TrainingReportNoteText" style="left: 18px; top: 50px; width: 1294px; height: 104px; color: #45515e; font-size: 12px; text-align: left;">运动距离与速度来自真实轨迹样本；减重、能量和成功率需设备或游戏模块提供。</div>
+        </div>
       </div>
 
       <div data-u-type="div" data-u-name="EmptyDetail" style="left: 24px; top: 96px; width: 1398px; height: 860px; background-color: #f8fafc;">

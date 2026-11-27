@@ -73,7 +73,11 @@ namespace LB
             base.OnInit();
 
             var sexOptions = EnumHelper.GetDescriptions(typeof(Sex));
-            var sideOptions = EnumHelper.GetDescriptions(typeof(AffectedSide));
+            var sideOptions = new List<TMP_Dropdown.OptionData>
+            {
+                new TMP_Dropdown.OptionData("左侧"),
+                new TMP_Dropdown.OptionData("右侧")
+            };
             addSexDropdown.ClearOptions();
             addSexDropdown.AddOptions(sexOptions);
             editSexDropdown.ClearOptions();
@@ -109,6 +113,15 @@ namespace LB
                 patientInfos = DBManagerModule.Instance.QueryAllPatientInfos(Global.CurAdminInfo) ?? new List<PatientInfo>();
                 curDoctor = Global.CurAdminInfo.Account;
                 curPatient = null;
+            }
+            if (Global.CurPatientInfo != null)
+            {
+                int currentIndex = patientInfos.FindIndex(p => p.ID == Global.CurPatientInfo.ID);
+                if (currentIndex >= 0)
+                {
+                    patientInfos[currentIndex] = Global.CurPatientInfo.Clone();
+                    curPatient = patientInfos[currentIndex];
+                }
             }
 
             searchInputField.text = "";
@@ -281,7 +294,8 @@ namespace LB
         {
             bool selected = curPatient != null;
             overviewTitleText.text = selected ? curPatient.Name + "·康复阶段总览" : "患者·康复阶段总览";
-            overviewDescText.text = "当前康复周期：暂无记录 · Brunnstrom 上肢评定：暂无记录 · 累计做功：暂无记录";
+            string calibration = selected ? (curPatient.IsCalibrated ? "减重标定：已完成" : "减重标定：未完成") : "减重标定：--";
+            overviewDescText.text = "当前康复周期：暂无记录 · Brunnstrom 上肢评定：暂无记录 · 累计做功：暂无记录 · " + calibration;
             openAssessmentButton.interactable = selected;
             openTrainingButton.interactable = selected;
         }
@@ -348,7 +362,7 @@ namespace LB
             editStatureInput.text = curPatient.Stature > 0 ? curPatient.Stature.ToString() : "";
             editWeightInput.text = curPatient.Weight > 0 ? curPatient.Weight.ToString() : "";
             editSexDropdown.SetValueWithoutNotify((int)curPatient.Sex);
-            editAffectedSideDropdown.SetValueWithoutNotify((int)curPatient.AffectedSide);
+            editAffectedSideDropdown.SetValueWithoutNotify(curPatient.AffectedSide == AffectedSide.RIGHT ? 1 : 0);
             editDiagnoseInput.text = curPatient.Diagnose ?? "";
             editCreateTimeInput.text = curPatient.CreateTime == default(DateTime) ? "" : curPatient.CreateTime.ToString("yyyy-MM-dd HH:mm");
             ShowModalOnMain(editPatientPanel);

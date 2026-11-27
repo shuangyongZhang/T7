@@ -29,3 +29,17 @@ MonoBehaviour:
     Sprite: {fileID: 21300000, guid: 4054ca72eafd8c14dac52d01fdee3228, type: 3}
   - Name: femaleDoctor
     Sprite: {fileID: 21300000, guid: c1a1257f3bc027a44a34fd1df02debf4, type: 3}
+  - Name: treatmentPlan
+    Sprite: {fileID: 21300000, guid: 428537572bfe5d94a9e0d6aba80d9855, type: 3}
+  - Name: add
+    Sprite: {fileID: 21300000, guid: f1ce27bd0d69ad247b7bef3e7470bae3, type: 3}
+  - Name: training
+    Sprite: {fileID: 21300000, guid: 9aad699275054a6449cc6ff11c8ed674, type: 3}
+  - Name: assessment
+    Sprite: {fileID: 21300000, guid: d6b5866d836966d4f988c25277758d0f, type: 3}
+  - Name: report
+    Sprite: {fileID: 21300000, guid: 4288b3afc8fc9774dbd083701ada6ebe, type: 3}
+  - Name: exit
+    Sprite: {fileID: 21300000, guid: b71ccca42e3b72f4d9a367a9b93f3dd6, type: 3}
+  - Name: upperLimb
+    Sprite: {fileID: 21300000, guid: 9a193644e594c644188aee20d0185bcf, type: 3}

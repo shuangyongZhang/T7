@@ -35,6 +35,11 @@ namespace LB
             public string Version { get; set; }
         }
 
+        public class PatientColumnInfo
+        {
+            public string Name { get; set; }
+        }
+
         /// <summary>
         /// 初始化模块
         /// </summary>
@@ -117,6 +122,8 @@ namespace LB
 #endif
 
             UpgrageDB();
+            EnsurePatientCalibrationColumns();
+            CreateTreatmentPlanTable();
             CreateRehabReportTable();
             CreateRehabReportSampleTable();
         }
@@ -149,6 +156,33 @@ namespace LB
         public override void OnResume()
         {
             base.OnResume();
+        }
+
+        private void EnsurePatientCalibrationColumns()
+        {
+            if (dbManager == null) return;
+            dbManager.BeginTransaction();
+            try
+            {
+                List<PatientColumnInfo> columns = dbManager.Query<PatientColumnInfo>("PRAGMA table_info(PatientInfo)") ?? new List<PatientColumnInfo>();
+                bool hasIsCalibrated = columns.Exists(c => c.Name == "IsCalibrated");
+                bool hasCalibrationTime = columns.Exists(c => c.Name == "CalibrationTime");
+                if (!hasIsCalibrated)
+                    dbManager.Execute("ALTER TABLE \"PatientInfo\" ADD COLUMN \"IsCalibrated\" INTEGER NOT NULL DEFAULT 0");
+                if (!hasCalibrationTime)
+                    dbManager.Execute("ALTER TABLE \"PatientInfo\" ADD COLUMN \"CalibrationTime\" DATETIME");
+                dbManager.Commit();
+            }
+            catch (Exception e)
+            {
+                dbManager.Rollback();
+                Log.Info(e.Message);
+            }
+        }
+
+        private void CreateTreatmentPlanTable()
+        {
+            if (dbManager != null) dbManager.CreateTable<TreatmentPlan>();
         }
 
         #region Hospital
@@ -272,6 +306,21 @@ namespace LB
             }
             return true;
         }
+
+        public bool DeleteAdminInfo(string account)
+        {
+            if (dbManager == null || string.IsNullOrEmpty(account)) return false;
+            try
+            {
+                dbManager.Execute("DELETE FROM AdminInfo WHERE Account = ?", account);
+                return true;
+            }
+            catch (Exception e)
+            {
+                Log.Info(e.Message);
+                return false;
+            }
+        }
         #endregion
 
         #region PatientInfo
@@ -343,35 +392,32 @@ namespace LB
 
         public bool DeletePatientInfo(PatientInfo patientInfo)
         {
-            try
-            {
-                if (dbManager != null)
-                {
-                    dbManager.Delete<PatientInfo>(patientInfo);
-                }
-            }
-            catch (Exception e)
-            {
-                Log.Info(e.Message);
-                return false;
-            }
-            return true;
+            return patientInfo != null && DeletePatientInfoWithReports(patientInfo.ID);
         }
+
         public bool DeletePatientInfoByID(string patientID)
         {
+            return DeletePatientInfoWithReports(patientID);
+        }
+
+        private bool DeletePatientInfoWithReports(string patientID)
+        {
+            if (dbManager == null || string.IsNullOrEmpty(patientID)) return false;
+            dbManager.BeginTransaction();
             try
             {
-                if (dbManager != null)
-                {
-                    dbManager.Execute("DELETE FROM PatientInfo WHERE ID = ?", patientID);
-                }
+                dbManager.Execute("DELETE FROM RehabReportSample WHERE ReportID IN (SELECT ReportID FROM RehabReport WHERE PatientID = ?)", patientID);
+                dbManager.Execute("DELETE FROM RehabReport WHERE PatientID = ?", patientID);
+                dbManager.Execute("DELETE FROM PatientInfo WHERE ID = ?", patientID);
+                dbManager.Commit();
+                return true;
             }
             catch (Exception e)
             {
+                dbManager.Rollback();
                 Log.Info(e.Message);
                 return false;
             }
-            return true;
         }
         public List<PatientInfo> SearchPatientInfo(string search)
         {
@@ -436,6 +482,71 @@ namespace LB
         }
         #endregion
 
+        #region TreatmentPlan
+        public List<TreatmentPlan> QueryAllTreatmentPlans()
+        {
+            try
+            {
+                if (dbManager != null)
+                    return dbManager.Query<TreatmentPlan>("SELECT * FROM TreatmentPlan ORDER BY UpdateTime DESC, PlanID DESC");
+            }
+            catch (Exception e)
+            {
+                Log.Info(e.Message);
+            }
+            return null;
+        }
+
+        public bool InsertTreatmentPlan(TreatmentPlan plan)
+        {
+            try
+            {
+                if (dbManager != null)
+                {
+                    dbManager.Insert(plan);
+                    return true;
+                }
+            }
+            catch (Exception e)
+            {
+                Log.Info(e.Message);
+            }
+            return false;
+        }
+
+        public bool UpdateTreatmentPlan(TreatmentPlan plan)
+        {
+            try
+            {
+                if (dbManager != null)
+                {
+                    dbManager.UpdateTable(plan);
+                    return true;
+                }
+            }
+            catch (Exception e)
+            {
+                Log.Info(e.Message);
+            }
+            return false;
+        }
+
+        public bool DeleteTreatmentPlan(int planID)
+        {
+            if (dbManager == null || planID <= 0) return false;
+            try
+            {
+                dbManager.Execute("DELETE FROM TreatmentPlan WHERE PlanID = ?", planID);
+                return true;
+            }
+            catch (Exception e)
+            {
+                Log.Info(e.Message);
+                return false;
+            }
+        }
+        #endregion
+
         #region RehabReport
         public void CreateRehabReportTable()
         {
@@ -492,6 +603,40 @@ namespace LB
                     }
                     dbManager.InsertAll(rows);
                 }
+                dbManager.Commit();
+                return true;
+            }
+            catch (Exception e)
+            {
+                dbManager.Rollback();
+                Log.Info(e.Message);
+                return false;
+            }
+        }
+
+        public bool UpdateRehabReport(RehabReport report)
+        {
+            if (dbManager == null || report == null || report.ReportID <= 0) return false;
+            try
+            {
+                dbManager.UpdateTable(report);
+                return true;
+            }
+            catch (Exception e)
+            {
+                Log.Info(e.Message);
+                return false;
+            }
+        }
+
+        public bool DeleteRehabReport(int reportID)
+        {
+            if (dbManager == null || reportID <= 0) return false;
+            dbManager.BeginTransaction();
+            try
+            {
+                dbManager.Execute("DELETE FROM RehabReportSample WHERE ReportID = ?", reportID);
+                dbManager.Execute("DELETE FROM RehabReport WHERE ReportID = ?", reportID);
                 dbManager.Commit();
                 return true;
             }
